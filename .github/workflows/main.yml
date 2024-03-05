@@ -13,3 +13,17 @@ jobs:
         uses: actions/checkout@v4
       - name: Arduino Compile
         run: tools/arduino-cli.exe compile -e -m esp32
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}-v1.0.${{ github.run_number }}
+          release_name: Release ${{ github.ref }}-v1.0.${{ github.run_number }}
+          body: |
+            Changes in this Release
+            - First Change
+            - Second Change
+          draft: false
+          prerelease: false
