@@ -1,7 +1,9 @@
-name: 'Arduino Compile'
+name: 'Arduino Release'
 on:
   workflow_dispatch:
   push:
+permissions:
+  contents: write
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
