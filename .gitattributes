@@ -1,0 +1,2 @@
+tools/arduino-win/staging/packages/xtensa-esp32-elf-win32-1.22.0-97-gc752ad5-5.2.0.zip filter=lfs diff=lfs merge=lfs -text
+tools/CP210x_Windows_Drivers.zip filter=lfs diff=lfs merge=lfs -text
