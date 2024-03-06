@@ -48,6 +48,13 @@ String  PREF_WEB_ADMIN_USERNAME_DESC =    "default "+String(CONF_WEB_ADMIN_USERN
 String  PREF_WEB_ADMIN_PASSWORD_DESC =    "default "+String(CONF_WEB_ADMIN_PASSWORD);
 #define PREF_WEB_HTML_TITLE               "html_title"
 String  PREF_WEB_HTML_TITLE_DESC =        "Titolo dell'interfaccia HTTP/HTML, default "+String(CONF_WEB_HTML_TITLE);
+#ifdef CONF_WEB_HTTPS
+#define PREF_WEB_CERT                     "web_cert"
+#define PREF_WEB_CERT_DESC                "Formato PEM solo parte Base64"
+#define PREF_WEB_CERT_KEY                 "web_cert_key"
+#define PREF_WEB_SECURE                   "web_secure"
+#define PREF_WEB_SECURE_DESC              "Abilita solo la connessione sicura"
+#endif
 #endif
 
 #ifdef CONF_WIFI
@@ -102,6 +109,11 @@ const Config config_defs[] = {
   { .key = PREF_WEB_HTML_TITLE, .type = STRING, .desc = PREF_WEB_HTML_TITLE_DESC.c_str() },
   { .key = PREF_WEB_ADMIN_USERNAME, .type = STRING, .desc = PREF_WEB_ADMIN_USERNAME_DESC.c_str() },
   { .key = PREF_WEB_ADMIN_PASSWORD, .type = STRING, .desc = PREF_WEB_ADMIN_PASSWORD_DESC.c_str() },
+#endif
+#ifdef CONF_WEB_HTTPS
+  { .key = PREF_WEB_CERT, .type = STRING, .desc = PREF_WEB_CERT_DESC },
+  { .key = PREF_WEB_CERT_KEY, .type = STRING, .desc = PREF_WEB_CERT_DESC },
+  { .key = PREF_WEB_SECURE, .type = BOOL, .desc = PREF_WEB_SECURE_DESC },
 #endif
   { .key = PREF_CONFIG_PUBLISH, .type = BOOL, .desc = "" },
 #ifdef CONF_DHT

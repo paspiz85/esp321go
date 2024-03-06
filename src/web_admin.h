@@ -10,8 +10,8 @@
 String web_admin_username;
 String web_admin_password;
 
-bool web_admin_authenticate() {
-  return web_authenticate(web_admin_username.c_str(), web_admin_password.c_str());
+bool web_admin_authenticate(HTTPRequest * req) {
+  return web_authenticate(req, web_admin_username.c_str(), web_admin_password.c_str());
 }
 
 void web_admin_setup() {

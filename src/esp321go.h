@@ -78,12 +78,17 @@ String web_html_footer(bool admin) {
   return html;
 }
 
-void web_handle_root() {
-  int refresh = web_parameter("refresh").toInt();
+void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
+  int refresh = web_parameter(req,"refresh").toInt();
   String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
-  html += "Hello";
+  html += "<h1>Hello World!</h1>";
+  if (req->isSecure()) {
+    html += "<p>You are connected via <strong>HTTPS</strong>.</p>";
+  } else {
+    html += "<p>You are connected via <strong>HTTP</strong>.</p>";
+  }
   html += "</body>";
-  web_send_page(html_title,html,refresh);
+  web_send_page(req,res,html_title,html,refresh);
 }
 #endif
 
@@ -167,10 +172,15 @@ void setup() {
     html_title = CONF_WEB_HTML_TITLE;
   }
   web_server_setup_http();
+  bool web_secure = false;
+#ifdef CONF_WEB_HTTPS
+  web_server_setup_https(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+  web_secure = preferences.getBool(PREF_WEB_SECURE);
+#endif
   web_admin_setup();
   web_ota_setup();
   web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME));
+  web_server_register(HTTP_ANY, "/", &web_handle_root);
+  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME), web_secure);
 #endif
 }

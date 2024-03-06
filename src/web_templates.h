@@ -35,25 +35,48 @@ const char* css =
 String web_html_title();
 String web_html_footer(bool admin = false);
 
-void web_handle_notFound() {
-  web_send_text(404, "text/plain", "Not Found");
+void web_handle_notFound(HTTPRequest * req, HTTPResponse * res) {
+  req->discardRequestBody();
+  res->setStatusCode(404);
+  res->setStatusText("Not Found");
+  res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  res->println("<html>");
+  res->println("<head><title>Not Found</title></head>");
+  res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
+  res->println("</html>");
+  res->finalize();
 }
 
-void web_send_page(String title, String body, int refresh = 0) {
-  String html = "<html><head><meta charset=\"utf-8\">";
-  html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
-  html += "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">";
-  html += "<meta http-equiv=\"Pragma\" content=\"no-cache\">";
-  html += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+void web_send_error_client(HTTPRequest * req, HTTPResponse * res, const char * message) {
+  log_d("client_error %s", message);
+  req->discardRequestBody();
+  res->setStatusCode(400);
+  res->setHeader("Content-Type", "text/plain");
+  res->println(message);
+  res->finalize();
+}
+
+void web_send_page(HTTPRequest * req, HTTPResponse * res, String title, String body, int refresh = 0) {
+  req->discardRequestBody();
+  res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  res->println("<html><meta charset=\"utf-8\">");
+  res->println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
+  res->println("<meta http-equiv=\"Cache-Control\" content=\"no-cache\">");
+  res->println("<meta http-equiv=\"Pragma\" content=\"no-cache\">");
+  res->println("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
   if (refresh > 0) {
-    html += "<meta http-equiv=\"refresh\" content=\""+String(refresh)+"\">";
+    res->printf("<meta http-equiv=\"refresh\" content=\"%d\">", refresh);
   }
   if (title != "") {
-    html += "<title>"+html_encode(title)+"</title>";
+    res->printf("<title>%s</title>", html_encode(title).c_str());
   }
-  html += "<style>"+String(css)+"</style></head>" + body + "</html>";
-  //html += "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>";
-  web_send_text(200, "text/html", html);
+  res->printf("<style>%s</style>", css);
+  res->println("</head>");
+  res->println(body);
+  res->println("</html>");
+  res->finalize();
 }
 
 #endif

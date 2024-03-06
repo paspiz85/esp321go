@@ -21,9 +21,9 @@ uint32_t web_ota_chip_id() {
 }
 
 void web_ota_setup() {
-  web_server_register(HTTP_GET, CONF_WEB_URI_FIRMWARE_UPDATE, []() {
-    if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+  web_server_register(HTTP_GET, CONF_WEB_URI_FIRMWARE_UPDATE, [](HTTPRequest * req, HTTPResponse * res) {
+    if (!web_admin_authenticate(req)) {
+      return web_authenticate_request(req,res);
     }
     String title = web_html_title();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Firmware Update</h2>";
@@ -36,32 +36,49 @@ void web_ota_setup() {
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='/'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    web_send_page(title,html);
+    web_send_page(req,res,title,html);
   });
-  web_server_register(HTTP_POST, CONF_WEB_URI_FIRMWARE_UPDATE, []() {
-    web_reset(Update.hasError() ? "FAILED" : "COMPLETED");
-  }, []() {
-    if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+  web_server_register(HTTP_POST, CONF_WEB_URI_FIRMWARE_UPDATE, [](HTTPRequest * req, HTTPResponse * res) {
+    if (!web_admin_authenticate(req)) {
+      return web_authenticate_request(req,res);
     }
-    HTTPUpload& upload = web_upload();
-    if (upload.status == UPLOAD_FILE_START) {
-      log_i("Update: %s\n", upload.filename.c_str());
+    HTTPBodyParser *parser;
+    std::string contentType = req->getHeader("Content-Type");
+    size_t semicolonPos = contentType.find(";");
+    if (semicolonPos != std::string::npos) {
+      contentType = contentType.substr(0, semicolonPos);
+    }
+    if (contentType == "multipart/form-data") {
+      parser = new HTTPMultipartBodyParser(req);
+    } else {
+      return web_send_error_client(req,res,"Invalid Content-Type");
+    }
+    while (parser->nextField()) {
+      std::string name = parser->getFieldName();
+      if (name != "update") {
+        log_w("Skipping unexpected field");
+        continue;
+      }
       if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
         Update.printError(Serial);
       }
-    } else if (upload.status == UPLOAD_FILE_WRITE) {
-      /* flashing firmware to ESP*/
-      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-        Update.printError(Serial);
+      size_t upload_len = 0;
+      while (!parser->endOfField()) {
+        byte buf[512];
+        size_t curr_len = parser->read(buf, sizeof(buf));
+        if (Update.write(buf, curr_len) != curr_len) {
+          Update.printError(Serial);
+        }
+        upload_len += curr_len;
       }
-    } else if (upload.status == UPLOAD_FILE_END) {
       if (Update.end(true)) { //true to set the size to the current progress
-        log_i("Update Success: %u\nRebooting...\n", upload.totalSize);
+        log_i("Update Success: %u\nRebooting...\n", upload_len);
       } else {
         Update.printError(Serial);
       }
+      return web_reset(req,res,Update.hasError() ? "FAILED" : "COMPLETED");
     }
+    web_send_error_client(req,res,"Invalid upload");
   });
 }
 #endif

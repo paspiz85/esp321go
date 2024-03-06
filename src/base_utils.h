@@ -6,6 +6,10 @@
  */
 
 #include <Arduino.h>
+#include <base64.h>
+extern "C" {
+#include "crypto/base64.h"
+}
 
 typedef enum {
   UINT8 = 16,
@@ -245,6 +249,28 @@ String html_input(ctype_t type,String name = "value",String value = "",String at
     }
     return "<input type=\""+input_type+"\" name=\""+name+"\" value=\""+html_encode(value)+"\" "+input_options+" "+attrs+"/>";
   }
+}
+
+/*
+unsigned char * base64_encode(const unsigned char *src, size_t len,
+            size_t *out_len);
+unsigned char * base64_decode(const unsigned char *src, size_t len,
+            size_t *out_len);
+*/
+
+String base64_encode_str(String input) {
+  return base64::encode(input);
+}
+
+String base64_decode_str(String input) {
+  const char *base64String = input.c_str();
+  size_t length;
+  unsigned char *array = base64_decode(reinterpret_cast<const unsigned char *>(base64String), strlen(base64String), &length);
+  String result = "";
+  for (size_t i = 0; i < length; i++) {
+    result += (char)array[i];
+  }
+  return result;
 }
 
 #endif
