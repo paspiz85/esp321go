@@ -8,6 +8,7 @@
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
  */
 
+#include "base_conf.h"
 #include <WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>

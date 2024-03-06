@@ -5,6 +5,7 @@
  * Contiene variabili, tipi e funzioni per l'uso del sensore DHT.
  */
 
+#include "base_conf.h"
 #include <DHT.h>
 
 // https://github.com/adafruit/DHT-sensor-library/blob/master/DHT.h

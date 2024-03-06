@@ -5,6 +5,7 @@
  * Contiene variabili, tipi e funzioni per l'aggiornamento tramite Web Server.
  */
 
+#include "base_conf.h"
 #include "web.h"
 #include "web_admin.h"
 #include "web_pages.h"

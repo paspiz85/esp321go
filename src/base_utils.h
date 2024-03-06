@@ -5,6 +5,8 @@
  * Contiene tipi e funzioni di uso generico.
  */
 
+#include <Arduino.h>
+
 typedef enum {
   UINT8 = 16,
   UINT16 = 17,

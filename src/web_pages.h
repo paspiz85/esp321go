@@ -5,6 +5,7 @@
  * Contiene funzioni per la gestione delle pagine HTML del Web Server.
  */
 
+#include "base_utils.h"
 #include "web.h"
 
 const char* css =

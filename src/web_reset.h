@@ -5,6 +5,7 @@
  * Contiene variabili, tipi e funzioni per il reset del Web Server.
  */
 
+#include "base_conf.h"
 #include "web.h"
 #include "web_admin.h"
 
