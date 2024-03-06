@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 'releases/**'
+      - 'termo'
 permissions:
   contents: write
 concurrency:
