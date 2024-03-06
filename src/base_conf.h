@@ -26,7 +26,7 @@
 // Valore per Europe/Rome in https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv 
 #define CONF_TIME_ZONE                    "CET-1CEST,M3.5.0,M10.5.0/3"
 
-#define CONF_WEB_PORT                     (80)
+#define CONF_WEB_HTTP_PORT                (80)
 #define CONF_WEB_UPLOAD_LIMIT             (10240)
 #define CONF_WEB_URI_CONFIG               "/config"
 #define CONF_WEB_URI_CONFIG_RESET         "/config/reset"

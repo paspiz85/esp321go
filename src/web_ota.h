@@ -44,7 +44,7 @@ void web_ota_setup() {
     if (!web_admin_authenticate()) {
       return web_authenticate_request();
     }
-    HTTPUpload& upload = web_server.upload();
+    HTTPUpload& upload = web_upload();
     if (upload.status == UPLOAD_FILE_START) {
       log_i("Update: %s\n", upload.filename.c_str());
       if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size

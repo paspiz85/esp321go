@@ -238,7 +238,7 @@ void web_handle_config_upload() {
     html += "</body>";
     return web_send_page(title,html);
   }
-  HTTPUpload& upload = web_server.upload();
+  HTTPUpload& upload = web_upload();
   if (upload.status == UPLOAD_FILE_START) {
     log_i("Upload: %s", upload.filename.c_str());
     config_upload_len = 0;

@@ -152,9 +152,10 @@ void setup() {
   if (html_title == "") {
     html_title = CONF_HTML_TITLE;
   }
+  web_server_setup_http();
   web_admin_setup();
   web_ota_setup();
   web_config_setup();
   web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_setup(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME));
+  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME));
 }
