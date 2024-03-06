@@ -8,3 +8,4 @@ profiles:
       - Arduino_JSON (0.2.0)
       - Adafruit Unified Sensor (1.1.8)
       - DHT sensor library (1.4.4)
+      - ESP32_HTTPS_Server (1.0.0)

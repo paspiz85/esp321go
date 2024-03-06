@@ -9,22 +9,22 @@
 #include "web.h"
 #include "web_admin.h"
 
-void web_reset(String message, int refresh = 0) {
+void web_reset(HTTPRequest * req, HTTPResponse * res, String message, int refresh = 0) {
   log_i("reset");
-  web_send_redirect("/",message,refresh);
+  web_send_redirect(req,res,"/",message,refresh);
   delay(1000);
   ESP.restart();
 }
 
 void web_reset_setup() {
-  web_server_register(HTTP_ANY, CONF_WEB_URI_RESET, []() {
-    if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+  web_server_register(HTTP_ANY, CONF_WEB_URI_RESET, [](HTTPRequest * req, HTTPResponse * res) {
+    if (!web_admin_authenticate(req)) {
+      return web_authenticate_request(req,res);
     }
-    if (!web_request_post()) {
-      return web_send_redirect("/");
+    if (!web_request_post(req)) {
+      return web_send_redirect(req,res,"/");
     }
-    web_reset("OK");
+    web_reset(req,res,"OK");
   });
 }
 

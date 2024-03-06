@@ -112,14 +112,40 @@ void web_config_handle_value_import(const char * key, Config config, JSONVar * j
   }
 }
 
-void web_config_handle_change() {
-  if (!web_admin_authenticate()) {
-    return web_authenticate_request();
+void web_config_handle_change(HTTPRequest * req, HTTPResponse * res) {
+  if (!web_admin_authenticate(req)) {
+    return web_authenticate_request(req,res);
   }
-  String param_name = web_parameter("name");
-  String param_value = web_parameter("value");
-  bool is_reset = web_parameter("reset").equals("true");
-  bool is_download = web_parameter("download").equals("true");
+  String param_name = "";
+  String param_value = "";
+  bool is_reset = false;
+  bool is_download = false;
+  HTTPBodyParser *parser = NULL;
+  if (req->getHeader("Content-Type") == "application/x-www-form-urlencoded") {
+    parser = new HTTPURLEncodedBodyParser(req);
+  }
+  if (parser != NULL) {
+    while (parser->nextField()) {
+      std::string name = parser->getFieldName();
+      if (name == "name") {
+        param_name = web_parameter(parser);
+      }
+      if (name == "value") {
+        param_value = web_parameter(parser);
+      }
+      if (name == "reset") {
+        is_reset = web_parameter(parser).equals("true");
+      }
+      if (name == "download") {
+        is_download = web_parameter(parser).equals("true");
+      }
+    }
+  } else {
+    param_name = web_parameter(req, "name");
+    param_value = web_parameter(req, "value");
+    is_reset = web_parameter(req, "reset").equals("true");
+    is_download = web_parameter(req, "download").equals("true");
+  }
   String title = web_html_title();
   const Config * config_selected = NULL;
   if (param_name != "") {
@@ -174,7 +200,7 @@ void web_config_handle_change() {
       }
     }
     if (is_download) {
-      return web_download_text("application/json","config.json",JSON.stringify(json_export));
+      return web_download_text(req,res,"application/json","config.json",JSON.stringify(json_export));
     }
     html += "</table>";
     html += "<form action=\""+String(CONF_WEB_URI_RESET)+"\" method=\"POST\"><p>";
@@ -187,7 +213,7 @@ void web_config_handle_change() {
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"return confirm('Are you sure?')\">Reset</button> ";
     html += "</p></form><hr/>";
     html += web_html_footer(true);
-  } else if (!web_request_post()) {
+  } else if (!web_request_post(req)) {
     String config_value = preferences_get(param_name.c_str(),config_selected->type,true);
     html += "<p>"+param_name+"</p>";
     html += "<form action=\""+String(CONF_WEB_URI_CONFIG)+"\" method=\"POST\"><p>";
@@ -213,20 +239,17 @@ void web_config_handle_change() {
     } else {
       preferences_put(param_name.c_str(),config_selected->type,param_value,publish_key);
     }
-    return web_send_redirect(CONF_WEB_URI_CONFIG);
+    return web_send_redirect(req,res,CONF_WEB_URI_CONFIG);
   }
   html += "</body>";
-  web_send_page(title,html);
+  web_send_page(req,res,title,html);
 }
 
-int config_upload_len;
-uint8_t config_upload_buf[CONF_WEB_UPLOAD_LIMIT];
-
-void web_handle_config_upload() {
-  if (!web_admin_authenticate()) {
-    return web_authenticate_request();
+void web_config_handle_upload(HTTPRequest * req, HTTPResponse * res) {
+  if (!web_admin_authenticate(req)) {
+    return web_authenticate_request(req,res);
   }
-  if (!web_request_post()) {
+  if (!web_request_post(req)) {
     String title = web_html_title();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Upload Configurations</h2>";
     html += "<form action=\""+String(CONF_WEB_URI_CONFIG_UPLOAD)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
@@ -236,22 +259,40 @@ void web_handle_config_upload() {
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    return web_send_page(title,html);
+    return web_send_page(req,res,title,html);
   }
-  HTTPUpload& upload = web_server.upload();
-  if (upload.status == UPLOAD_FILE_START) {
-    log_i("Upload: %s", upload.filename.c_str());
-    config_upload_len = 0;
-  } else if (upload.status == UPLOAD_FILE_WRITE) {
-    if (config_upload_len + upload.currentSize + 1 < CONF_WEB_UPLOAD_LIMIT) {
-      memcpy(&config_upload_buf[config_upload_len],upload.buf,upload.currentSize * sizeof(uint8_t));
-      config_upload_len += upload.currentSize;
+  HTTPBodyParser *parser;
+  std::string contentType = req->getHeader("Content-Type");
+  size_t semicolonPos = contentType.find(";");
+  if (semicolonPos != std::string::npos) {
+    contentType = contentType.substr(0, semicolonPos);
+  }
+  if (contentType == "multipart/form-data") {
+    parser = new HTTPMultipartBodyParser(req);
+  } else {
+    return web_send_error_client(req,res,"Invalid Content-Type");
+  }
+  while (parser->nextField()) {
+    std::string name = parser->getFieldName();
+    if (name != "upload") {
+      log_w("Skipping unexpected field");
+      continue;
     }
-  } else if (upload.status == UPLOAD_FILE_END) {
-    log_i("Upload Success: %u", upload.totalSize);
-    config_upload_buf[config_upload_len] = 0;
-    JSONVar json_import = JSON.parse(String((char *)config_upload_buf));
-    config_upload_len = 0;
+    std::string filename = parser->getFieldFilename();
+    log_i("Upload: %s", filename.c_str());
+    uint8_t upload_buf[CONF_WEB_UPLOAD_LIMIT];
+    size_t upload_len = 0;
+    while (!parser->endOfField()) {
+      byte buf[512];
+      size_t curr_len = parser->read(buf, sizeof(buf));
+      if (upload_len + curr_len + 1 < CONF_WEB_UPLOAD_LIMIT) {
+        memcpy(&upload_buf[upload_len],buf,curr_len * sizeof(uint8_t));
+        upload_len += curr_len;
+      }
+    }
+    log_i("Upload Success: %u", upload_len);
+    upload_buf[upload_len] = 0;
+    JSONVar json_import = JSON.parse(String((char *)upload_buf));
     for (int i = 0; i < len(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
         web_config_handle_value_import(config_defs[i].key,config_defs[i],&json_import);
@@ -264,26 +305,25 @@ void web_handle_config_upload() {
         }
       }
     }
+    return;
   }
+  web_send_error_client(req,res,"Invalid upload");
 }
 
 void web_config_setup() {
   config_publish = preferences.getBool(PREF_CONFIG_PUBLISH);
   web_reset_setup();
-  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
-  web_server_register(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
-  web_server_register(HTTP_POST, CONF_WEB_URI_CONFIG_UPLOAD, []() {
-    web_send_redirect(CONF_WEB_URI_CONFIG);
-  }, web_handle_config_upload);
-  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, []() {
-    if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG, &web_config_handle_change);
+  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG_UPLOAD, &web_config_handle_upload);
+  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, [](HTTPRequest * req, HTTPResponse * res) {
+    if (!web_admin_authenticate(req)) {
+      return web_authenticate_request(req,res);
     }
-    if (web_request_post()) {
+    if (web_request_post(req)) {
       log_i("preferences clear");
       preferences.clear();
     }
-    web_send_redirect(CONF_WEB_URI_CONFIG);
+    web_send_redirect(req,res,CONF_WEB_URI_CONFIG);
   });
 }
 

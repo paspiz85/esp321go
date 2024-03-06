@@ -47,6 +47,14 @@ String  PREF_HTML_TITLE_DESC =            "Titolo dell'interfaccia HTTP/HTML, de
 #define PREF_TIME_ZONE                    "time_zone"
 String  PREF_TIME_ZONE_DESC =             "default "+String(CONF_TIME_ZONE);
 
+#ifdef CONF_WEB_HTTPS
+#define PREF_WEB_CERT                     "web_cert"
+#define PREF_WEB_CERT_DESC                "Formato PEM solo parte Base64"
+#define PREF_WEB_CERT_KEY                 "web_cert_key"
+#define PREF_WEB_SECURE                   "web_secure"
+#define PREF_WEB_SECURE_DESC              "Abilita solo la connessione sicura"
+#endif
+
 #define PREF_WIFI_AP_IP                   "wifi0_ip"
 String  PREF_WIFI_AP_IP_DESC =            "default "+String(CONF_WIFI_AP_IP);
 #define PREF_WIFI_AP_PIN                  "wifi0_pin"
@@ -92,6 +100,11 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = PREF_WIFI_CHECK_THRESHOLD_DESC.c_str() },
   { .key = PREF_WIFI_NAME, .type = STRING, .desc = PREF_WIFI_NAME_DESC.c_str() },
   { .key = PREF_TIME_ZONE, .type = STRING, .desc = PREF_TIME_ZONE_DESC.c_str() },
+#ifdef CONF_WEB_HTTPS
+  { .key = PREF_WEB_CERT, .type = STRING, .desc = PREF_WEB_CERT_DESC },
+  { .key = PREF_WEB_CERT_KEY, .type = STRING, .desc = PREF_WEB_CERT_DESC },
+  { .key = PREF_WEB_SECURE, .type = BOOL, .desc = PREF_WEB_SECURE_DESC },
+#endif
   { .key = PREF_HTML_TITLE, .type = STRING, .desc = PREF_HTML_TITLE_DESC.c_str() },
   { .key = PREF_ADMIN_USERNAME, .type = STRING, .desc = PREF_ADMIN_USERNAME_DESC.c_str() },
   { .key = PREF_ADMIN_PASSWORD, .type = STRING, .desc = PREF_ADMIN_PASSWORD_DESC.c_str() },
