@@ -39,6 +39,14 @@ void web_handle_notFound() {
   web_server.send(404, "text/plain", "Not Found");
 }
 
+void web_handle_rest_notFound() {
+  web_handle_notFound();
+}
+
+void web_handle_rest_result(String value) {
+  web_server.send(200, "text/plain", value);
+}
+
 void web_send_page(String title, String body, int refresh = 0) {
   String html = "<html><head><meta charset=\"utf-8\">";
   html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";

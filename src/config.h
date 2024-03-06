@@ -25,6 +25,7 @@ String  PREF_ADMIN_PASSWORD_DESC =        "default "+String(CONF_ADMIN_PASSWORD)
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
 #define PREF_DHT_PIN                      "dht_pin"
+#define PREF_DHT_PUBLISH                  "dht_pub"
 #define PREF_DHT_READ_INTERVAL            "dht_interval"
 String  PREF_DHT_READ_INTERVAL_DESC =     "min "+String(CONF_DHT_READ_INTERVAL_MIN)+", default "+String(CONF_DHT_READ_INTERVAL_MIN);
 #define PREF_DHT_TYPE                     "dht_type"
@@ -32,17 +33,52 @@ String  PREF_DHT_READ_INTERVAL_DESC =     "min "+String(CONF_DHT_READ_INTERVAL_M
 #define PREF_HTML_TITLE                   "html_title"
 String  PREF_HTML_TITLE_DESC =            "Titolo dell'interfaccia HTTP/HTML, default "+String(CONF_HTML_TITLE);
 
+#define PREF_INPUT_READ_INTERVAL          "reading_ms"
+String  PREF_INPUT_READ_INTERVAL_DESC =   "min "+String(CONF_INPUT_READ_INTERVAL_MIN)+", default "+String(CONF_INPUT_READ_INTERVAL);
+
 #define PREF_LOG_LEVEL                    "log_level"
 #define PREF_LOG_LEVEL_DESC               "Livello di log (d,i,w,e)"
 
+#define PREF_OPENHAB_BUS_ITEM             "openhab_bus"
+String  PREF_OPENHAB_BUS_ITEM_DESC =      "Item OpenHAB utilizzato per la pubblicazione degli stati, default "+String(CONF_OPENHAB_BUS_ITEM);
+#define PREF_OPENHAB_REST_URI             "openhab_uri"
+#define PREF_OPENHAB_REST_URI_DESC        "URL delle API REST di OpenHAB, ad esempio http://192.168.1.91:8080/rest (vuoto = funzione disabilitata)"
+
+#define PREF_PREFIX_INPUT                 "in"              // Prefisso per le preferenze degli input
+#define PREF_PREFIX_INPUT_KEY             "in_"             // Prefisso di fallback del nome 
+#define PREF_PREFIX_INPUT_NAME            "_name"           // Suffisso per i nomi degli input
+#define PREF_PREFIX_INPUT_PIN             "_pin"            // Suffisso per i pin degli input
+#define PREF_PREFIX_INPUT_TYPE            "_type"           // Suffisso per il tipo degli input, vedi descrizione successiva
+#define PREF_PREFIX_INPUT_TYPE_BITMASK    (63)              // Bitmask sul tipo degli input
+#define PREF_PREFIX_INPUT_TYPE_MONITORED  (64)              // Bitmask sul tipo degli input monitored
+#define PREF_PREFIX_INPUT_TYPE_PUBLISHED  (128)             // Bitmask sul tipo degli input published
+#define PREF_PREFIX_INPUT_TYPE_DESC       "Tipo di input:\n 0 -> none\n 1 -> digital\n 2 -> analog\n 3 -> mq2\n +64 -> monitoring\n +128 -> published\n others -> none"
+#define PREF_PREFIX_OUTPUT                "out"             // Prefisso per le preferenze degli output
+#define PREF_PREFIX_OUTPUT_KEY            "out_"            // Prefisso per la memorizzazione dello stato degli output e come fallback del nome
+#define PREF_PREFIX_OUTPUT_NAME           "_name"           // Suffisso per i nomi degli output
+#define PREF_PREFIX_OUTPUT_PIN            "_pin"            // Suffisso per i pin degli output
+#define PREF_PREFIX_OUTPUT_TYPE           "_type"           // Suffisso per il tipo degli output, vedi descrizione successiva
+#define PREF_PREFIX_OUTPUT_TYPE_BITMASK   (63)              // Bitmask sul tipo degli output
+#define PREF_PREFIX_OUTPUT_TYPE_STORED    (64)              // Bitmask sul tipo degli output stored
+#define PREF_PREFIX_OUTPUT_TYPE_PUBLISHED (128)             // Bitmask sul tipo degli output published
+#define PREF_PREFIX_OUTPUT_TYPE_DESC      "Tipo di output:\n 0 -> none\n 1 -> digital\n 2 -> analog PWM\n 3 -> analog FM\n 16 -> uint8\n 17 -> uint16\n 18 -> uint32\n 20 -> int8\n 21 -> int16\n 22 -> int32\n 24 -> string\n 25 -> bool\n 26 -> float\n 27 -> double\n +64 -> stored\n +128 -> published\n others -> none"
+#define PREF_PREFIX_PIN_STATE             "pin_"            // Prefisso per la memorizzazione e pubblicazione dello stato dei pin
 #define PREF_PREFIX_WIFI                  "wifi"            // Prefisso per le reti WiFi
 #define PREF_PREFIX_WIFI_PSWD             "_pswd"           // Suffisso per le password WiFi
 #define PREF_PREFIX_WIFI_SSID             "_ssid"           // Suffisso per gli SSID WiFi
+
+#define PREF_PUBLISH_INTERVAL             "publish_ms"
+String  PREF_PUBLISH_INTERVAL_DESC =      "min "+String(CONF_PUBLISH_INTERVAL_MIN)+" (default), 0 to disable";
+#define PREF_PUBLISH_IP                   "publish_ip"
+#define PREF_PUBLISH_SSID                 "publish_ssid"
+#define PREF_PUBLISH_RSSI                 "publish_rssi"
 
 #define PREF_REBOOT_FREE                  "reboot_free"
 #define PREF_REBOOT_FREE_DESC             "Abilita il riavvio se la memoria scende sotto la soglia (0 = funzione disabilitata)"
 #define PREF_REBOOT_MS                    "reboot_ms"
 #define PREF_REBOOT_MS_DESC               "Abilita il riavvio dopo N millis (0 = funzione disabilitata)"
+
+#define PREF_RULES                        "rules"
 
 #define PREF_TIME_ZONE                    "time_zone"
 String  PREF_TIME_ZONE_DESC =             "default "+String(CONF_TIME_ZONE);
@@ -77,6 +113,16 @@ const Config config_wifi_defs[] = {
   { .key = PREF_PREFIX_WIFI_SSID, .type = STRING, .desc = "" },
   { .key = PREF_PREFIX_WIFI_PSWD, .type = STRING, .desc = "" }
 };
+const Config config_input_defs[] = {
+  { .key = PREF_PREFIX_INPUT_TYPE, .type = UINT8, .desc = PREF_PREFIX_INPUT_TYPE_DESC },
+  { .key = PREF_PREFIX_INPUT_NAME, .type = STRING, .desc = "" },
+  { .key = PREF_PREFIX_INPUT_PIN, .type = UINT8, .desc = "" }
+};
+const Config config_output_defs[] = {
+  { .key = PREF_PREFIX_OUTPUT_TYPE, .type = UINT8, .desc = PREF_PREFIX_OUTPUT_TYPE_DESC },
+  { .key = PREF_PREFIX_OUTPUT_NAME, .type = STRING, .desc = "" },
+  { .key = PREF_PREFIX_OUTPUT_PIN, .type = UINT8, .desc = "" }
+};
 
 const Config config_defs[] = {
   { .key = PREF_LOG_LEVEL, .type = STRING, .desc = PREF_LOG_LEVEL_DESC },
@@ -98,41 +144,52 @@ const Config config_defs[] = {
   { .key = PREF_CONFIG_PUBLISH, .type = BOOL, .desc = "" },
   { .key = PREF_DHT_PIN, .type = UINT8, .desc = "" },
   { .key = PREF_DHT_TYPE, .type = UINT8, .desc = "" },
-  { .key = PREF_DHT_READ_INTERVAL, .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() }
+  { .key = PREF_DHT_READ_INTERVAL, .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() },
+  { .key = PREF_DHT_PUBLISH, .type = BOOL, .desc = "" },
+  { .key = PREF_PREFIX_INPUT, .type = DARRAY, .desc = "", .count = CONF_SCHEMA_INPUT_COUNT, .refs = &config_input_defs[0], .refs_len = len(config_input_defs) },
+  { .key = PREF_PREFIX_OUTPUT, .type = DARRAY, .desc = "", .count = CONF_SCHEMA_OUTPUT_COUNT, .refs = &config_output_defs[0], .refs_len = len(config_output_defs) },
+  { .key = PREF_INPUT_READ_INTERVAL, .type = UINT32, .desc = PREF_INPUT_READ_INTERVAL_DESC.c_str() },
+  { .key = PREF_RULES, .type = STRUCT, .desc = "" },
+  { .key = PREF_PUBLISH_INTERVAL, .type = UINT32, .desc = PREF_PUBLISH_INTERVAL_DESC.c_str() },
+  { .key = PREF_PUBLISH_IP, .type = BOOL, .desc = "" },
+  { .key = PREF_PUBLISH_SSID, .type = BOOL, .desc = "" },
+  { .key = PREF_PUBLISH_RSSI, .type = BOOL, .desc = "" },
+  { .key = PREF_OPENHAB_REST_URI, .type = STRING, .desc = PREF_OPENHAB_REST_URI_DESC },
+  { .key = PREF_OPENHAB_BUS_ITEM, .type = STRING, .desc = PREF_OPENHAB_BUS_ITEM_DESC.c_str() }
 };
 
 Preferences preferences;
 
-void items_publish(JSONVar message);
+void items_publish(JSONVar data);
 
 void item_publish(const char * name, String value) {
-  JSONVar message;
-  message[name] = value;
-  items_publish(message);
+  JSONVar data;
+  data[name] = value;
+  items_publish(data);
 }
 
 void item_publish(const char * name, int32_t value) {
-  JSONVar message;
-  message[name] = value;
-  items_publish(message);
+  JSONVar data;
+  data[name] = value;
+  items_publish(data);
 }
 
 void item_publish(const char * name, uint32_t value) {
-  JSONVar message;
-  message[name] = value;
-  items_publish(message);
+  JSONVar data;
+  data[name] = value;
+  items_publish(data);
 }
 
 void item_publish(const char * name, bool value) {
-  JSONVar message;
-  message[name] = value;
-  items_publish(message);
+  JSONVar data;
+  data[name] = value;
+  items_publish(data);
 }
 
 void item_publish(const char * name, double value) {
-  JSONVar message;
-  message[name] = value;
-  items_publish(message);
+  JSONVar data;
+  data[name] = value;
+  items_publish(data);
 }
 
 String preferences_get(const char * key,ctype_t type,bool emptyOnNull=false) {
