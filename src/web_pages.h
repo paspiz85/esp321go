@@ -44,7 +44,7 @@ void web_handle_rest_notFound() {
 }
 
 void web_handle_rest_result(String value) {
-  web_server.send(200, "text/plain", value);
+  web_send_text(200, "text/plain", value);
 }
 
 void web_send_page(String title, String body, int refresh = 0) {

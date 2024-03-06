@@ -661,36 +661,36 @@ void web_rest_handle_output(const Output * output) {
   }
   String error = output_write(output,input_value,is_reset);
   if (error != "") {
-    web_server.send(400, "text/plain", error);
+    web_send_text(400, "text/plain", error);
     return;
   }
-  String redirect_uri = web_server.header("Referer");
+  String redirect_uri = web_header("Referer");
   if (redirect_uri == "") {
-    web_server.send(200, "text/plain", "OK");
+    web_send_text(200, "text/plain", "OK");
   } else {
     web_send_redirect(redirect_uri);
   }
 }
 
 void web_server_rest_setup(bool dht_available) {
-  web_server.on(UriRegex("^\\/rest\\/in([0-9]+)$"), []() {
-    int i = web_server.pathArg(0).toInt();
+  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/in([0-9]+)$"), []() {
+    int i = web_path_arg(0).toInt();
     if (i <= 0 || i > CONF_SCHEMA_INPUT_COUNT) {
       web_handle_rest_notFound();
       return;
     }
     web_rest_handle_input(&inputs[i-1]);
   });
-  web_server.on(UriRegex("^\\/rest\\/out([0-9]+)$"), []() {
-    int i = web_server.pathArg(0).toInt();
+  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/out([0-9]+)$"), []() {
+    int i = web_path_arg(0).toInt();
     if (i <= 0 || i > CONF_SCHEMA_OUTPUT_COUNT) {
       web_handle_rest_notFound();
       return;
     }
     web_rest_handle_output(&outputs[i-1]);
   });
-  web_server.on(UriRegex("^\\/rest\\/in\\/(.+)$"), []() {
-    String input_name = web_server.pathArg(0);
+  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/in\\/(.+)$"), []() {
+    String input_name = web_path_arg(0);
     for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
       if (inputs[i].type == NO_INPUT) {
         continue;
@@ -702,8 +702,8 @@ void web_server_rest_setup(bool dht_available) {
     }
     web_handle_rest_notFound();
   });
-  web_server.on(UriRegex("^\\/rest\\/out\\/(.+)$"), []() {
-    String input_name = web_server.pathArg(0);
+  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/out\\/(.+)$"), []() {
+    String input_name = web_path_arg(0);
     for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
       if (outputs[i].type == NONE) {
         continue;
@@ -716,10 +716,10 @@ void web_server_rest_setup(bool dht_available) {
     web_handle_rest_notFound();
   });
   if (dht_available) {
-    web_server.on("/rest/dht_temp", []() {
+    web_server_register(HTTP_ANY, "/rest/dht_temp", []() {
       web_handle_rest_result(String(dht_read_temperature()));
     });
-    web_server.on("/rest/dht_hum", []() {
+    web_server_register(HTTP_ANY, "/rest/dht_hum", []() {
       web_handle_rest_result(String(dht_read_humidity()));
     });
   }
@@ -917,7 +917,7 @@ void setup() {
   web_server_rest_setup(dht_available);
   web_server_register(HTTP_POST, CONF_WEB_URI_PUBLISH, []() {
     publish();
-    String redirect_uri = web_server.header("Referer");
+    String redirect_uri = web_header("Referer");
     if (redirect_uri == "") {
       redirect_uri = "/";
     }

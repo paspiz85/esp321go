@@ -55,6 +55,17 @@ String web_parameter(String param_name) {
   return "";
 }
 
+String web_path_arg(int n) {
+  return web_server->pathArg(n);
+}
+
+String web_header(String name) {
+  if (web_server == NULL) {
+    return "";
+  }
+  return web_server->header(name);
+}
+
 HTTPUpload& web_upload() {
   return web_server->upload();
 }
