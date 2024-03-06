@@ -1,6 +1,6 @@
 name: 'ESP32 Project'
 env:
-  version: ${{ github.ref_name }}-v1.0
+  version: ${{ github.ref_name }}-v1.0.${{ github.run_number }}
 on:
   workflow_dispatch:
   push:
@@ -23,8 +23,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ env.version }}.${{ github.run_number }}
-          name: Release ${{ env.version }}.${{ github.run_number }}
+          tag_name: ${{ env.version }}
+          name: Release ${{ env.version }}
           body: |
             Changes in this Release
             ${{ github.event.head_commit.message }}
