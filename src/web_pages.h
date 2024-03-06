@@ -36,7 +36,7 @@ String web_html_title();
 String web_html_footer(bool admin = false);
 
 void web_handle_notFound() {
-  web_server.send(404, "text/plain", "Not Found");
+  web_send_text(404, "text/plain", "Not Found");
 }
 
 void web_handle_rest_notFound() {
@@ -61,7 +61,7 @@ void web_send_page(String title, String body, int refresh = 0) {
   }
   html += "<style>"+String(css)+"</style></head>" + body + "</html>";
   //html += "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>";
-  web_server.send(200, "text/html", html);
+  web_send_text(200, "text/html", html);
 }
 
 #endif
