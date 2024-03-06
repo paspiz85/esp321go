@@ -71,6 +71,14 @@ void web_authenticate_request(HTTPRequest * req, HTTPResponse * res) {
   res->finalize();
 }
 
+void web_cache_control(HTTPRequest * req, HTTPResponse * res, bool value) {
+  if (!value) {
+    res->setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res->setHeader("Pragma", "no-cache");
+    res->setHeader("Expires", "0");
+  }
+}
+
 void web_cookie_create(HTTPRequest * req, HTTPResponse * res, const char * name, const char * value, unsigned long max_age = 0) {
   std::string cookieHeader = std::string(name) + "=" + value;
   if (max_age > 0) {
@@ -148,6 +156,13 @@ void web_send_redirect(HTTPRequest * req, HTTPResponse * res, String redirect_ur
   }
   res->setHeader("Connection", "close");
   res->printf("<html><body>%s</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='%s'},%d)})</script></html>", message.c_str(), redirect_uri.c_str(), refresh);
+}
+
+void web_send_data(HTTPRequest * req, HTTPResponse * res, JSONVar data) {
+  req->discardRequestBody();
+  res->setHeader("Content-Type", "application/json");
+  res->println(JSON.stringify(data));
+  res->finalize();
 }
 
 void web_download_text(HTTPRequest * req, HTTPResponse * res, String content_type, String filename, String text) {

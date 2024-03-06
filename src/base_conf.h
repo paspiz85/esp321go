@@ -23,6 +23,9 @@
 
 #define CONF_SCHEMA_PIN_COUNT             (64)
 
+#define CONF_THERMO_AUTO_INTERVAL         (60000)
+#define CONF_THERMO_REFRESH_MIN           (1000)
+
 // Valore per Europe/Rome in https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv 
 #define CONF_TIME_ZONE                    "CET-1CEST,M3.5.0,M10.5.0/3"
 
@@ -37,7 +40,10 @@
 #define CONF_WEB_URI_CONFIG_RESET         "/config/reset"
 #define CONF_WEB_URI_CONFIG_UPLOAD        "/config/upload"
 #define CONF_WEB_URI_FIRMWARE_UPDATE      "/firmware/update"
+#define CONF_WEB_URI_LOGIN                "/login"
+#define CONF_WEB_URI_LOGOUT               "/logout"
 #define CONF_WEB_URI_RESET                "/reset"
+#define CONF_WEB_URI_REST_DATA            "/rest/data"
 
 #define CONF_WIFI_AP_IP                   "192.168.32.1"
 #define CONF_WIFI_AP_PSWD                 "esp32"

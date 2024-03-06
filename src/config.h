@@ -22,6 +22,8 @@ String  PREF_ADMIN_USERNAME_DESC =        "default "+String(CONF_ADMIN_USERNAME)
 #define PREF_ADMIN_PASSWORD               "admin_password"
 String  PREF_ADMIN_PASSWORD_DESC =        "default "+String(CONF_ADMIN_PASSWORD);
 
+#define PREF_BOILER_PIN                   "boiler_pin"
+
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
 #define PREF_DHT_PIN                      "dht_pin"
@@ -44,8 +46,17 @@ String  PREF_HTML_TITLE_DESC =            "Titolo dell'interfaccia HTTP/HTML, de
 #define PREF_REBOOT_MS                    "reboot_ms"
 #define PREF_REBOOT_MS_DESC               "Abilita il riavvio dopo N millis (0 = funzione disabilitata)"
 
+#define PREF_THERMO_AUTO_INTERVAL         "thermo_auto_interval_ms"
+String  PREF_THERMO_AUTO_INTERVAL_DESC =  "default "+String(CONF_THERMO_AUTO_INTERVAL)+" ms";
+#define PREF_THERMO_MODE                  "thermo_mode"
+#define PREF_THERMO_REFRESH               "thermo_refresh"
+String  PREF_THERMO_REFRESH_DESC =        "default and min "+String(CONF_THERMO_REFRESH_MIN)+" ms";
+#define PREF_THERMO_TARGET                "thermo_target"
+
 #define PREF_TIME_ZONE                    "time_zone"
 String  PREF_TIME_ZONE_DESC =             "default "+String(CONF_TIME_ZONE);
+
+#define PREF_USERS                        "users"
 
 #ifdef CONF_WEB_HTTPS
 #define PREF_WEB_CERT                     "web_cert"
@@ -108,10 +119,14 @@ const Config config_defs[] = {
   { .key = PREF_HTML_TITLE, .type = STRING, .desc = PREF_HTML_TITLE_DESC.c_str() },
   { .key = PREF_ADMIN_USERNAME, .type = STRING, .desc = PREF_ADMIN_USERNAME_DESC.c_str() },
   { .key = PREF_ADMIN_PASSWORD, .type = STRING, .desc = PREF_ADMIN_PASSWORD_DESC.c_str() },
+  { .key = PREF_USERS, .type = STRUCT, .desc = "" },
   { .key = PREF_CONFIG_PUBLISH, .type = BOOL, .desc = "" },
   { .key = PREF_DHT_PIN, .type = UINT8, .desc = "" },
   { .key = PREF_DHT_TYPE, .type = UINT8, .desc = "" },
-  { .key = PREF_DHT_READ_INTERVAL, .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() }
+  { .key = PREF_DHT_READ_INTERVAL, .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() },
+  { .key = PREF_BOILER_PIN, .type = UINT8, .desc = "" },
+  { .key = PREF_THERMO_AUTO_INTERVAL, .type = UINT32, .desc = PREF_THERMO_AUTO_INTERVAL_DESC.c_str() },
+  { .key = PREF_THERMO_REFRESH, .type = UINT32, .desc = PREF_THERMO_REFRESH_DESC.c_str() }
 };
 
 Preferences preferences;
