@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_USERS_H
-#define MODULO_WEB_USERS_H
+#ifndef INCLUDE_WEB_USERS_H
+#define INCLUDE_WEB_USERS_H
 
 /**
  * Contiene l'autenticazione degli utenti.
@@ -8,7 +8,7 @@
 #include "config.h"
 #include "web.h"
 #include "web_admin.h"
-#include "web_pages.h"
+#include "web_templates.h"
 #include <Arduino_JSON.h>
 
 #define USER_PASSWORD "password"
@@ -46,7 +46,7 @@ void web_logout(HTTPRequest * req, HTTPResponse * res) {
 
 void web_users_setup() {
   web_admin_setup();
-  String config = preferences.getString(PREF_USERS);
+  String config = preferences.getString(PREF_WEB_USERS);
   if (config == "") {
     config = "{}";
   }

@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_H
-#define MODULO_WEB_H
+#ifndef INCLUDE_WEB_H
+#define INCLUDE_WEB_H
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
@@ -14,8 +14,10 @@
 #include <HTTPURLEncodedBodyParser.hpp>
 #include <HTTPMultipartBodyParser.hpp>
 #include <ESPmDNS.h>
+#ifdef CONF_WEB_HTTPS
 #include <HTTPSServer.hpp>
 #include <SSLCert.hpp>
+#endif
 
 #define HTTP_ANY     ""
 #define HTTP_GET     "GET"
@@ -26,16 +28,20 @@ using namespace httpsserver;
 uint16_t http_port = 0;
 uint16_t https_port = 0;
 HTTPServer * http_server = NULL;
-HTTPSServer * https_server = NULL;
 bool https_server_redirect = false;
+#ifdef CONF_WEB_HTTPS
+HTTPSServer * https_server = NULL;
+#endif
 
 void web_server_loop() {
   if (http_server != NULL) {
     http_server->loop();
   }
+#ifdef CONF_WEB_HTTPS
   if (https_server != NULL) {
     https_server->loop();
   }
+#endif
 }
 
 bool web_request_post(HTTPRequest * req) {
@@ -179,9 +185,11 @@ void web_server_register(ResourceNode * node) {
   if (http_server != NULL && !https_server_redirect) {
     http_server->registerNode(node);
   }
+#ifdef CONF_WEB_HTTPS
   if (https_server != NULL) {
     https_server->registerNode(node);
   }
+#endif
 }
 
 void web_server_register(const std::string &method, const std::string &path, const HTTPSCallbackFunction * callback) {
@@ -200,6 +208,7 @@ bool web_server_setup_http(const uint16_t port = CONF_WEB_HTTP_PORT) {
   return true;
 }
 
+#ifdef CONF_WEB_HTTPS
 bool web_server_setup_https(String crt = "", String key = "", const uint16_t port = CONF_WEB_HTTPS_PORT) {
   if (crt == "" || key == "") {
     crt = CONF_WEB_HTTPS_CERT;
@@ -230,9 +239,11 @@ bool web_server_setup_https(String crt = "", String key = "", const uint16_t por
   https_server = new HTTPSServer(https_cert,https_port);
   return true;
 }
+#endif
 
 void web_server_begin(String name,bool secure = false) {
   ResourceNode * node404 = new ResourceNode("", HTTP_GET, &web_handle_notFound);
+#ifdef CONF_WEB_HTTPS
   if (https_server != NULL) {
     https_server_redirect = secure;
   }
@@ -246,16 +257,22 @@ void web_server_begin(String name,bool secure = false) {
     });
     http_server->setDefaultNode(nodeHttpsRedirect);
   } else {
+#endif
     http_server->setDefaultNode(node404);
+#ifdef CONF_WEB_HTTPS
   }
+#endif
   http_server->start();
   String protocol;
   uint16_t port;
   uint16_t port_default;
+#ifdef CONF_WEB_HTTPS
   if (https_server == NULL) {
+#endif
     protocol = "http";
     port = http_port;
     port_default = 80;
+#ifdef CONF_WEB_HTTPS
   } else {
     protocol = "https";
     port = https_port;
@@ -263,6 +280,7 @@ void web_server_begin(String name,bool secure = false) {
     https_server->setDefaultNode(node404);
     https_server->start();
   }
+#endif
   Serial.print("Ready on ");
   Serial.print(protocol);
   Serial.print("://");

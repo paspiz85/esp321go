@@ -1,5 +1,5 @@
-#ifndef BASE_UTILS_H
-#define BASE_UTILS_H
+#ifndef INCLUDE_BASE_UTILS_H
+#define INCLUDE_BASE_UTILS_H
 
 /**
  * Contiene tipi e funzioni di uso generico.

@@ -1,13 +1,19 @@
 
+#include "config.h"
+#ifdef CONF_DHT
+#include "dht.h"
+#endif
+#ifdef CONF_WIFI
 #include "wifi.h"
 #include "wifi_time.h"
-#include "config.h"
-#include "dht.h"
+#endif
+#ifdef CONF_WEB
 #include "web.h"
-#include "web_pages.h"
+#include "web_templates.h"
 #include "web_ota.h"
 #include "web_config.h"
 #include "web_users.h"
+#endif
 
 #define THERMO_MODE_OFF     (0)
 #define THERMO_MODE_AUTO    (1)
@@ -21,8 +27,7 @@
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-int pin_analog[CONF_SCHEMA_PIN_COUNT];
-int pin_digits[CONF_SCHEMA_PIN_COUNT];
+int pin_states[CONF_SCHEMA_PIN_COUNT];
 int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
 uint8_t wifi_ap_pin = 0;
 uint8_t boiler_pin = 0;
@@ -39,17 +44,18 @@ String thermo_boost_begin;
 String thermo_boost_end;
 uint32_t thermo_refresh;
 
-void items_publish(JSONVar message) {
+void preferences_on_update(JSONVar message) {
+#ifdef CONF_WIFI
   if (!wifi_have_internet()) {
     return;
   }
-  // TODO non pubblichiamo nulla
+  // TODO
+#endif
 }
 
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
-  pin_analog[pin] = -1;
-  pin_digits[pin] = -1;
+  pin_states[pin] = -1;
 }
 
 String digitalString(int value) {
@@ -58,33 +64,45 @@ String digitalString(int value) {
 
 void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
   digitalWrite(pin,value);
-  pin_digits[pin] = value;
+  pin_states[pin] = value;
 }
 
 void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
   ledcWrite(pin_channel[pin], value);
-  pin_analog[pin] = value;
+  pin_states[pin] = value;
 }
 
-void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && pin_digits[wifi_ap_pin] != value) {
-    digitalWriteState(wifi_ap_pin, value, skip_publish);
+void boiler_write(bool b) {
+  if (boiler_pin != 0) {
+    if (b) {
+      if (pin_states[boiler_pin] == 0) {
+        digitalWriteState(boiler_pin, HIGH);
+      }
+    } else {
+      if (pin_states[boiler_pin] != 0) {
+        digitalWriteState(boiler_pin, LOW);
+      }
+    }
   }
 }
 
+#ifdef CONF_WIFI
+void wifi_ap_state_changed(int value, bool skip_publish) {
+  if (wifi_ap_pin != 0 && pin_states[wifi_ap_pin] != value) {
+    digitalWriteState(wifi_ap_pin, value, skip_publish);
+  }
+}
+#endif
+
+#ifdef CONF_WEB
 String web_html_title() {
   return html_title;
 }
 
 String web_html_footer(bool admin) {
   String html = "<div>";
-  if (wifi_mode = WIFI_STA) {
-    html += "Connected to \""+html_encode(WiFi.SSID())+"\" (RSSI "+String(WiFi.RSSI())+") - ";
-  } else if (wifi_mode = WIFI_AP) {
-    html += "Connected clients: "+String(WiFi.softAPgetStationNum())+" - ";
-  } else {
-    html += "WiFi is OFF - ";
-  }
+  html += wifi_info();
+  html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
   html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
@@ -93,80 +111,6 @@ String web_html_footer(bool admin) {
   }
   html += "</div>";
   return html;
-}
-
-void boiler_write(bool b) {
-  if (boiler_pin != 0) {
-    if (b) {
-      if (pin_digits[boiler_pin] == 0) {
-        digitalWriteState(boiler_pin, HIGH);
-      }
-    } else {
-      if (pin_digits[boiler_pin] != 0) {
-        digitalWriteState(boiler_pin, LOW);
-      }
-    }
-  }
-}
-
-void loop() {
-  if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
-    ESP.restart();
-    return;
-  }
-  if (reboot_ms > 0 && millis() > reboot_ms) {
-    ESP.restart();
-    return;
-  }
-  wifi_loop(CONF_WIFI_MODE_LIMIT);
-  wifi_time_loop();
-  if (!wifi_is_off()) {
-    for (int i = 0; i < 100; i++) {
-      web_server_loop();
-      delay(10);
-    }
-  } else {
-    delay(1000);
-  }
-  uint32_t now = millis();
-  //log_d("now = %d", now);
-  switch (thermo_mode) {
-    case THERMO_MODE_OFF:
-      boiler_write(false);
-      break;
-    case THERMO_MODE_AUTO:
-      if (!dht_available()) {
-        thermo_mode = THERMO_MODE_OFF;
-        break;
-      }
-      if (now >= thermo_auto_last + thermo_auto_interval) {
-        thermo_auto_last = now;
-        float temp = dht_read_temperature(true);
-        if (isnan(temp)) {
-          if (thermo_auto_fail == 0) {
-            thermo_auto_fail = now;
-          }
-          if (now >= thermo_auto_fail + 30 * 60000) {
-            thermo_mode = THERMO_MODE_OFF;
-          }
-          break;
-        }
-        thermo_auto_fail = 0;
-        boiler_write(temp <= thermo_target);
-      }
-      break;
-    case THERMO_MODE_BOOST30:
-    case THERMO_MODE_BOOST60:
-    case THERMO_MODE_BOOST90:
-      //log_d("Boost stop = %d", thermo_boost_stop);
-      if (thermo_boost_stop > 0 && now < thermo_boost_stop) {
-        boiler_write(true);
-      } else {
-        log_i("Boost end");
-        thermo_mode = thermo_boost_reset;
-      }
-      break;
-  }
 }
 
 JSONVar html_data() {
@@ -194,7 +138,7 @@ JSONVar html_data() {
   if (boiler_pin == 0) {
     data["boiler_status"] = "--";
   } else {
-    if (pin_digits[boiler_pin] == 0) {
+    if (pin_states[boiler_pin] == 0) {
       data["boiler_status"] = "OFF";
     } else {
       data["boiler_status"] = "ON";
@@ -359,6 +303,71 @@ void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
   html += "</script></body>";
   web_send_page(req,res,html_title,html);
 }
+#endif
+
+void loop() {
+  if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
+    ESP.restart();
+    return;
+  }
+  if (reboot_ms > 0 && millis() > reboot_ms) {
+    ESP.restart();
+    return;
+  }
+#ifdef CONF_WIFI
+  wifi_loop(CONF_WIFI_MODE_LIMIT);
+  wifi_time_loop();
+#endif
+#ifdef CONF_WEB
+  if (!wifi_is_off()) {
+    for (int i = 0; i < 100; i++) {
+      web_server_loop();
+      delay(10);
+    }
+  } else {
+    delay(1000);
+  }
+#endif
+  uint32_t now = millis();
+  //log_d("now = %d", now);
+  switch (thermo_mode) {
+    case THERMO_MODE_OFF:
+      boiler_write(false);
+      break;
+    case THERMO_MODE_AUTO:
+      if (!dht_available()) {
+        thermo_mode = THERMO_MODE_OFF;
+        break;
+      }
+      if (now >= thermo_auto_last + thermo_auto_interval) {
+        thermo_auto_last = now;
+        float temp = dht_read_temperature(true);
+        if (isnan(temp)) {
+          if (thermo_auto_fail == 0) {
+            thermo_auto_fail = now;
+          }
+          if (now >= thermo_auto_fail + 30 * 60000) {
+            thermo_mode = THERMO_MODE_OFF;
+          }
+          break;
+        }
+        thermo_auto_fail = 0;
+        boiler_write(temp <= thermo_target);
+      }
+      break;
+    case THERMO_MODE_BOOST30:
+    case THERMO_MODE_BOOST60:
+    case THERMO_MODE_BOOST90:
+      //log_d("Boost stop = %d", thermo_boost_stop);
+      if (thermo_boost_stop > 0 && now < thermo_boost_stop) {
+        boiler_write(true);
+      } else {
+        log_i("Boost end");
+        thermo_mode = thermo_boost_reset;
+      }
+      break;
+  }
+}
 
 void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
@@ -378,14 +387,27 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+#ifdef CONF_DHT
   dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE), 
     preferences.getULong(PREF_DHT_READ_INTERVAL));
+#endif
   boiler_pin = preferences.getUChar(PREF_BOILER_PIN);
   if (boiler_pin != 0) {
     pinInit(boiler_pin, OUTPUT);
     digitalWriteState(boiler_pin, LOW);
   }
+  thermo_mode = preferences.getUChar(PREF_THERMO_MODE,THERMO_MODE_OFF);
+  if (thermo_mode > THERMO_MODE_AUTO) {
+    thermo_mode = THERMO_MODE_AUTO;
+  }
+  thermo_target = preferences.getFloat(PREF_THERMO_TARGET, THERMO_TARGET_DEF);
+  thermo_auto_interval = preferences.getULong(PREF_THERMO_AUTO_INTERVAL,CONF_THERMO_AUTO_INTERVAL);
+  thermo_refresh = preferences.getULong(PREF_THERMO_REFRESH);
+  if (thermo_refresh < CONF_THERMO_REFRESH_MIN) {
+    thermo_refresh = CONF_THERMO_REFRESH_MIN;
+  }
+#ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
     pinInit(wifi_ap_pin, OUTPUT);
@@ -411,20 +433,12 @@ void setup() {
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
   );
   delay(1000);
-  wifi_time_setup(CONF_NTP_SERVER, CONF_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
-  thermo_mode = preferences.getUChar(PREF_THERMO_MODE,THERMO_MODE_OFF);
-  if (thermo_mode > THERMO_MODE_AUTO) {
-    thermo_mode = THERMO_MODE_AUTO;
-  }
-  thermo_target = preferences.getFloat(PREF_THERMO_TARGET, THERMO_TARGET_DEF);
-  thermo_auto_interval = preferences.getULong(PREF_THERMO_AUTO_INTERVAL,CONF_THERMO_AUTO_INTERVAL);
-  thermo_refresh = preferences.getULong(PREF_THERMO_REFRESH);
-  if (thermo_refresh < CONF_THERMO_REFRESH_MIN) {
-    thermo_refresh = CONF_THERMO_REFRESH_MIN;
-  }
-  html_title = preferences.getString(PREF_HTML_TITLE);
+  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+#endif
+#ifdef CONF_WEB
+  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
   if (html_title == "") {
-    html_title = CONF_HTML_TITLE;
+    html_title = CONF_WEB_HTML_TITLE;
   }
   web_server_setup_http();
   bool web_secure = false;
@@ -434,8 +448,9 @@ void setup() {
 #endif
   web_users_setup();
   web_ota_setup();
-  web_config_setup();
+  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_register(HTTP_ANY, CONF_WEB_URI_REST_DATA, &web_handle_rest_read);
   web_server_register(HTTP_ANY, "/", &web_handle_root);
   web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME), web_secure);
+#endif
 }

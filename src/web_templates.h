@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_PAGES_H
-#define MODULO_WEB_PAGES_H
+#ifndef INCLUDE_WEB_TEMPLATES_H
+#define INCLUDE_WEB_TEMPLATES_H
 
 /**
  * Contiene funzioni per la gestione delle pagine HTML del Web Server.
@@ -72,7 +72,6 @@ void web_send_page(HTTPRequest * req, HTTPResponse * res, String title, String b
   if (title != "") {
     res->printf("<title>%s</title>", html_encode(title).c_str());
   }
-  //html += "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>";
   res->printf("<style>%s</style>", css);
   res->println("</head>");
   res->println(body);
