@@ -1,3 +1,5 @@
+default_profile: esp32
+default_port: COM3
 profiles:
   esp32:
     fqbn: esp32:esp32:esp32:DebugLevel=debug
