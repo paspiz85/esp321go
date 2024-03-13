@@ -21,6 +21,7 @@ uint32_t reboot_ms;
 
 int pin_states[CONF_SCHEMA_PIN_COUNT];
 int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
+uint32_t pin_write_ms[CONF_SCHEMA_PIN_COUNT];
 Input inputs[CONF_SCHEMA_INPUT_COUNT];
 Output outputs[CONF_SCHEMA_OUTPUT_COUNT];
 const Output * pin_output[CONF_SCHEMA_PIN_COUNT] = {NULL};
@@ -76,6 +77,9 @@ void on_output_write(uint8_t num,bool reset=false);
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
   pin_states[pin] = -1;
+  if (mode == OUTPUT) {
+    pin_write_ms[pin] = 0;
+  }
   pin_output[pin] = NULL;
 }
 
@@ -86,6 +90,7 @@ String digitalString(int value) {
 void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
   digitalWrite(pin,value);
   pin_states[pin] = value;
+  pin_write_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
@@ -100,6 +105,7 @@ void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
 void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
   ledcWrite(pin_channel[pin], value);
   pin_states[pin] = value;
+  pin_write_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
@@ -114,6 +120,7 @@ void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
 void toneState(uint8_t pin,uint32_t value,bool skip_publish=false) {
   ledcWriteTone(pin_channel[pin], value);
   pin_states[pin] = value;
+  pin_write_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
@@ -160,6 +167,9 @@ String output_write(const Output * output,String input_value,bool reset=false) {
       digitalWriteState(pin,LOW);
       on_output_write(output->num);
     }
+  } else if (output->type == PULSE_1_OUTPUT && pin >= 0) {
+    digitalWriteState(pin,HIGH);
+    on_output_write(output->num);
   } else if (output->type == ANALOG_PWM_OUTPUT && pin >= 0) {
     if (input_value == "") {
       return "Missing value";
@@ -286,14 +296,14 @@ String input_get(const Input * input, bool fromRules = false) {
 String output_get(const Output * output) {
   String str = "";
   const char * key = (output->key).c_str();
-  if (output->type == DIGITAL_OUTPUT || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
+  if (output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
     int value;
     if (output->pin >= 0) {
       value = pin_states[output->pin];
     } else {
       value = preferences.getInt(key);
     }
-    if (output->type == DIGITAL_OUTPUT) {
+    if (output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT) {
       str = digitalString(value);
     } else {
       str = String(value);
@@ -336,14 +346,14 @@ void publish() {
       continue;
     }
     const char * key = outputs[i].key.c_str();
-    if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
+    if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
       int value;
       if (outputs[i].pin >= 0) {
         value = pin_states[outputs[i].pin];
       } else {
         value = preferences.getInt(key);
       }
-      if (outputs[i].type == DIGITAL_OUTPUT) {
+      if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT) {
         message[outputs[i].name] = digitalString(value);
       } else {
         message[outputs[i].name] = value;
@@ -491,6 +501,11 @@ void web_handle_root() {
       output_type_str = "digital";
       output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
       output_editor += "<button type=\"submit\" class=\"btn btn-primary\">Toggle</button>";
+      output_editor += "</form>";
+    } else if (outputs[i].type == PULSE_1_OUTPUT) {
+      output_type_str = "pulse";
+      output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
+      output_editor += "<button type=\"submit\" class=\"btn btn-primary\">Send</button>";
       output_editor += "</form>";
     } else if (outputs[i].type == ANALOG_PWM_OUTPUT) {
       output_type_str = "analog PWM";
@@ -714,6 +729,15 @@ void loop() {
     }
     input_read_ts = millis();
   }
+  for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
+    if (outputs[i].type == PULSE_1_OUTPUT && outputs[i].pin >= 0) {
+      int8_t pin = outputs[i].pin;
+      if (pin_states[pin] == HIGH && millis() - pin_write_ms[pin] > 1000) {
+        digitalWriteState(pin,LOW);
+        on_output_write(outputs[i].num);
+      }
+    }
+  }
 #ifdef CONF_WEB
   if (!wifi_is_off()) {
     web_server_loop();
@@ -843,6 +867,7 @@ void setup() {
       int value;
       switch (outputs[i].type) {
         case DIGITAL_OUTPUT:
+        case PULSE_1_OUTPUT:
           pinInit(pin, OUTPUT);
           pin_output[pin] = &outputs[i];
           value = LOW;
