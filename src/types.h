@@ -1,5 +1,5 @@
-#ifndef MODULO_TYPES_H
-#define MODULO_TYPES_H
+#ifndef INCLUDE_TYPES_H
+#define INCLUDE_TYPES_H
 
 #include <Arduino.h>
 

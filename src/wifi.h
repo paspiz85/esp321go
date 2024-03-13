@@ -1,5 +1,5 @@
-#ifndef MODULO_WIFI_H
-#define MODULO_WIFI_H
+#ifndef INCLUDE_WIFI_H
+#define INCLUDE_WIFI_H
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del WiFi.
@@ -54,6 +54,16 @@ String wifi_get_ip_address() {
     return WiFi.softAPIP().toString();
   }
   return "";
+}
+
+String wifi_info() {
+  if (wifi_mode = WIFI_STA) {
+    return "Connected to \""+html_encode(WiFi.SSID())+"\" (RSSI "+String(WiFi.RSSI())+")";
+  } else if (wifi_mode = WIFI_AP) {
+    return "Connected clients: "+String(WiFi.softAPgetStationNum());
+  } else {
+    return "WiFi is OFF";
+  }
 }
 
 void wifi_ap_mode() {

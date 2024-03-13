@@ -1,5 +1,5 @@
-#ifndef MODULO_CONFIG_H
-#define MODULO_CONFIG_H
+#ifndef INCLUDE_CONFIG_H
+#define INCLUDE_CONFIG_H
 
 /**
  * Gestione della configurazione.
@@ -17,21 +17,15 @@
 
 // ATTENZIONE: le chiavi troppo lunghe non vengono gestite (forse max 15 chars?)
 
-#define PREF_ADMIN_USERNAME               "admin_username"
-String  PREF_ADMIN_USERNAME_DESC =        "default "+String(CONF_ADMIN_USERNAME);
-#define PREF_ADMIN_PASSWORD               "admin_password"
-String  PREF_ADMIN_PASSWORD_DESC =        "default "+String(CONF_ADMIN_PASSWORD);
-
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
+#ifdef CONF_DHT
 #define PREF_DHT_PIN                      "dht_pin"
 #define PREF_DHT_PUBLISH                  "dht_pub"
 #define PREF_DHT_READ_INTERVAL            "dht_interval"
 String  PREF_DHT_READ_INTERVAL_DESC =     "min "+String(CONF_DHT_READ_INTERVAL_MIN)+", default "+String(CONF_DHT_READ_INTERVAL_MIN);
 #define PREF_DHT_TYPE                     "dht_type"
-
-#define PREF_HTML_TITLE                   "html_title"
-String  PREF_HTML_TITLE_DESC =            "Titolo dell'interfaccia HTTP/HTML, default "+String(CONF_HTML_TITLE);
+#endif
 
 #define PREF_INPUT_READ_INTERVAL          "reading_ms"
 String  PREF_INPUT_READ_INTERVAL_DESC =   "min "+String(CONF_INPUT_READ_INTERVAL_MIN)+", default "+String(CONF_INPUT_READ_INTERVAL);
@@ -83,6 +77,16 @@ String  PREF_PUBLISH_INTERVAL_DESC =      "min "+String(CONF_PUBLISH_INTERVAL_MI
 #define PREF_TIME_ZONE                    "time_zone"
 String  PREF_TIME_ZONE_DESC =             "default "+String(CONF_TIME_ZONE);
 
+#ifdef CONF_WEB
+#define PREF_WEB_ADMIN_USERNAME           "admin_username"
+String  PREF_WEB_ADMIN_USERNAME_DESC =    "default "+String(CONF_WEB_ADMIN_USERNAME);
+#define PREF_WEB_ADMIN_PASSWORD           "admin_password"
+String  PREF_WEB_ADMIN_PASSWORD_DESC =    "default "+String(CONF_WEB_ADMIN_PASSWORD);
+#define PREF_WEB_HTML_TITLE               "html_title"
+String  PREF_WEB_HTML_TITLE_DESC =        "Titolo dell'interfaccia HTTP/HTML, default "+String(CONF_WEB_HTML_TITLE);
+#endif
+
+#ifdef CONF_WIFI
 #define PREF_WIFI_AP_IP                   "wifi0_ip"
 String  PREF_WIFI_AP_IP_DESC =            "default "+String(CONF_WIFI_AP_IP);
 #define PREF_WIFI_AP_PIN                  "wifi0_pin"
@@ -99,6 +103,7 @@ String  PREF_WIFI_CHECK_THRESHOLD_DESC =  "default "+String(CONF_WIFI_CHECK_THRE
 #define PREF_WIFI_MODE_DESC               "0 -> off\n 1 -> STATION\n 2 -> ACCESS_POINT\n others -> STATION"
 #define PREF_WIFI_NAME                    "wifi_name"
 String  PREF_WIFI_NAME_DESC =             "default "+String(CONF_WIFI_NAME);
+#endif
 
 typedef struct config {
   const char * key;
@@ -125,9 +130,10 @@ const Config config_output_defs[] = {
 };
 
 const Config config_defs[] = {
-  { .key = PREF_LOG_LEVEL, .type = STRING, .desc = PREF_LOG_LEVEL_DESC },
   { .key = PREF_REBOOT_FREE, .type = UINT32, .desc = PREF_REBOOT_FREE_DESC },
   { .key = PREF_REBOOT_MS, .type = UINT32, .desc = PREF_REBOOT_MS_DESC },
+  { .key = PREF_TIME_ZONE, .type = STRING, .desc = PREF_TIME_ZONE_DESC.c_str() },
+#ifdef CONF_WIFI
   { .key = PREF_WIFI_MODE, .type = UINT8, .desc = PREF_WIFI_MODE_DESC },
   { .key = PREF_WIFI_AP_IP, .type = STRING, .desc = PREF_WIFI_AP_IP_DESC.c_str() },
   { .key = PREF_WIFI_AP_SSID, .type = STRING, .desc = PREF_WIFI_AP_SSID_DESC.c_str() },
@@ -137,15 +143,19 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_CHECK_INTERVAL, .type = UINT32, .desc = PREF_WIFI_CHECK_INTERVAL_DESC.c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = PREF_WIFI_CHECK_THRESHOLD_DESC.c_str() },
   { .key = PREF_WIFI_NAME, .type = STRING, .desc = PREF_WIFI_NAME_DESC.c_str() },
-  { .key = PREF_TIME_ZONE, .type = STRING, .desc = PREF_TIME_ZONE_DESC.c_str() },
-  { .key = PREF_HTML_TITLE, .type = STRING, .desc = PREF_HTML_TITLE_DESC.c_str() },
-  { .key = PREF_ADMIN_USERNAME, .type = STRING, .desc = PREF_ADMIN_USERNAME_DESC.c_str() },
-  { .key = PREF_ADMIN_PASSWORD, .type = STRING, .desc = PREF_ADMIN_PASSWORD_DESC.c_str() },
+#endif
+#ifdef CONF_WEB
+  { .key = PREF_WEB_HTML_TITLE, .type = STRING, .desc = PREF_WEB_HTML_TITLE_DESC.c_str() },
+  { .key = PREF_WEB_ADMIN_USERNAME, .type = STRING, .desc = PREF_WEB_ADMIN_USERNAME_DESC.c_str() },
+  { .key = PREF_WEB_ADMIN_PASSWORD, .type = STRING, .desc = PREF_WEB_ADMIN_PASSWORD_DESC.c_str() },
+#endif
   { .key = PREF_CONFIG_PUBLISH, .type = BOOL, .desc = "" },
+#ifdef CONF_DHT
   { .key = PREF_DHT_PIN, .type = UINT8, .desc = "" },
   { .key = PREF_DHT_TYPE, .type = UINT8, .desc = "" },
   { .key = PREF_DHT_READ_INTERVAL, .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() },
   { .key = PREF_DHT_PUBLISH, .type = BOOL, .desc = "" },
+#endif
   { .key = PREF_PREFIX_INPUT, .type = DARRAY, .desc = "", .count = CONF_SCHEMA_INPUT_COUNT, .refs = &config_input_defs[0], .refs_len = len(config_input_defs) },
   { .key = PREF_PREFIX_OUTPUT, .type = DARRAY, .desc = "", .count = CONF_SCHEMA_OUTPUT_COUNT, .refs = &config_output_defs[0], .refs_len = len(config_output_defs) },
   { .key = PREF_INPUT_READ_INTERVAL, .type = UINT32, .desc = PREF_INPUT_READ_INTERVAL_DESC.c_str() },
@@ -155,41 +165,42 @@ const Config config_defs[] = {
   { .key = PREF_PUBLISH_SSID, .type = BOOL, .desc = "" },
   { .key = PREF_PUBLISH_RSSI, .type = BOOL, .desc = "" },
   { .key = PREF_OPENHAB_REST_URI, .type = STRING, .desc = PREF_OPENHAB_REST_URI_DESC },
-  { .key = PREF_OPENHAB_BUS_ITEM, .type = STRING, .desc = PREF_OPENHAB_BUS_ITEM_DESC.c_str() }
+  { .key = PREF_OPENHAB_BUS_ITEM, .type = STRING, .desc = PREF_OPENHAB_BUS_ITEM_DESC.c_str() },
+  { .key = PREF_LOG_LEVEL, .type = STRING, .desc = PREF_LOG_LEVEL_DESC }
 };
 
 Preferences preferences;
 
-void items_publish(JSONVar data);
+void preferences_on_update(JSONVar data);
 
-void item_publish(const char * name, String value) {
+void preferences_on_update(const char * name, String value) {
   JSONVar data;
   data[name] = value;
-  items_publish(data);
+  preferences_on_update(data);
 }
 
-void item_publish(const char * name, int32_t value) {
+void preferences_on_update(const char * name, int32_t value) {
   JSONVar data;
   data[name] = value;
-  items_publish(data);
+  preferences_on_update(data);
 }
 
-void item_publish(const char * name, uint32_t value) {
+void preferences_on_update(const char * name, uint32_t value) {
   JSONVar data;
   data[name] = value;
-  items_publish(data);
+  preferences_on_update(data);
 }
 
-void item_publish(const char * name, bool value) {
+void preferences_on_update(const char * name, bool value) {
   JSONVar data;
   data[name] = value;
-  items_publish(data);
+  preferences_on_update(data);
 }
 
-void item_publish(const char * name, double value) {
+void preferences_on_update(const char * name, double value) {
   JSONVar data;
   data[name] = value;
-  items_publish(data);
+  preferences_on_update(data);
 }
 
 String preferences_get(const char * key,ctype_t type,bool emptyOnNull=false) {
@@ -219,11 +230,11 @@ bool preferences_remove(const char * key,ctype_t type,String publish_key = "") {
   preferences.remove(key);
   if (publish_key != "") {
     if (type == STRING) {
-      item_publish(publish_key.c_str(),"");
+      preferences_on_update(publish_key.c_str(),"");
     } else if (type == BOOL) {
-      item_publish(publish_key.c_str(),false);
+      preferences_on_update(publish_key.c_str(),false);
     } else {
-      item_publish(publish_key.c_str(),0);
+      preferences_on_update(publish_key.c_str(),0);
     }
   }
   return true;
@@ -235,89 +246,89 @@ bool preferences_put(const char * key,ctype_t type,String value,String publish_k
     log_d("saving %s = %hhu",key,number);
     preferences.putUChar(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == UINT16) {
     uint16_t number = str_to_uint16(value);
     log_d("saving %s = %" PRIu16,key,number);
     preferences.putUShort(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == UINT32) {
     uint32_t number = str_to_uint32(value);
     log_d("saving %s = %" PRIu32,key,number);
     preferences.putULong(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == UINT64) {
     uint64_t number = str_to_uint64(value);
     log_d("saving %s = %" PRIu64,key,number);
     preferences.putULong64(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),uint64_to_string(number));
+      preferences_on_update(publish_key.c_str(),uint64_to_string(number));
     }
   } else if (type == INT8) {
     int8_t number = str_to_int8(value);
     log_d("saving %s = %" PRIi8,key,number);
     preferences.putChar(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == INT16) {
     int16_t number = str_to_int16(value);
     log_d("saving %s = %" PRIi16,key,number);
     preferences.putShort(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == INT32) {
     int32_t number = str_to_int32(value);
     log_d("saving %s = %" PRIi32,key,number);
     preferences.putLong(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == INT64) {
     int64_t number = str_to_int64(value);
     log_d("saving %s = %" PRIi64,key,number);
     preferences.putLong64(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),int64_to_string(number));
+      preferences_on_update(publish_key.c_str(),int64_to_string(number));
     }
   } else if (type == STRING) {
     log_d("saving %s = %s",key,value.c_str());
     preferences.putString(key,value);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),value);
+      preferences_on_update(publish_key.c_str(),value);
     }
   } else if (type == BOOL) {
     bool number = str_to_bool(value);
     log_d("saving %s = %s",key,value.c_str());
     preferences.putBool(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == FLOAT) {
     float number = str_to_float(value);
     log_d("saving %s = %f",key,number);
     preferences.putFloat(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == DOUBLE) {
     double number = str_to_double(value);
     log_d("saving %s = %lf",key,number);
     preferences.putDouble(key,number);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),number);
+      preferences_on_update(publish_key.c_str(),number);
     }
   } else if (type == STRUCT) {
     log_d("saving %s = %s",key,value.c_str());
     preferences.putString(key,value);
     if (publish_key != "") {
-      item_publish(publish_key.c_str(),value);
+      preferences_on_update(publish_key.c_str(),value);
     }
   } else {
     return false;
