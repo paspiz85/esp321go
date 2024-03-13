@@ -1,5 +1,5 @@
-#ifndef MODULO_WIFI_TIME_H
-#define MODULO_WIFI_TIME_H
+#ifndef INCLUDE_WIFI_TIME_H
+#define INCLUDE_WIFI_TIME_H
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del NTP tramite WiFi.
