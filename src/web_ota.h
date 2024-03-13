@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_OTA_H
-#define MODULO_WEB_OTA_H
+#ifndef INCLUDE_WEB_OTA_H
+#define INCLUDE_WEB_OTA_H
 
 /**
  * Contiene variabili, tipi e funzioni per l'aggiornamento tramite Web Server.
@@ -8,7 +8,7 @@
 #include "base_conf.h"
 #include "web.h"
 #include "web_admin.h"
-#include "web_pages.h"
+#include "web_templates.h"
 #include "web_reset.h"
 #include <Update.h>
 

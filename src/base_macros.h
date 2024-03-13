@@ -1,5 +1,5 @@
-#ifndef BASE_MACROS_H
-#define BASE_MACROS_H
+#ifndef INCLUDE_BASE_MACROS_H
+#define INCLUDE_BASE_MACROS_H
 
 /**
  * Contiene eventuali macro non presenti sulla piattaforma di riferimento.

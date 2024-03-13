@@ -1,34 +1,40 @@
 
+#include "config.h"
+#ifdef CONF_DHT
+#include "dht.h"
+#endif
+#ifdef CONF_WIFI
 #include "wifi.h"
 #include "wifi_time.h"
-#include "config.h"
-#include "dht.h"
+#endif
+#ifdef CONF_WEB
 #include "web.h"
-#include "web_pages.h"
+#include "web_templates.h"
 #include "web_ota.h"
 #include "web_config.h"
+#endif
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-int pin_analog[CONF_SCHEMA_PIN_COUNT];
-int pin_digits[CONF_SCHEMA_PIN_COUNT];
+int pin_states[CONF_SCHEMA_PIN_COUNT];
 int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
 uint8_t wifi_ap_pin = 0;
 
 String html_title;
 
-void items_publish(JSONVar message) {
+void preferences_on_update(JSONVar message) {
+#ifdef CONF_WIFI
   if (!wifi_have_internet()) {
     return;
   }
-  // TODO non pubblichiamo nulla
+  // TODO
+#endif
 }
 
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
-  pin_analog[pin] = -1;
-  pin_digits[pin] = -1;
+  pin_states[pin] = -1;
 }
 
 String digitalString(int value) {
@@ -37,33 +43,31 @@ String digitalString(int value) {
 
 void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
   digitalWrite(pin,value);
-  pin_digits[pin] = value;
+  pin_states[pin] = value;
 }
 
 void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
   ledcWrite(pin_channel[pin], value);
-  pin_analog[pin] = value;
+  pin_states[pin] = value;
 }
 
+#ifdef CONF_WIFI
 void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && pin_digits[wifi_ap_pin] != value) {
+  if (wifi_ap_pin != 0 && pin_states[wifi_ap_pin] != value) {
     digitalWriteState(wifi_ap_pin, value, skip_publish);
   }
 }
+#endif
 
+#ifdef CONF_WEB
 String web_html_title() {
   return html_title;
 }
 
 String web_html_footer(bool admin) {
   String html = "<div>";
-  if (wifi_mode = WIFI_STA) {
-    html += "Connected to \""+html_encode(WiFi.SSID())+"\" (RSSI "+String(WiFi.RSSI())+") - ";
-  } else if (wifi_mode = WIFI_AP) {
-    html += "Connected clients: "+String(WiFi.softAPgetStationNum())+" - ";
-  } else {
-    html += "WiFi is OFF - ";
-  }
+  html += wifi_info();
+  html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
   html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
@@ -74,6 +78,15 @@ String web_html_footer(bool admin) {
   return html;
 }
 
+void web_handle_root() {
+  int refresh = web_parameter("refresh").toInt();
+  String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
+  html += "Hello";
+  html += "</body>";
+  web_send_page(html_title,html,refresh);
+}
+#endif
+
 void loop() {
   if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
     ESP.restart();
@@ -83,22 +96,18 @@ void loop() {
     ESP.restart();
     return;
   }
+#ifdef CONF_WIFI
   wifi_loop(CONF_WIFI_MODE_LIMIT);
   wifi_time_loop();
+#endif
+#ifdef CONF_WEB
   if (!wifi_is_off()) {
     web_server_loop();
     delay(10);
   } else {
     delay(1000);
   }
-}
-
-void web_handle_root() {
-  int refresh = web_parameter("refresh").toInt();
-  String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
-  html += "Hello";
-  html += "</body>";
-  web_send_page(html_title,html,refresh);
+#endif
 }
 
 void setup() {
@@ -119,9 +128,12 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+#ifdef CONF_DHT
   dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE), 
     preferences.getULong(PREF_DHT_READ_INTERVAL));
+#endif
+#ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
     pinInit(wifi_ap_pin, OUTPUT);
@@ -147,15 +159,18 @@ void setup() {
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
   );
   delay(1000);
-  wifi_time_setup(CONF_NTP_SERVER, CONF_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
-  html_title = preferences.getString(PREF_HTML_TITLE);
+  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+#endif
+#ifdef CONF_WEB
+  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
   if (html_title == "") {
-    html_title = CONF_HTML_TITLE;
+    html_title = CONF_WEB_HTML_TITLE;
   }
   web_server_setup_http();
   web_admin_setup();
   web_ota_setup();
-  web_config_setup();
+  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_register(HTTP_ANY, "/", web_handle_root);
   web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME));
+#endif
 }

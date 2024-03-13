@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_H
-#define MODULO_WEB_H
+#ifndef INCLUDE_WEB_H
+#define INCLUDE_WEB_H
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
