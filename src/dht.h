@@ -1,5 +1,5 @@
-#ifndef MODULO_DHT_H
-#define MODULO_DHT_H
+#ifndef INCLUDE_DHT_H
+#define INCLUDE_DHT_H
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del sensore DHT.

@@ -1,5 +1,5 @@
-#ifndef MODULO_RULES_H
-#define MODULO_RULES_H
+#ifndef INCLUDE_RULES_H
+#define INCLUDE_RULES_H
 
 #include <Arduino.h>
 #include <Arduino_JSON.h>
@@ -304,7 +304,7 @@ void rules_action_run(Rule* rule,JSONVar* action,bool condition,TriggerSpec* spe
     if (JSON.typeof((rule->context)["condition_prev"]) != "boolean" || condition != condition_prev) {
       if (JSON.typeof((*action)["input"]) == "number") {
         int input_num = (*action)["input"];
-        item_publish((inputs[input_num-1].name).c_str(),value);
+        preferences_on_update((inputs[input_num-1].name).c_str(),value);
         (rule->context)["condition_prev"] = condition;
       }
     }

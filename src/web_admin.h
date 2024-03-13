@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_ADMIN_H
-#define MODULO_WEB_ADMIN_H
+#ifndef INCLUDE_WEB_ADMIN_H
+#define INCLUDE_WEB_ADMIN_H
 
 /**
  * Contiene l'autenticazione dell'amministratore del Web Server.
@@ -15,8 +15,8 @@ bool web_admin_authenticate() {
 }
 
 void web_admin_setup() {
-  web_admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
-  web_admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
+  web_admin_username = preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME);
+  web_admin_password = preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD);
 }
 
 #endif

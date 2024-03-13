@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_RESET_H
-#define MODULO_WEB_RESET_H
+#ifndef INCLUDE_WEB_RESET_H
+#define INCLUDE_WEB_RESET_H
 
 /**
  * Contiene variabili, tipi e funzioni per il reset del Web Server.

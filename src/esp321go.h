@@ -1,23 +1,27 @@
 
+#include "config.h"
+#ifdef CONF_DHT
+#include "dht.h"
+#endif
+#ifdef CONF_WIFI
 #include "wifi.h"
 #include "wifi_time.h"
-#include "config.h"
-#include "dht.h"
+#endif
+#ifdef CONF_WEB
 #include "web.h"
-#include "web_pages.h"
+#include "web_templates.h"
 #include "web_ota.h"
 #include "web_config.h"
 #include "openhab.h"
+#endif
 #include "types.h"
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-int pin_analog[CONF_SCHEMA_PIN_COUNT];
-int pin_digits[CONF_SCHEMA_PIN_COUNT];
-int pin_button[CONF_SCHEMA_PIN_COUNT];
-int pin_dimmer[CONF_SCHEMA_PIN_COUNT];
+int pin_states[CONF_SCHEMA_PIN_COUNT];
 int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
+uint32_t pin_write_ms[CONF_SCHEMA_PIN_COUNT];
 Input inputs[CONF_SCHEMA_INPUT_COUNT];
 Output outputs[CONF_SCHEMA_OUTPUT_COUNT];
 const Output * pin_output[CONF_SCHEMA_PIN_COUNT] = {NULL};
@@ -37,7 +41,8 @@ bool publish_ip;
 bool publish_ssid;
 bool publish_rssi;
 
-void items_publish(JSONVar data) {
+void preferences_on_update(JSONVar data) {
+#ifdef CONF_WIFI
   if (!wifi_have_internet()) {
     return;
   }
@@ -62,6 +67,7 @@ void items_publish(JSONVar data) {
     openhab_item_state_write(openhab_rest_uri,openhab_bus_item,JSON.stringify(message));
   }
   // TODO gestire MQTT ?
+#endif
 }
 
 void on_pin_read(uint8_t pin,int value,input_type_t type,bool change=false);
@@ -70,10 +76,10 @@ void on_output_write(uint8_t num,bool reset=false);
 
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
-  pin_analog[pin] = -1;
-  pin_digits[pin] = -1;
-  pin_button[pin] = -1;
-  pin_dimmer[pin] = -1;
+  pin_states[pin] = -1;
+  if (mode == OUTPUT) {
+    pin_write_ms[pin] = 0;
+  }
   pin_output[pin] = NULL;
 }
 
@@ -83,42 +89,45 @@ String digitalString(int value) {
 
 void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
   digitalWrite(pin,value);
-  pin_digits[pin] = value;
+  pin_states[pin] = value;
+  pin_write_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
     if (!skip_publish && output->published) {
-      item_publish((output->name).c_str(),digitalString(value));
+      preferences_on_update((output->name).c_str(),digitalString(value));
     }
   }
 }
 
 void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
   ledcWrite(pin_channel[pin], value);
-  pin_analog[pin] = value;
+  pin_states[pin] = value;
+  pin_write_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
     if (!skip_publish && output->published) {
-      item_publish((output->name).c_str(),value);
+      preferences_on_update((output->name).c_str(),value);
     }
   }
 }
 
 void toneState(uint8_t pin,uint32_t value,bool skip_publish=false) {
   ledcWriteTone(pin_channel[pin], value);
-  pin_analog[pin] = value;
+  pin_states[pin] = value;
+  pin_write_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
     if (!skip_publish && output->published) {
-      item_publish((output->name).c_str(),value);
+      preferences_on_update((output->name).c_str(),value);
     }
   }
 }
@@ -145,7 +154,7 @@ String output_write(const Output * output,String input_value,bool reset=false) {
   int8_t pin = output->pin;
   if (output->type == DIGITAL_OUTPUT && pin >= 0) {
     if (input_value == "") {
-      if (pin_digits[pin] == HIGH) {
+      if (pin_states[pin] == HIGH) {
         digitalWriteState(pin,LOW);
       } else {
         digitalWriteState(pin,HIGH);
@@ -158,6 +167,9 @@ String output_write(const Output * output,String input_value,bool reset=false) {
       digitalWriteState(pin,LOW);
       on_output_write(output->num);
     }
+  } else if (output->type == PULSE_1_OUTPUT && pin >= 0) {
+    digitalWriteState(pin,HIGH);
+    on_output_write(output->num);
   } else if (output->type == ANALOG_PWM_OUTPUT && pin >= 0) {
     if (input_value == "") {
       return "Missing value";
@@ -284,18 +296,14 @@ String input_get(const Input * input, bool fromRules = false) {
 String output_get(const Output * output) {
   String str = "";
   const char * key = (output->key).c_str();
-  if (output->type == DIGITAL_OUTPUT || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
+  if (output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
     int value;
     if (output->pin >= 0) {
-      if (output->type == DIGITAL_OUTPUT) {
-        value = pin_digits[output->pin];
-      } else {
-        value = pin_analog[output->pin];
-      }
+      value = pin_states[output->pin];
     } else {
       value = preferences.getInt(key);
     }
-    if (output->type == DIGITAL_OUTPUT) {
+    if (output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT) {
       str = digitalString(value);
     } else {
       str = String(value);
@@ -338,18 +346,14 @@ void publish() {
       continue;
     }
     const char * key = outputs[i].key.c_str();
-    if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
+    if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
       int value;
       if (outputs[i].pin >= 0) {
-        if (outputs[i].type == DIGITAL_OUTPUT) {
-          value = pin_digits[outputs[i].pin];
-        } else {
-          value = pin_analog[outputs[i].pin];
-        }
+        value = pin_states[outputs[i].pin];
       } else {
         value = preferences.getInt(key);
       }
-      if (outputs[i].type == DIGITAL_OUTPUT) {
+      if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT) {
         message[outputs[i].name] = digitalString(value);
       } else {
         message[outputs[i].name] = value;
@@ -410,19 +414,22 @@ void publish() {
   int message_len = message.keys().length();
   log_d("message length is %d",message_len);
   if (message_len > 0) {
-    items_publish(message);
+    preferences_on_update(message);
   }
   publish_ts = millis();
 }
 
 #include "rules.h"
 
+#ifdef CONF_WIFI
 void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && pin_digits[wifi_ap_pin] != value) {
+  if (wifi_ap_pin != 0 && pin_states[wifi_ap_pin] != value) {
     digitalWriteState(wifi_ap_pin, value, skip_publish);
   }
 }
+#endif
 
+#ifdef CONF_WEB
 String web_html_title() {
   return html_title;
 }
@@ -444,63 +451,6 @@ String web_html_footer(bool admin) {
   }
   html += "</div>";
   return html;
-}
-
-void loop() {
-  if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
-    ESP.restart();
-    return;
-  }
-  if (reboot_ms > 0 && millis() > reboot_ms) {
-    ESP.restart();
-    return;
-  }
-  wifi_loop(CONF_WIFI_MODE_LIMIT);
-  wifi_time_loop();
-  if (millis() - input_read_ts > input_read_interval) {
-    for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
-      if (inputs[i].type == NO_INPUT || !inputs[i].monitored) {
-        continue;
-      }
-      int8_t pin = inputs[i].pin;
-      int rs;
-      switch (inputs[i].type) {
-        case DIGITAL_INPUT:
-          if (pin >= 0) {
-            rs = digitalRead(pin);
-            if (rs != pin_button[pin]) {
-              log_d("button %d changed: %d",pin,rs);
-              pin_button[pin] = rs;
-              on_pin_read(pin,rs,DIGITAL_INPUT,true);
-              if (inputs[i].published) {
-                item_publish((inputs[i].name).c_str(),digitalString(rs));
-              }
-            }
-          }
-          break;
-        case ANALOG_INPUT:
-          if (pin >= 0) {
-            rs = analogRead(pin);
-            if (rs != pin_dimmer[pin]) {
-              log_d("dimmer %d changed: %d",pin,rs);
-              pin_dimmer[pin] = rs;
-              on_pin_read(pin,rs,ANALOG_INPUT,true);
-            }
-          }
-          break;
-      }
-    }
-    input_read_ts = millis();
-  }
-  if (!wifi_is_off()) {
-    web_server_loop();
-    delay(10);
-    if (publish_interval > 0 && millis() - publish_ts > publish_interval) {
-      publish();
-    }
-  } else {
-    delay(1000);
-  }
 }
 
 void web_handle_root() {
@@ -551,6 +501,11 @@ void web_handle_root() {
       output_type_str = "digital";
       output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
       output_editor += "<button type=\"submit\" class=\"btn btn-primary\">Toggle</button>";
+      output_editor += "</form>";
+    } else if (outputs[i].type == PULSE_1_OUTPUT) {
+      output_type_str = "pulse";
+      output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
+      output_editor += "<button type=\"submit\" class=\"btn btn-primary\">Send</button>";
       output_editor += "</form>";
     } else if (outputs[i].type == ANALOG_PWM_OUTPUT) {
       output_type_str = "analog PWM";
@@ -724,6 +679,77 @@ void web_server_rest_setup(bool dht_available) {
     });
   }
 }
+#endif
+
+void loop() {
+  if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
+    ESP.restart();
+    return;
+  }
+  if (reboot_ms > 0 && millis() > reboot_ms) {
+    ESP.restart();
+    return;
+  }
+#ifdef CONF_WIFI
+  wifi_loop(CONF_WIFI_MODE_LIMIT);
+  wifi_time_loop();
+#endif
+  if (millis() - input_read_ts > input_read_interval) {
+    for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
+      if (inputs[i].type == NO_INPUT || !inputs[i].monitored) {
+        continue;
+      }
+      int8_t pin = inputs[i].pin;
+      int rs;
+      switch (inputs[i].type) {
+        case DIGITAL_INPUT:
+          if (pin >= 0) {
+            rs = digitalRead(pin);
+            if (rs != pin_states[pin]) {
+              log_d("button %d changed: %d",pin,rs);
+              pin_states[pin] = rs;
+              on_pin_read(pin,rs,DIGITAL_INPUT,true);
+              if (inputs[i].published) {
+                preferences_on_update((inputs[i].name).c_str(),digitalString(rs));
+              }
+            }
+          }
+          break;
+        case ANALOG_INPUT:
+          if (pin >= 0) {
+            rs = analogRead(pin);
+            if (rs != pin_states[pin]) {
+              log_d("dimmer %d changed: %d",pin,rs);
+              pin_states[pin] = rs;
+              on_pin_read(pin,rs,ANALOG_INPUT,true);
+            }
+          }
+          break;
+      }
+    }
+    input_read_ts = millis();
+  }
+  for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
+    if (outputs[i].type == PULSE_1_OUTPUT && outputs[i].pin >= 0) {
+      int8_t pin = outputs[i].pin;
+      if (pin_states[pin] == HIGH && millis() - pin_write_ms[pin] > 1000) {
+        digitalWriteState(pin,LOW);
+        on_output_write(outputs[i].num);
+      }
+    }
+  }
+#ifdef CONF_WEB
+  if (!wifi_is_off()) {
+    web_server_loop();
+    delay(10);
+    if (publish_interval > 0 && millis() - publish_ts > publish_interval) {
+      publish();
+    }
+  } else {
+    delay(1000);
+  }
+#endif
+}
 
 void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
@@ -794,10 +820,10 @@ void setup() {
       if (inputs[i].monitored) {
         switch (inputs[i].type) {
           case DIGITAL_INPUT:
-            pin_button[pin] = digitalRead(pin);
+            pin_states[pin] = digitalRead(pin);
             break;
           case ANALOG_INPUT:
-            pin_dimmer[pin] = analogRead(pin);
+            pin_states[pin] = analogRead(pin);
             break;
         }
       }
@@ -841,6 +867,7 @@ void setup() {
       int value;
       switch (outputs[i].type) {
         case DIGITAL_OUTPUT:
+        case PULSE_1_OUTPUT:
           pinInit(pin, OUTPUT);
           pin_output[pin] = &outputs[i];
           value = LOW;
@@ -874,11 +901,14 @@ void setup() {
       }
     }
   }
+#ifdef CONF_DHT
   bool dht_available = dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE),
     preferences.getULong(PREF_DHT_READ_INTERVAL));
   dht_publish = dht_available && preferences.getBool(PREF_DHT_PUBLISH);
+#endif
   rules_setup(preferences.getString(PREF_RULES));
+#ifdef CONF_WIFI
   wifi_name = preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME);
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
@@ -905,15 +935,17 @@ void setup() {
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
   );
   delay(1000);
-  wifi_time_setup(CONF_NTP_SERVER, CONF_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
-  html_title = preferences.getString(PREF_HTML_TITLE);
+  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+#endif
+#ifdef CONF_WEB
+  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
   if (html_title == "") {
-    html_title = CONF_HTML_TITLE;
+    html_title = CONF_WEB_HTML_TITLE;
   }
   web_server_setup_http();
   web_admin_setup();
   web_ota_setup();
-  web_config_setup();
+  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_rest_setup(dht_available);
   web_server_register(HTTP_POST, CONF_WEB_URI_PUBLISH, []() {
     publish();
@@ -925,4 +957,5 @@ void setup() {
   });
   web_server_register(HTTP_ANY, "/", web_handle_root);
   web_server_begin(wifi_name);
+#endif
 }

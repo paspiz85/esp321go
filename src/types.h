@@ -1,5 +1,5 @@
-#ifndef MODULO_TYPES_H
-#define MODULO_TYPES_H
+#ifndef INCLUDE_TYPES_H
+#define INCLUDE_TYPES_H
 
 #include <Arduino.h>
 
@@ -25,6 +25,7 @@ typedef enum {
   DIGITAL_OUTPUT = 1,
   ANALOG_PWM_OUTPUT = 2,
   ANALOG_FM_OUTPUT = 3,
+  PULSE_1_OUTPUT = 5,
   UINT8_VAR = 16,
   UINT16_VAR = 17,
   UINT32_VAR = 18,

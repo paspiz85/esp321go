@@ -1,5 +1,5 @@
-#ifndef MODULO_WEB_CONFIG_H
-#define MODULO_WEB_CONFIG_H
+#ifndef INCLUDE_WEB_CONFIG_H
+#define INCLUDE_WEB_CONFIG_H
 
 /**
  * Contiene variabili, tipi e funzioni per la configurazione del Web Server.
@@ -11,10 +11,10 @@
 #include "web.h"
 #include "web_admin.h"
 #include "web_reset.h"
-#include "web_pages.h"
+#include "web_templates.h"
 #include <Arduino_JSON.h>
 
-bool config_publish;
+bool web_config_publish;
 
 void web_config_handle_value_export(const char * key, Config config, JSONVar * json_export) {
   if (!preferences.isKey(key)) {
@@ -205,7 +205,7 @@ void web_config_handle_change() {
     html += "</p></form>";
   } else {
     String publish_key = "";
-    if (config_publish) {
+    if (web_config_publish) {
       publish_key = "config."+param_name;
     }
     if (is_reset) {
@@ -267,8 +267,8 @@ void web_handle_config_upload() {
   }
 }
 
-void web_config_setup() {
-  config_publish = preferences.getBool(PREF_CONFIG_PUBLISH);
+void web_config_setup(bool config_publish) {
+  web_config_publish = config_publish;
   web_reset_setup();
   web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
   web_server_register(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
