@@ -21,8 +21,8 @@ const char * wifi_ap_ssid;
 const char * wifi_ap_pswd;
 uint8_t wifi_count = 0; 
 uint32_t wifi_conn_timeout;
-uint32_t wifi_check_interval;
-uint32_t wifi_check_threshold;
+uint32_t wifi_check_interval_ms;
+uint32_t wifi_check_threshold_ms;
 uint32_t wifi_last_check = 0;
 uint32_t wifi_last_check_ok = 0;
 WiFiMulti wifiMulti;
@@ -77,8 +77,8 @@ void wifi_ap_mode() {
   wifi_ap_state_changed(HIGH);
 }
 
-void wifi_loop(uint32_t mode_limit) {
-  if (wifi_mode != wifi_mode_setup && millis() > mode_limit) {
+void wifi_loop(uint32_t mode_limit_ms = 0) {
+  if (wifi_mode != wifi_mode_setup && at_interval(mode_limit_ms)) {
     if (wifi_mode_setup == 0) {
       wifi_set_mode(WIFI_OFF);
     } else if (wifi_mode_setup == 2 && strlen(wifi_ap_ssid) != 0) {
@@ -89,14 +89,14 @@ void wifi_loop(uint32_t mode_limit) {
     }
   }
   if (wifi_mode == WIFI_STA) {
-    if (millis() - wifi_last_check > wifi_check_interval) {
+    if (at_interval(wifi_check_interval_ms,wifi_last_check)) {
       wifi_last_check = millis();
       if (wifiMulti.run(wifi_conn_timeout) == WL_CONNECTED) {
         wifi_last_check_ok = wifi_last_check;
         wifi_ap_state_changed(LOW);
       } else {
         wifi_ap_state_changed(HIGH);
-        if (wifi_check_threshold == 0 || millis() - wifi_last_check_ok > wifi_check_threshold) {
+        if (wifi_check_threshold_ms == 0 || at_interval(wifi_check_threshold_ms,wifi_last_check_ok)) {
           ESP.restart();
           return;
         }
@@ -110,15 +110,15 @@ void wifi_add_ap(const char * ssid, const char * pswd) {
   wifi_count++;
 }
 
-void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, uint32_t conn_timeout, uint32_t check_interval, uint32_t check_threshold) {
+void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, uint32_t conn_timeout, uint32_t check_interval_ms, uint32_t check_threshold_ms) {
   log_i("Preparazione WIFI ...");
   wifi_mode_setup = mode;
   wifi_ap_ip.fromString(ap_ssid);
   wifi_ap_ssid = ap_ssid;
   wifi_ap_pswd = ap_pswd;
   wifi_conn_timeout = conn_timeout;
-  wifi_check_interval = check_interval;
-  wifi_check_threshold = check_threshold;
+  wifi_check_interval_ms = check_interval_ms;
+  wifi_check_threshold_ms = check_threshold_ms;
   WiFi.disconnect();
   bool connected = false;
   wifi_ap_state_changed(LOW, wifi_count == 0);

@@ -190,6 +190,10 @@ double str_to_double(String str) {
   return str_to_double(str.c_str());
 }
 
+bool at_interval(uint32_t interval, uint32_t from = 0) {
+  return interval > 0 && millis() - from > interval;
+}
+
 void items_publish(JSONVar message);
 
 void item_publish(const char * name, String value) {
