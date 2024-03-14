@@ -23,15 +23,6 @@ uint8_t wifi_ap_pin = 0;
 
 String html_title;
 
-void preferences_on_update(JSONVar message) {
-#ifdef CONF_WIFI
-  if (!wifi_have_internet()) {
-    return;
-  }
-  // TODO
-#endif
-}
-
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
   pin_states[pin] = -1;
@@ -41,14 +32,23 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
+void digitalWriteState(uint8_t pin, int value, bool skip_publish = false) {
   digitalWrite(pin,value);
   pin_states[pin] = value;
 }
 
-void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
+void analogWriteState(uint8_t pin, uint16_t value, bool skip_publish = false) {
   ledcWrite(pin_channel[pin], value);
   pin_states[pin] = value;
+}
+
+void items_publish(JSONVar message) {
+#ifdef CONF_WIFI
+  if (!wifi_have_internet()) {
+    return;
+  }
+  // TODO
+#endif
 }
 
 #ifdef CONF_WIFI
@@ -66,7 +66,7 @@ String web_html_title() {
 
 String web_html_footer(bool admin) {
   String html = "<div>";
-  html += wifi_info();
+  html += wifi_get_info();
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
@@ -97,7 +97,7 @@ void loop() {
     ESP.restart();
     return;
   }
-  if (reboot_ms > 0 && millis() > reboot_ms) {
+  if (at_interval(reboot_ms)) {
     ESP.restart();
     return;
   }
@@ -150,17 +150,13 @@ void setup() {
       wifi_add_ap(ssid.c_str(),pswd.c_str());
     }
   }
-  uint32_t wifi_check_interval = preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL);
-  if (wifi_check_interval < CONF_WIFI_CHECK_INTERVAL_MIN) {
-    wifi_check_interval = CONF_WIFI_CHECK_INTERVAL_MIN;
-  }
   wifi_setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
-    preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP),
-    preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID),
-    preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD),
+    preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
+    preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
+    preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD).c_str(),
     CONF_WIFI_CONN_TIMEOUT_MS,
-    wifi_check_interval,
+    max(preferences.getULong(PREF_WIFI_CHECK_INTERVAL),CONF_WIFI_CHECK_INTERVAL_MIN),
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
   );
   delay(1000);
@@ -177,10 +173,13 @@ void setup() {
   web_server_setup_https(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
   web_secure = preferences.getBool(PREF_WEB_SECURE);
 #endif
-  web_admin_setup();
+  web_admin_setup(
+    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
+    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
+  );
   web_ota_setup();
   web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_register(HTTP_ANY, "/", &web_handle_root);
-  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME), web_secure);
+  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str(), web_secure);
 #endif
 }
