@@ -98,39 +98,7 @@ const Config config_defs[] = {
 
 Preferences preferences;
 
-void preferences_on_update(JSONVar message);
-
-void preferences_on_update(const char * name, String value) {
-  JSONVar message;
-  message[name] = value;
-  preferences_on_update(message);
-}
-
-void preferences_on_update(const char * name, int32_t value) {
-  JSONVar message;
-  message[name] = value;
-  preferences_on_update(message);
-}
-
-void preferences_on_update(const char * name, uint32_t value) {
-  JSONVar message;
-  message[name] = value;
-  preferences_on_update(message);
-}
-
-void preferences_on_update(const char * name, bool value) {
-  JSONVar message;
-  message[name] = value;
-  preferences_on_update(message);
-}
-
-void preferences_on_update(const char * name, double value) {
-  JSONVar message;
-  message[name] = value;
-  preferences_on_update(message);
-}
-
-String preferences_get(const char * key,ctype_t type,bool emptyOnNull=false) {
+String preferences_get(const char * key, ctype_t type, bool emptyOnNull = false) {
   if (emptyOnNull && !preferences.isKey(key)) {
     return EMPTY;
   }
@@ -152,110 +120,110 @@ String preferences_get(const char * key,ctype_t type,bool emptyOnNull=false) {
   }
 }
 
-bool preferences_remove(const char * key,ctype_t type,String publish_key = EMPTY) {
+bool preferences_remove(const char * key,ctype_t type, String publish_key = EMPTY) {
   log_d("removing %s",key);
   preferences.remove(key);
   if (publish_key != EMPTY) {
     if (type == STRING) {
-      preferences_on_update(publish_key.c_str(),EMPTY);
+      item_publish(publish_key.c_str(),EMPTY);
     } else if (type == BOOL) {
-      preferences_on_update(publish_key.c_str(),false);
+      item_publish(publish_key.c_str(),false);
     } else {
-      preferences_on_update(publish_key.c_str(),0);
+      item_publish(publish_key.c_str(),0);
     }
   }
   return true;
 }
 
-bool preferences_put(const char * key,ctype_t type,String value,String publish_key = EMPTY) {
+bool preferences_put(const char * key, ctype_t type, String value, String publish_key = EMPTY) {
   if (type == UINT8) {
     uint8_t number = str_to_uint8(value);
     log_d("saving %s = %hhu",key,number);
     preferences.putUChar(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == UINT16) {
     uint16_t number = str_to_uint16(value);
     log_d("saving %s = %" PRIu16,key,number);
     preferences.putUShort(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == UINT32) {
     uint32_t number = str_to_uint32(value);
     log_d("saving %s = %" PRIu32,key,number);
     preferences.putULong(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == UINT64) {
     uint64_t number = str_to_uint64(value);
     log_d("saving %s = %" PRIu64,key,number);
     preferences.putULong64(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),uint64_to_string(number));
+      item_publish(publish_key.c_str(),uint64_to_string(number));
     }
   } else if (type == INT8) {
     int8_t number = str_to_int8(value);
     log_d("saving %s = %" PRIi8,key,number);
     preferences.putChar(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == INT16) {
     int16_t number = str_to_int16(value);
     log_d("saving %s = %" PRIi16,key,number);
     preferences.putShort(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == INT32) {
     int32_t number = str_to_int32(value);
     log_d("saving %s = %" PRIi32,key,number);
     preferences.putLong(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == INT64) {
     int64_t number = str_to_int64(value);
     log_d("saving %s = %" PRIi64,key,number);
     preferences.putLong64(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),int64_to_string(number));
+      item_publish(publish_key.c_str(),int64_to_string(number));
     }
   } else if (type == STRING) {
     log_d("saving %s = %s",key,value.c_str());
     preferences.putString(key,value);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),value);
+      item_publish(publish_key.c_str(),value);
     }
   } else if (type == BOOL) {
     bool number = str_to_bool(value);
     log_d("saving %s = %s",key,value.c_str());
     preferences.putBool(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == FLOAT) {
     float number = str_to_float(value);
     log_d("saving %s = %f",key,number);
     preferences.putFloat(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == DOUBLE) {
     double number = str_to_double(value);
     log_d("saving %s = %lf",key,number);
     preferences.putDouble(key,number);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),number);
+      item_publish(publish_key.c_str(),number);
     }
   } else if (type == STRUCT) {
     log_d("saving %s = %s",key,value.c_str());
     preferences.putString(key,value);
     if (publish_key != EMPTY) {
-      preferences_on_update(publish_key.c_str(),value);
+      item_publish(publish_key.c_str(),value);
     }
   } else {
     return false;

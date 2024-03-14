@@ -6,21 +6,22 @@
  */
 
 #include <Arduino.h>
+#include <Arduino_JSON.h>
 
 const PROGMEM char * EMPTY = "";
 
 typedef enum {
-  UINT8 = 16,
+  UINT8  = 16,
   UINT16 = 17,
   UINT32 = 18,
   UINT64 = 19,
-  INT8 = 20,
-  INT16 = 21,
-  INT32 = 22,
-  INT64 = 23,
+  INT8   = 20,
+  INT16  = 21,
+  INT32  = 22,
+  INT64  = 23,
   STRING = 24,
-  BOOL = 25,
-  FLOAT = 26,
+  BOOL   = 25,
+  FLOAT  = 26,
   DOUBLE = 27,
   DARRAY = 28,
   STRUCT = 29
@@ -28,17 +29,17 @@ typedef enum {
 
 const char * ctype_str(ctype_t type) {
   switch (type) {
-    case UINT8: return "uint8";
+    case UINT8:  return "uint8";
     case UINT16: return "uint16";
     case UINT32: return "uint32";
     case UINT64: return "uint64";
-    case INT8: return "int8";
-    case INT16: return "int16";
-    case INT32: return "int32";
-    case INT64: return "int64";
+    case INT8:   return "int8";
+    case INT16:  return "int16";
+    case INT32:  return "int32";
+    case INT64:  return "int64";
     case STRING: return "string";
-    case BOOL: return "bool";
-    case FLOAT: return "float";
+    case BOOL:   return "bool";
+    case FLOAT:  return "float";
     case DOUBLE: return "double";
     case DARRAY: return "darray";
     case STRUCT: return "struct";
@@ -187,6 +188,38 @@ float str_to_float(String str) {
 
 double str_to_double(String str) {
   return str_to_double(str.c_str());
+}
+
+void items_publish(JSONVar message);
+
+void item_publish(const char * name, String value) {
+  JSONVar message;
+  message[name] = value;
+  items_publish(message);
+}
+
+void item_publish(const char * name, int32_t value) {
+  JSONVar message;
+  message[name] = value;
+  items_publish(message);
+}
+
+void item_publish(const char * name, uint32_t value) {
+  JSONVar message;
+  message[name] = value;
+  items_publish(message);
+}
+
+void item_publish(const char * name, bool value) {
+  JSONVar message;
+  message[name] = value;
+  items_publish(message);
+}
+
+void item_publish(const char * name, double value) {
+  JSONVar message;
+  message[name] = value;
+  items_publish(message);
 }
 
 String html_encode(String str) {

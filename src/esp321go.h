@@ -23,7 +23,7 @@ uint8_t wifi_ap_pin = 0;
 
 String html_title;
 
-void preferences_on_update(JSONVar message) {
+void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
   if (!wifi_have_internet()) {
     return;
