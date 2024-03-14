@@ -21,7 +21,7 @@ uint32_t reboot_ms;
 
 int pin_states[CONF_SCHEMA_PIN_COUNT];
 int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
-uint32_t pin_write_ms[CONF_SCHEMA_PIN_COUNT];
+uint32_t pin_write_last_ms[CONF_SCHEMA_PIN_COUNT];
 Input inputs[CONF_SCHEMA_INPUT_COUNT];
 Output outputs[CONF_SCHEMA_OUTPUT_COUNT];
 const Output * pin_output[CONF_SCHEMA_PIN_COUNT] = {NULL};
@@ -33,15 +33,15 @@ String html_title;
 
 String openhab_rest_uri;
 String openhab_bus_item;
-uint32_t input_read_interval;
-uint32_t input_read_ts = 0;
-uint32_t publish_interval;
-uint32_t publish_ts = 0;
+uint32_t input_read_interval_ms;
+uint32_t input_read_last_ms = 0;
+uint32_t publish_interval_ms;
+uint32_t publish_last_ms = 0;
 bool publish_ip;
 bool publish_ssid;
 bool publish_rssi;
 
-void preferences_on_update(JSONVar data) {
+void items_publish(JSONVar data) {
 #ifdef CONF_WIFI
   if (!wifi_have_internet()) {
     return;
@@ -78,7 +78,7 @@ void pinInit(int pin,int mode) {
   pinMode(pin,mode);
   pin_states[pin] = -1;
   if (mode == OUTPUT) {
-    pin_write_ms[pin] = 0;
+    pin_write_last_ms[pin] = 0;
   }
   pin_output[pin] = NULL;
 }
@@ -87,32 +87,32 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void digitalWriteState(uint8_t pin,int value,bool skip_publish=false) {
+void digitalWriteState(uint8_t pin, int value, bool skip_publish = false) {
   digitalWrite(pin,value);
   pin_states[pin] = value;
-  pin_write_ms[pin] = millis();
+  pin_write_last_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
     if (!skip_publish && output->published) {
-      preferences_on_update((output->name).c_str(),digitalString(value));
+      item_publish((output->name).c_str(),digitalString(value));
     }
   }
 }
 
-void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
+void analogWriteState(uint8_t pin, uint16_t value, bool skip_publish = false) {
   ledcWrite(pin_channel[pin], value);
   pin_states[pin] = value;
-  pin_write_ms[pin] = millis();
+  pin_write_last_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
     if (!skip_publish && output->published) {
-      preferences_on_update((output->name).c_str(),value);
+      item_publish((output->name).c_str(),value);
     }
   }
 }
@@ -120,14 +120,14 @@ void analogWriteState(uint8_t pin,uint16_t value,bool skip_publish=false) {
 void toneState(uint8_t pin,uint32_t value,bool skip_publish=false) {
   ledcWriteTone(pin_channel[pin], value);
   pin_states[pin] = value;
-  pin_write_ms[pin] = millis();
+  pin_write_last_ms[pin] = millis();
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
     if (!skip_publish && output->published) {
-      preferences_on_update((output->name).c_str(),value);
+      item_publish((output->name).c_str(),value);
     }
   }
 }
@@ -237,8 +237,8 @@ float mq2ResistanceCalculation(int raw_adc, float rl) {
 }
 
 float mq2Read(uint8_t pin, bool skipRules = false, float rl = CONF_MQ2_RL_VALUE) {
-  int n = CONF_MQ2_READ_SAMPLE_TIMES;
-  int i;
+  uint8_t n = CONF_MQ2_READ_SAMPLE_TIMES;
+  uint8_t i;
   float rs=0;
   for (i=0;i<n;i++) {
     rs += mq2ResistanceCalculation(analogRead(pin),rl);
@@ -414,9 +414,9 @@ void publish() {
   int message_len = message.keys().length();
   log_d("message length is %d",message_len);
   if (message_len > 0) {
-    preferences_on_update(message);
+    items_publish(message);
   }
-  publish_ts = millis();
+  publish_last_ms = millis();
 }
 
 #include "rules.h"
@@ -436,13 +436,8 @@ String web_html_title() {
 
 String web_html_footer(bool admin) {
   String html = "<div>";
-  if (wifi_mode = WIFI_STA) {
-    html += "Connected to \""+html_encode(WiFi.SSID())+"\" (RSSI "+String(WiFi.RSSI())+") - ";
-  } else if (wifi_mode = WIFI_AP) {
-    html += "Connected clients: "+String(WiFi.softAPgetStationNum())+" - ";
-  } else {
-    html += "WiFi is OFF - ";
-  }
+  html += wifi_get_info();
+  html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
   html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
@@ -576,7 +571,7 @@ void web_handle_root() {
     if (timestr != "") {
       html += timestr + " - ";
     }
-    html += "Last Publish: "+String(publish_ts)+" - ";
+    html += "Last Publish: "+String(publish_last_ms)+" - ";
     html += "<button type=\"submit\" class=\"btn btn-primary\">Publish Now</button> ";
     html += "</p></form>";
   } else if (timestr != "") {
@@ -686,7 +681,7 @@ void loop() {
     ESP.restart();
     return;
   }
-  if (reboot_ms > 0 && millis() > reboot_ms) {
+  if (at_interval(reboot_ms)) {
     ESP.restart();
     return;
   }
@@ -694,7 +689,8 @@ void loop() {
   wifi_loop(CONF_WIFI_MODE_LIMIT);
   wifi_time_loop();
 #endif
-  if (millis() - input_read_ts > input_read_interval) {
+  if (at_interval(input_read_interval_ms,input_read_last_ms)) {
+    input_read_last_ms = millis();
     for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
       if (inputs[i].type == NO_INPUT || !inputs[i].monitored) {
         continue;
@@ -710,7 +706,7 @@ void loop() {
               pin_states[pin] = rs;
               on_pin_read(pin,rs,DIGITAL_INPUT,true);
               if (inputs[i].published) {
-                preferences_on_update((inputs[i].name).c_str(),digitalString(rs));
+                item_publish((inputs[i].name).c_str(),digitalString(rs));
               }
             }
           }
@@ -727,12 +723,11 @@ void loop() {
           break;
       }
     }
-    input_read_ts = millis();
   }
   for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
     if (outputs[i].type == PULSE_1_OUTPUT && outputs[i].pin >= 0) {
       int8_t pin = outputs[i].pin;
-      if (pin_states[pin] == HIGH && millis() - pin_write_ms[pin] > 1000) {
+      if (pin_states[pin] == HIGH && at_interval(1000,pin_write_last_ms[pin])) {
         digitalWriteState(pin,LOW);
         on_output_write(outputs[i].num);
       }
@@ -742,7 +737,7 @@ void loop() {
   if (!wifi_is_off()) {
     web_server_loop();
     delay(10);
-    if (publish_interval > 0 && millis() - publish_ts > publish_interval) {
+    if (at_interval(publish_interval_ms,publish_last_ms)) {
       publish();
     }
   } else {
@@ -769,18 +764,15 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
-  input_read_interval = preferences.getULong(PREF_INPUT_READ_INTERVAL,CONF_INPUT_READ_INTERVAL);
-  if (input_read_interval < CONF_INPUT_READ_INTERVAL_MIN) {
-    input_read_interval = CONF_INPUT_READ_INTERVAL_MIN;
-  }
+  input_read_interval_ms = max(preferences.getULong(PREF_INPUT_READ_INTERVAL),CONF_INPUT_READ_INTERVAL_MIN);
   openhab_rest_uri = preferences.getString(PREF_OPENHAB_REST_URI);
   openhab_bus_item = preferences.getString(PREF_OPENHAB_BUS_ITEM);
   if (openhab_bus_item == "") {
     openhab_bus_item = CONF_OPENHAB_BUS_ITEM;
   }
-  publish_interval = preferences.getULong(PREF_PUBLISH_INTERVAL,CONF_PUBLISH_INTERVAL);
-  if (publish_interval != 0 && publish_interval < CONF_PUBLISH_INTERVAL_MIN) {
-    publish_interval = CONF_PUBLISH_INTERVAL_MIN;
+  publish_interval_ms = preferences.getULong(PREF_PUBLISH_INTERVAL,CONF_PUBLISH_INTERVAL);
+  if (publish_interval_ms != 0) {
+    publish_interval_ms = max(publish_interval_ms,CONF_PUBLISH_INTERVAL_MIN);
   }
   publish_ip = preferences.getBool(PREF_PUBLISH_IP);
   publish_ssid = preferences.getBool(PREF_PUBLISH_SSID);
@@ -921,17 +913,13 @@ void setup() {
       wifi_add_ap(ssid.c_str(),pswd.c_str());
     }
   }
-  uint32_t wifi_check_interval = preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL);
-  if (wifi_check_interval < CONF_WIFI_CHECK_INTERVAL_MIN) {
-    wifi_check_interval = CONF_WIFI_CHECK_INTERVAL_MIN;
-  }
   wifi_setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
-    preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP),
-    preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID),
-    preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD),
+    preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
+    preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
+    preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD).c_str(),
     CONF_WIFI_CONN_TIMEOUT_MS,
-    wifi_check_interval,
+    max(preferences.getULong(PREF_WIFI_CHECK_INTERVAL),CONF_WIFI_CHECK_INTERVAL_MIN),
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
   );
   delay(1000);
@@ -943,7 +931,10 @@ void setup() {
     html_title = CONF_WEB_HTML_TITLE;
   }
   web_server_setup_http();
-  web_admin_setup();
+  web_admin_setup(
+    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
+    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
+  );
   web_ota_setup();
   web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_rest_setup(dht_available);
@@ -956,6 +947,6 @@ void setup() {
     web_send_redirect(redirect_uri);
   });
   web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_begin(wifi_name);
+  web_server_begin(wifi_name.c_str());
 #endif
 }

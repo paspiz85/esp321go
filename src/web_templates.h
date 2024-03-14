@@ -47,7 +47,7 @@ void web_handle_rest_result(String value) {
   web_send_text(200, "text/plain", value);
 }
 
-void web_send_page(String title, String body, int refresh = 0) {
+void web_send_page(String title, String body, uint16_t refresh = 0) {
   String html = "<html><head><meta charset=\"utf-8\">";
   html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
   html += "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">";
@@ -60,7 +60,6 @@ void web_send_page(String title, String body, int refresh = 0) {
     html += "<title>"+html_encode(title)+"</title>";
   }
   html += "<style>"+String(css)+"</style></head>" + body + "</html>";
-  //html += "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>";
   web_send_text(200, "text/html", html);
 }
 
