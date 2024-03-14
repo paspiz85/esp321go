@@ -7,8 +7,6 @@
 
 #include "wifi.h"
 
-#define WIFI_TIME_INTERVAL_MIN (60000)
-
 struct tm wifi_time_info;
 uint32_t wifi_time_interval = 0;
 uint32_t wifi_time_ms = 0;
@@ -42,10 +40,7 @@ void wifi_time_setup(const char * ntp_server, uint32_t ntp_interval, const char 
     return;
   }
   configTime(0, 0, ntp_server);
-  wifi_time_interval = ntp_interval;
-  if (wifi_time_interval < WIFI_TIME_INTERVAL_MIN) {
-    wifi_time_interval = WIFI_TIME_INTERVAL_MIN;
-  }
+  wifi_time_interval = max(ntp_interval, CONF_WIFI_NTP_INTERVAL_MIN);
   setenv("TZ",timezone,1);
   tzset();
   if (getLocalTime(&wifi_time_info)){

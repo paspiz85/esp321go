@@ -7,6 +7,8 @@
 
 #include <Arduino.h>
 
+const PROGMEM char * EMPTY = "";
+
 typedef enum {
   UINT8 = 16,
   UINT16 = 17,
@@ -48,7 +50,7 @@ String uint64_to_string(uint64_t num) {
   if (num == 0) {
     return "0";
   }
-  String str = "";
+  String str = EMPTY;
   while (num > 0) {
     str = String((uint8_t)(num%10)) + str;
     num = num / 10;
@@ -64,7 +66,7 @@ String int64_to_string(int64_t num) {
   if (negative) {
     num = -num;
   }
-  String str = "";
+  String str = EMPTY;
   while (num > 0) {
     str = String((uint8_t)(num%10)) + str;
     num = num / 10;
@@ -203,9 +205,9 @@ String html_encode(String str) {
   return buffer;
 }
 
-String html_input(ctype_t type,String name = "value",String value = "",String attrs = "") {
+String html_input(ctype_t type, String name = "value", String value = EMPTY, String attrs = EMPTY) {
   if (type == BOOL) {
-    String input_options = "";
+    String input_options = EMPTY;
     if (value == "true") {
       input_options = "selected=\"selected\"";
     }
@@ -241,7 +243,7 @@ String html_input(ctype_t type,String name = "value",String value = "",String at
       input_options += " step=\"any\"";
     } else {
       input_type = "text";
-      input_options = "";
+      input_options = EMPTY;
     }
     return "<input type=\""+input_type+"\" name=\""+name+"\" value=\""+html_encode(value)+"\" "+input_options+" "+attrs+"/>";
   }

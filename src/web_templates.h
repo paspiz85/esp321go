@@ -52,7 +52,6 @@ void web_send_page(String title, String body, int refresh = 0) {
     html += "<title>"+html_encode(title)+"</title>";
   }
   html += "<style>"+String(css)+"</style></head>" + body + "</html>";
-  //html += "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>";
   web_send_text(200, "text/html", html);
 }
 

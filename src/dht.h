@@ -47,15 +47,12 @@ float dht_read_humidity(bool force = false) {
   return dht_hum;
 }
 
-bool dht_setup(uint8_t pin, uint8_t type, uint32_t read_interval = 0) {
+bool dht_setup(uint8_t pin, uint8_t type, uint32_t read_interval = CONF_DHT_READ_INTERVAL_MIN) {
   if (pin == 0 || type == 0) {
     return false;
   }
   static DHT dht_local(pin,type);
-  dht_read_interval = read_interval;
-  if (dht_read_interval < CONF_DHT_READ_INTERVAL_MIN) {
-    dht_read_interval = CONF_DHT_READ_INTERVAL_MIN;
-  }
+  dht_read_interval = max(read_interval,CONF_DHT_READ_INTERVAL_MIN);
   dht = &dht_local;
   dht->begin();
   return true;

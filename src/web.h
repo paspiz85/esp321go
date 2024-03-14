@@ -9,6 +9,7 @@
  */
 
 #include "base_conf.h"
+#include "wifi.h"
 #include <WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
@@ -59,7 +60,7 @@ HTTPUpload& web_upload() {
   return web_server->upload();
 }
 
-void web_send_redirect(String redirect_uri, String message = "", int refresh = 0) {
+void web_send_redirect(String redirect_uri, String message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN) {
   if (web_server == NULL) {
     return;
   }
@@ -77,9 +78,7 @@ void web_send_redirect(String redirect_uri, String message = "", int refresh = 0
     web_server->send(302,"text/plain","");
     return;
   }
-  if (refresh < 0) {
-    refresh = 5000;
-  }
+  refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
   web_server->sendHeader("Connection", "close");
   web_server->send(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
 }
@@ -120,7 +119,7 @@ void web_server_setup_http(const uint16_t port = CONF_WEB_HTTP_PORT) {
   web_server = new WebServer(port);
 }
 
-void web_server_begin(String name) {
+void web_server_begin(const char * name) {
   if (web_server == NULL) {
     return;
   }
@@ -130,7 +129,7 @@ void web_server_begin(String name) {
   web_server->collectHeaders(headerkeys, headerkeyssize);
   web_server->begin();
   Serial.print("Ready on http://");
-  if (MDNS.begin(name.c_str())) {
+  if (MDNS.begin(name)) {
     MDNS.addService("http", "tcp", http_port);
     Serial.print(name);
     Serial.print(".local");

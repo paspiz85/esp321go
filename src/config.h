@@ -79,37 +79,37 @@ typedef struct config {
 } Config;
 
 const Config config_wifi_defs[] = {
-  { .key = PREF_PREFIX_WIFI_SSID, .type = STRING, .desc = "" },
-  { .key = PREF_PREFIX_WIFI_PSWD, .type = STRING, .desc = "" }
+  { .key = PREF_PREFIX_WIFI_SSID,     .type = STRING, .desc = "" },
+  { .key = PREF_PREFIX_WIFI_PSWD,     .type = STRING, .desc = "" }
 };
 
 const Config config_defs[] = {
-  { .key = PREF_REBOOT_FREE, .type = UINT32, .desc = PREF_REBOOT_FREE_DESC },
-  { .key = PREF_REBOOT_MS, .type = UINT32, .desc = PREF_REBOOT_MS_DESC },
-  { .key = PREF_TIME_ZONE, .type = STRING, .desc = PREF_TIME_ZONE_DESC.c_str() },
+  { .key = PREF_REBOOT_FREE,          .type = UINT32, .desc = PREF_REBOOT_FREE_DESC },
+  { .key = PREF_REBOOT_MS,            .type = UINT32, .desc = PREF_REBOOT_MS_DESC },
+  { .key = PREF_TIME_ZONE,            .type = STRING, .desc = PREF_TIME_ZONE_DESC.c_str() },
 #ifdef CONF_WIFI
-  { .key = PREF_WIFI_MODE, .type = UINT8, .desc = PREF_WIFI_MODE_DESC },
-  { .key = PREF_WIFI_AP_IP, .type = STRING, .desc = PREF_WIFI_AP_IP_DESC.c_str() },
-  { .key = PREF_WIFI_AP_SSID, .type = STRING, .desc = PREF_WIFI_AP_SSID_DESC.c_str() },
-  { .key = PREF_WIFI_AP_PSWD, .type = STRING, .desc = PREF_WIFI_AP_PSWD_DESC.c_str() },
-  { .key = PREF_WIFI_AP_PIN, .type = UINT8, .desc = PREF_WIFI_AP_PIN_DESC },
-  { .key = PREF_PREFIX_WIFI, .type = DARRAY, .desc = "", .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len(config_wifi_defs) },
-  { .key = PREF_WIFI_CHECK_INTERVAL, .type = UINT32, .desc = PREF_WIFI_CHECK_INTERVAL_DESC.c_str() },
+  { .key = PREF_WIFI_MODE,            .type = UINT8,  .desc = PREF_WIFI_MODE_DESC },
+  { .key = PREF_WIFI_AP_IP,           .type = STRING, .desc = PREF_WIFI_AP_IP_DESC.c_str() },
+  { .key = PREF_WIFI_AP_SSID,         .type = STRING, .desc = PREF_WIFI_AP_SSID_DESC.c_str() },
+  { .key = PREF_WIFI_AP_PSWD,         .type = STRING, .desc = PREF_WIFI_AP_PSWD_DESC.c_str() },
+  { .key = PREF_WIFI_AP_PIN,          .type = UINT8,  .desc = PREF_WIFI_AP_PIN_DESC },
+  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = "", .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len(config_wifi_defs) },
+  { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = PREF_WIFI_CHECK_INTERVAL_DESC.c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = PREF_WIFI_CHECK_THRESHOLD_DESC.c_str() },
-  { .key = PREF_WIFI_NAME, .type = STRING, .desc = PREF_WIFI_NAME_DESC.c_str() },
+  { .key = PREF_WIFI_NAME,            .type = STRING, .desc = PREF_WIFI_NAME_DESC.c_str() },
 #endif
 #ifdef CONF_WEB
-  { .key = PREF_WEB_HTML_TITLE, .type = STRING, .desc = PREF_WEB_HTML_TITLE_DESC.c_str() },
-  { .key = PREF_WEB_ADMIN_USERNAME, .type = STRING, .desc = PREF_WEB_ADMIN_USERNAME_DESC.c_str() },
-  { .key = PREF_WEB_ADMIN_PASSWORD, .type = STRING, .desc = PREF_WEB_ADMIN_PASSWORD_DESC.c_str() },
+  { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = PREF_WEB_HTML_TITLE_DESC.c_str() },
+  { .key = PREF_WEB_ADMIN_USERNAME,   .type = STRING, .desc = PREF_WEB_ADMIN_USERNAME_DESC.c_str() },
+  { .key = PREF_WEB_ADMIN_PASSWORD,   .type = STRING, .desc = PREF_WEB_ADMIN_PASSWORD_DESC.c_str() },
 #endif
-  { .key = PREF_CONFIG_PUBLISH, .type = BOOL, .desc = "" },
+  { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = "" },
 #ifdef CONF_DHT
-  { .key = PREF_DHT_PIN, .type = UINT8, .desc = "" },
-  { .key = PREF_DHT_TYPE, .type = UINT8, .desc = "" },
-  { .key = PREF_DHT_READ_INTERVAL, .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() },
+  { .key = PREF_DHT_PIN,              .type = UINT8,  .desc = "" },
+  { .key = PREF_DHT_TYPE,             .type = UINT8,  .desc = "" },
+  { .key = PREF_DHT_READ_INTERVAL,    .type = UINT32, .desc = PREF_DHT_READ_INTERVAL_DESC.c_str() },
 #endif
-  { .key = PREF_LOG_LEVEL, .type = STRING, .desc = PREF_LOG_LEVEL_DESC }
+  { .key = PREF_LOG_LEVEL,            .type = STRING, .desc = PREF_LOG_LEVEL_DESC }
 };
 
 Preferences preferences;
@@ -151,20 +151,20 @@ String preferences_get(const char * key,ctype_t type,bool emptyOnNull=false) {
     return "";
   }
   switch (type) {
-    case UINT8: return String(preferences.getUChar(key));
+    case UINT8:  return String(preferences.getUChar(key));
     case UINT16: return String(preferences.getUShort(key));
     case UINT32: return String(preferences.getULong(key));
     case UINT64: return uint64_to_string(preferences.getULong64(key));
-    case INT8: return String(preferences.getChar(key));
-    case INT16: return String(preferences.getShort(key));
-    case INT32: return String(preferences.getLong(key));
-    case INT64: return int64_to_string((long long) preferences.getLong64(key));
+    case INT8:   return String(preferences.getChar(key));
+    case INT16:  return String(preferences.getShort(key));
+    case INT32:  return String(preferences.getLong(key));
+    case INT64:  return int64_to_string((long long) preferences.getLong64(key));
     case STRING: return preferences.getString(key);
-    case BOOL: return preferences.getBool(key) ? "true" : "false";
-    case FLOAT: return String(preferences.getFloat(key));
+    case BOOL:   return preferences.getBool(key) ? "true" : "false";
+    case FLOAT:  return String(preferences.getFloat(key));
     case DOUBLE: return String(preferences.getDouble(key));
     case STRUCT: return preferences.getString(key);
-    default: return "";
+    default:     return "";
   }
 }
 
