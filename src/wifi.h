@@ -17,8 +17,8 @@ wifi_mode_t wifi_mode;
 uint8_t wifi_mode_setup;
 IPAddress wifi_ap_ip;
 IPAddress wifi_ap_subnet(255,255,255,0);
-const char * wifi_ap_ssid;
-const char * wifi_ap_pswd;
+String wifi_ap_ssid;
+String wifi_ap_pswd;
 uint8_t wifi_count = 0; 
 uint32_t wifi_conn_timeout;
 uint32_t wifi_check_interval_ms;
@@ -72,7 +72,7 @@ void wifi_ap_mode() {
   log_w("Attivazione AP in corso ...");
   wifi_set_mode(WIFI_AP);
   WiFi.softAPConfig(wifi_ap_ip,wifi_ap_ip,wifi_ap_subnet);
-  WiFi.softAP(wifi_ap_ssid,wifi_ap_pswd);
+  WiFi.softAP(wifi_ap_ssid.c_str(),wifi_ap_pswd.c_str());
   log_w("IP address: %s", wifi_get_ip_address().c_str());
   wifi_ap_state_changed(HIGH);
 }
@@ -81,7 +81,7 @@ void wifi_loop(uint32_t mode_limit_ms = 0) {
   if (wifi_mode != wifi_mode_setup && at_interval(mode_limit_ms)) {
     if (wifi_mode_setup == 0) {
       wifi_set_mode(WIFI_OFF);
-    } else if (wifi_mode_setup == 2 && strlen(wifi_ap_ssid) != 0) {
+    } else if (wifi_mode_setup == 2 && wifi_ap_ssid != "") {
       wifi_ap_mode();
     } else {
       ESP.restart();
@@ -114,8 +114,8 @@ void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const ch
   log_i("Preparazione WIFI ...");
   wifi_mode_setup = mode;
   wifi_ap_ip.fromString(ap_ssid);
-  wifi_ap_ssid = ap_ssid;
-  wifi_ap_pswd = ap_pswd;
+  wifi_ap_ssid = String(ap_ssid);
+  wifi_ap_pswd = String(ap_pswd);
   wifi_conn_timeout = conn_timeout;
   wifi_check_interval_ms = check_interval_ms;
   wifi_check_threshold_ms = check_threshold_ms;
@@ -133,7 +133,7 @@ void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const ch
     }
   }
   if (!connected) {
-    if (strlen(wifi_ap_ssid) == 0) {
+    if (wifi_ap_ssid == "") {
       if (wifi_count == 0) {
         wifi_set_mode(WIFI_OFF);
       }
