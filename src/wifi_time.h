@@ -7,17 +7,15 @@
 
 #include "wifi.h"
 
-#define WIFI_TIME_INTERVAL_MIN (60000)
-
 struct tm wifi_time_info;
-uint32_t wifi_time_interval = 0;
-uint32_t wifi_time_ms = 0;
+uint32_t wifi_time_interval_ms = 0;
+uint32_t wifi_time_last_ms = 0;
 
 time_t wifi_time_read() {
-  if (wifi_time_interval == 0 || wifi_time_ms == 0) {
+  if (wifi_time_interval_ms == 0 || wifi_time_last_ms == 0) {
     return 0;
   }
-  return mktime(&wifi_time_info) + (millis() - wifi_time_ms) / 1000;
+  return mktime(&wifi_time_info) + (millis() - wifi_time_last_ms) / 1000;
 }
 
 bool wifi_time_read(struct tm * timeinfo) {
@@ -30,26 +28,23 @@ bool wifi_time_read(struct tm * timeinfo) {
 }
 
 void wifi_time_loop() {
-  if (wifi_time_interval != 0 && millis() - wifi_time_ms > wifi_time_interval) {
+  if (at_interval(wifi_time_interval_ms,wifi_time_last_ms)) {
     if (getLocalTime(&wifi_time_info)) {
-      wifi_time_ms = millis();
+      wifi_time_last_ms = millis();
     }
   }
 }
 
-void wifi_time_setup(const char * ntp_server, uint32_t ntp_interval, const char * timezone) {
+void wifi_time_setup(const char * ntp_server, uint32_t ntp_interval_ms, const char * timezone) {
   if (!wifi_have_internet()) {
     return;
   }
   configTime(0, 0, ntp_server);
-  wifi_time_interval = ntp_interval;
-  if (wifi_time_interval < WIFI_TIME_INTERVAL_MIN) {
-    wifi_time_interval = WIFI_TIME_INTERVAL_MIN;
-  }
+  wifi_time_interval_ms = max(ntp_interval_ms, CONF_WIFI_NTP_INTERVAL_MIN);
   setenv("TZ",timezone,1);
   tzset();
   if (getLocalTime(&wifi_time_info)){
-    wifi_time_ms = millis();
+    wifi_time_last_ms = millis();
     char buf[80];
     strftime(buf, sizeof(buf), "NTP time: %Y-%m-%d %H:%M:%S zone %Z %z", &wifi_time_info);
     log_i("%s", buf);

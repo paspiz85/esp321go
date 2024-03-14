@@ -135,7 +135,7 @@ String web_parameter(HTTPRequest * req, const char * param_name) {
   return "";
 }
 
-void web_send_redirect(HTTPRequest * req, HTTPResponse * res, String redirect_uri, String message = "", int refresh = 0) {
+void web_send_redirect(HTTPRequest * req, HTTPResponse * res, String redirect_uri, String message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN) {
   if (redirect_uri == "") {
     std::string header = req->getHeader("Referer");
     if (header.length() > 0) {
@@ -157,11 +157,10 @@ void web_send_redirect(HTTPRequest * req, HTTPResponse * res, String redirect_ur
     res->finalize();
     return;
   }
-  if (refresh < 0) {
-    refresh = 5000;
-  }
+  refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
   res->setHeader("Connection", "close");
   res->printf("<html><body>%s</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='%s'},%d)})</script></html>", message.c_str(), redirect_uri.c_str(), refresh);
+  res->finalize();
 }
 
 void web_send_data(HTTPRequest * req, HTTPResponse * res, JSONVar data) {
@@ -241,7 +240,7 @@ bool web_server_setup_https(String crt = "", String key = "", const uint16_t por
 }
 #endif
 
-void web_server_begin(String name,bool secure = false) {
+void web_server_begin(const char * name, bool secure = false) {
   ResourceNode * node404 = new ResourceNode("", HTTP_GET, &web_handle_notFound);
 #ifdef CONF_WEB_HTTPS
   if (https_server != NULL) {
@@ -284,7 +283,7 @@ void web_server_begin(String name,bool secure = false) {
   Serial.print("Ready on ");
   Serial.print(protocol);
   Serial.print("://");
-  if (MDNS.begin(name.c_str())) {
+  if (MDNS.begin(name)) {
     MDNS.addService(protocol, "tcp", port);
     Serial.print(name);
     Serial.print(".local");

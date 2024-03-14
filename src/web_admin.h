@@ -7,16 +7,16 @@
 
 #include "web.h"
 
-String web_admin_username;
-String web_admin_password;
+const char * web_admin_username;
+const char * web_admin_password;
 
 bool web_admin_authenticate(HTTPRequest * req) {
-  return web_authenticate(req, web_admin_username.c_str(), web_admin_password.c_str());
+  return web_authenticate(req, web_admin_username, web_admin_password);
 }
 
-void web_admin_setup() {
-  web_admin_username = preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME);
-  web_admin_password = preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD);
+void web_admin_setup(const char * username, const char * password) {
+  web_admin_username = username;
+  web_admin_password = password;
 }
 
 #endif

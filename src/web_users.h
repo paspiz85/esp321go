@@ -44,8 +44,8 @@ void web_logout(HTTPRequest * req, HTTPResponse * res) {
   return web_send_redirect(req,res,"/");
 }
 
-void web_users_setup() {
-  web_admin_setup();
+void web_users_setup(const char * admin_username, const char * admin_password) {
+  web_admin_setup(admin_username,admin_password);
   String config = preferences.getString(PREF_WEB_USERS);
   if (config == "") {
     config = "{}";

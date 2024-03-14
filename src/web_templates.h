@@ -57,7 +57,7 @@ void web_send_error_client(HTTPRequest * req, HTTPResponse * res, const char * m
   res->finalize();
 }
 
-void web_send_page(HTTPRequest * req, HTTPResponse * res, String title, String body, int refresh = 0) {
+void web_send_page(HTTPRequest * req, HTTPResponse * res, String title, String body, uint16_t refresh = 0) {
   req->discardRequestBody();
   res->setHeader("Content-Type", "text/html");
   res->println("<!DOCTYPE html>");
