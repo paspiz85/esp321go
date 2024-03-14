@@ -23,6 +23,15 @@ uint8_t wifi_ap_pin = 0;
 
 String html_title;
 
+void items_publish(JSONVar message) {
+#ifdef CONF_WIFI
+  if (!wifi_have_internet()) {
+    return;
+  }
+  // TODO
+#endif
+}
+
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
   pin_states[pin] = -1;
@@ -40,15 +49,6 @@ void digitalWriteState(uint8_t pin, int value, bool skip_publish = false) {
 void analogWriteState(uint8_t pin, uint16_t value, bool skip_publish = false) {
   ledcWrite(pin_channel[pin], value);
   pin_states[pin] = value;
-}
-
-void items_publish(JSONVar message) {
-#ifdef CONF_WIFI
-  if (!wifi_have_internet()) {
-    return;
-  }
-  // TODO
-#endif
 }
 
 #ifdef CONF_WIFI
