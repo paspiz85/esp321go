@@ -44,6 +44,15 @@ String thermo_boost_begin;
 String thermo_boost_end;
 uint16_t thermo_refresh;
 
+void items_publish(JSONVar message) {
+#ifdef CONF_WIFI
+  if (!wifi_have_internet()) {
+    return;
+  }
+  // TODO
+#endif
+}
+
 void pinInit(int pin,int mode) {
   pinMode(pin,mode);
   pin_states[pin] = -1;
@@ -75,15 +84,6 @@ void boiler_write(bool b) {
       }
     }
   }
-}
-
-void items_publish(JSONVar message) {
-#ifdef CONF_WIFI
-  if (!wifi_have_internet()) {
-    return;
-  }
-  // TODO
-#endif
 }
 
 #ifdef CONF_WIFI
