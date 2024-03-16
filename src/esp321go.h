@@ -167,7 +167,7 @@ String output_write(const Output * output,String input_value,bool reset=false) {
       digitalWriteState(pin,LOW);
       on_output_write(output->num);
     }
-  } else if (output->type == PULSE_1_OUTPUT && pin >= 0) {
+  } else if ((output->type == PULSE_1_OUTPUT || output->type == PULSE_2_OUTPUT || output->type == PULSE_3_OUTPUT) && pin >= 0) {
     digitalWriteState(pin,HIGH);
     on_output_write(output->num);
   } else if (output->type == ANALOG_PWM_OUTPUT && pin >= 0) {
@@ -296,14 +296,15 @@ String input_get(const Input * input, bool fromRules = false) {
 String output_get(const Output * output) {
   String str = "";
   const char * key = (output->key).c_str();
-  if (output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
+  bool isDigitalOut = output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT || output->type == PULSE_2_OUTPUT || output->type == PULSE_3_OUTPUT;
+  if (isDigitalOut || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
     int value;
     if (output->pin >= 0) {
       value = pin_states[output->pin];
     } else {
       value = preferences.getInt(key);
     }
-    if (output->type == DIGITAL_OUTPUT || output->type == PULSE_1_OUTPUT) {
+    if (isDigitalOut) {
       str = digitalString(value);
     } else {
       str = String(value);
@@ -346,14 +347,15 @@ void publish() {
       continue;
     }
     const char * key = outputs[i].key.c_str();
-    if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
+    bool isDigitalOut = outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == PULSE_2_OUTPUT || outputs[i].type == PULSE_3_OUTPUT;
+    if (isDigitalOut || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
       int value;
       if (outputs[i].pin >= 0) {
         value = pin_states[outputs[i].pin];
       } else {
         value = preferences.getInt(key);
       }
-      if (outputs[i].type == DIGITAL_OUTPUT || outputs[i].type == PULSE_1_OUTPUT) {
+      if (isDigitalOut) {
         message[outputs[i].name] = digitalString(value);
       } else {
         message[outputs[i].name] = value;
@@ -497,8 +499,8 @@ void web_handle_root() {
       output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
       output_editor += "<button type=\"submit\" class=\"btn btn-primary\">Toggle</button>";
       output_editor += "</form>";
-    } else if (outputs[i].type == PULSE_1_OUTPUT) {
-      output_type_str = "pulse";
+    } else if (outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == PULSE_2_OUTPUT || outputs[i].type == PULSE_3_OUTPUT) {
+      output_type_str = "pulse " + String(outputs[i].type - PULSE_1_OUTPUT + 1) + "s";
       output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
       output_editor += "<button type=\"submit\" class=\"btn btn-primary\">Send</button>";
       output_editor += "</form>";
@@ -725,9 +727,9 @@ void loop() {
     }
   }
   for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
-    if (outputs[i].type == PULSE_1_OUTPUT && outputs[i].pin >= 0) {
+    if ((outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == PULSE_2_OUTPUT || outputs[i].type == PULSE_3_OUTPUT) && outputs[i].pin >= 0) {
       int8_t pin = outputs[i].pin;
-      if (pin_states[pin] == HIGH && at_interval(1000,pin_write_last_ms[pin])) {
+      if (pin_states[pin] == HIGH && at_interval((outputs[i].type - PULSE_1_OUTPUT + 1)*1000,pin_write_last_ms[pin])) {
         digitalWriteState(pin,LOW);
         on_output_write(outputs[i].num);
       }
@@ -860,6 +862,8 @@ void setup() {
       switch (outputs[i].type) {
         case DIGITAL_OUTPUT:
         case PULSE_1_OUTPUT:
+        case PULSE_2_OUTPUT:
+        case PULSE_3_OUTPUT:
           pinInit(pin, OUTPUT);
           pin_output[pin] = &outputs[i];
           value = LOW;
