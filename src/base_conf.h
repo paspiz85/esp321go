@@ -33,7 +33,7 @@ const PROGMEM uint8_t  CONF_RULES_TRIGGERS_SIZE         = 10;
 const PROGMEM uint8_t  CONF_SCHEMA_CHANNEL_COUNT        = 16;
 const PROGMEM uint8_t  CONF_SCHEMA_INPUT_COUNT          = 5;
 const PROGMEM uint8_t  CONF_SCHEMA_OUTPUT_COUNT         = 10;
-const PROGMEM uint8_t  CONF_SCHEMA_PIN_COUNT            = 64;
+const PROGMEM uint8_t  CONF_SCHEMA_PIN_COUNT            = 40;
 const PROGMEM uint32_t CONF_SCHEMA_PWM_FRQ              = 5000;
 const PROGMEM uint8_t  CONF_SCHEMA_PWM_RES              = 10;
 

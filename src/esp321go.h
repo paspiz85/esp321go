@@ -1,4 +1,5 @@
 
+#include "base_memory.h"
 #include "config.h"
 #ifdef CONF_DHT
 #include "dht.h"
@@ -19,9 +20,6 @@
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-int pin_states[CONF_SCHEMA_PIN_COUNT];
-int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
-uint32_t pin_write_last_ms[CONF_SCHEMA_PIN_COUNT];
 Input inputs[CONF_SCHEMA_INPUT_COUNT];
 Output outputs[CONF_SCHEMA_OUTPUT_COUNT];
 const Output * pin_output[CONF_SCHEMA_PIN_COUNT] = {NULL};
@@ -70,63 +68,45 @@ void items_publish(JSONVar data) {
 #endif
 }
 
-void on_pin_read(uint8_t pin,int value,input_type_t type,bool change=false);
-void on_pin_read(uint8_t pin,double value,input_type_t type,bool change=false);
-void on_output_write(uint8_t num,bool reset=false);
-
-void pinInit(int pin,int mode) {
-  pinMode(pin,mode);
-  pin_states[pin] = -1;
-  if (mode == OUTPUT) {
-    pin_write_last_ms[pin] = 0;
-  }
-  pin_output[pin] = NULL;
-}
-
 String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void digitalWriteState(uint8_t pin, int value, bool skip_publish = false) {
-  digitalWrite(pin,value);
-  pin_states[pin] = value;
-  pin_write_last_ms[pin] = millis();
+void on_pin_read(uint8_t pin, int value, input_type_t type, bool change = false);
+void on_pin_read(uint8_t pin, double value, input_type_t type, bool change = false);
+void on_output_write(uint8_t num,bool reset=false);
+
+void on_digitalWriteState(uint8_t pin, int value, bool is_init) {
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
-    if (!skip_publish && output->published) {
+    if (!is_init && output->published) {
       item_publish((output->name).c_str(),digitalString(value));
     }
   }
 }
 
-void analogWriteState(uint8_t pin, uint16_t value, bool skip_publish = false) {
-  ledcWrite(pin_channel[pin], value);
-  pin_states[pin] = value;
-  pin_write_last_ms[pin] = millis();
+void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
-    if (!skip_publish && output->published) {
+    if (!is_init && output->published) {
       item_publish((output->name).c_str(),value);
     }
   }
 }
 
-void toneState(uint8_t pin,uint32_t value,bool skip_publish=false) {
-  ledcWriteTone(pin_channel[pin], value);
-  pin_states[pin] = value;
-  pin_write_last_ms[pin] = millis();
+void on_toneState(uint8_t pin, uint32_t value, bool is_init) {
   const Output * output = pin_output[pin];
   if (output != NULL) {
     if (output->stored) {
       preferences.putInt((output->key).c_str(),value);
     }
-    if (!skip_publish && output->published) {
+    if (!is_init && output->published) {
       item_publish((output->name).c_str(),value);
     }
   }
@@ -154,7 +134,7 @@ String output_write(const Output * output,String input_value,bool reset=false) {
   int8_t pin = output->pin;
   if (output->type == DIGITAL_OUTPUT && pin >= 0) {
     if (input_value == "") {
-      if (pin_states[pin] == HIGH) {
+      if (getPinState(pin) == HIGH) {
         digitalWriteState(pin,LOW);
       } else {
         digitalWriteState(pin,HIGH);
@@ -300,7 +280,7 @@ String output_get(const Output * output) {
   if (isDigitalOut || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
     int value;
     if (output->pin >= 0) {
-      value = pin_states[output->pin];
+      value = getPinState(output->pin);
     } else {
       value = preferences.getInt(key);
     }
@@ -351,7 +331,7 @@ void publish() {
     if (isDigitalOut || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
       int value;
       if (outputs[i].pin >= 0) {
-        value = pin_states[outputs[i].pin];
+        value = getPinState(outputs[i].pin);
       } else {
         value = preferences.getInt(key);
       }
@@ -424,9 +404,9 @@ void publish() {
 #include "rules.h"
 
 #ifdef CONF_WIFI
-void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && pin_states[wifi_ap_pin] != value) {
-    digitalWriteState(wifi_ap_pin, value, skip_publish);
+void wifi_ap_state_changed(int value, bool is_init) {
+  if (wifi_ap_pin != 0 && getPinState(wifi_ap_pin) != value) {
+    digitalWriteState(wifi_ap_pin, value, is_init);
   }
 }
 #endif
@@ -703,9 +683,9 @@ void loop() {
         case DIGITAL_INPUT:
           if (pin >= 0) {
             rs = digitalRead(pin);
-            if (rs != pin_states[pin]) {
+            if (rs != getPinState(pin)) {
               log_d("button %d changed: %d",pin,rs);
-              pin_states[pin] = rs;
+              setPinState(pin,rs);
               on_pin_read(pin,rs,DIGITAL_INPUT,true);
               if (inputs[i].published) {
                 item_publish((inputs[i].name).c_str(),digitalString(rs));
@@ -716,9 +696,9 @@ void loop() {
         case ANALOG_INPUT:
           if (pin >= 0) {
             rs = analogRead(pin);
-            if (rs != pin_states[pin]) {
+            if (rs != getPinState(pin)) {
               log_d("dimmer %d changed: %d",pin,rs);
-              pin_states[pin] = rs;
+              setPinState(pin,rs);
               on_pin_read(pin,rs,ANALOG_INPUT,true);
             }
           }
@@ -729,7 +709,7 @@ void loop() {
   for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
     if ((outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == PULSE_2_OUTPUT || outputs[i].type == PULSE_3_OUTPUT) && outputs[i].pin >= 0) {
       int8_t pin = outputs[i].pin;
-      if (pin_states[pin] == HIGH && at_interval((outputs[i].type - PULSE_1_OUTPUT + 1)*1000,pin_write_last_ms[pin])) {
+      if (getPinState(pin) == HIGH && at_interval((outputs[i].type - PULSE_1_OUTPUT + 1)*1000,lastWriteMillis(pin))) {
         digitalWriteState(pin,LOW);
         on_output_write(outputs[i].num);
       }
@@ -751,7 +731,6 @@ void loop() {
 void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
-  uint8_t channel = 0;
   preferences.begin("my-app", false);
   String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
   Serial.println("Log level : " + log_level);
@@ -810,14 +789,14 @@ void setup() {
       inputs[i].pin = -1;
     } else {
       uint8_t pin = inputs[i].pin;
-      pinInit(pin, INPUT);
+      pinMode(pin, INPUT);
       if (inputs[i].monitored) {
         switch (inputs[i].type) {
           case DIGITAL_INPUT:
-            pin_states[pin] = digitalRead(pin);
+            setPinState(pin,digitalRead(pin));
             break;
           case ANALOG_INPUT:
-            pin_states[pin] = analogRead(pin);
+            setPinState(pin,analogRead(pin));
             break;
         }
       }
@@ -864,7 +843,7 @@ void setup() {
         case PULSE_1_OUTPUT:
         case PULSE_2_OUTPUT:
         case PULSE_3_OUTPUT:
-          pinInit(pin, OUTPUT);
+          pinMode(pin, OUTPUT);
           pin_output[pin] = &outputs[i];
           value = LOW;
           if (outputs[i].stored) {
@@ -873,9 +852,7 @@ void setup() {
           digitalWriteState(pin,value,true);
           break;
         case ANALOG_PWM_OUTPUT:
-          ledcSetup(channel,CONF_SCHEMA_PWM_FRQ,CONF_SCHEMA_PWM_RES);
-          ledcAttachPin(pin, channel);
-          pin_channel[pin] = channel++;
+          pinAnalogModeSetup(pin,CONF_SCHEMA_PWM_FRQ,CONF_SCHEMA_PWM_RES);
           pin_output[pin] = &outputs[i];
           value = 0;
           if (outputs[i].stored) {
@@ -884,9 +861,7 @@ void setup() {
           analogWriteState(pin,value,true);
           break;
         case ANALOG_FM_OUTPUT:
-          ledcSetup(channel,0,CONF_SCHEMA_PWM_RES);
-          ledcAttachPin(pin, channel);
-          pin_channel[pin] = channel++;
+          pinAnalogModeSetup(pin,0,CONF_SCHEMA_PWM_RES);
           pin_output[pin] = &outputs[i];
           value = 0;
           if (outputs[i].stored) {
@@ -908,7 +883,7 @@ void setup() {
   wifi_name = preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME);
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
-    pinInit(wifi_ap_pin, OUTPUT);
+    pinMode(wifi_ap_pin, OUTPUT);
   }
   for (uint8_t i = 1; i <= CONF_WIFI_COUNT; i++) {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
