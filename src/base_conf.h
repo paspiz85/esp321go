@@ -16,7 +16,7 @@ const PROGMEM char *   CONF_LOG_LEVEL                   = "i";
 
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
 
-const PROGMEM uint8_t  CONF_SCHEMA_PIN_COUNT            = 64;
+const PROGMEM uint8_t  CONF_SCHEMA_PIN_COUNT            = 40;
 
 // Valore per Europe/Rome in https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 const PROGMEM char *   CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.5.0/3";
