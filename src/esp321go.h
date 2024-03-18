@@ -63,11 +63,11 @@ void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
 void boiler_write(bool b) {
   if (boiler_pin != 0) {
     if (b) {
-      if (pin_states[boiler_pin] == 0) {
+      if (getPinState(boiler_pin) == LOW) {
         digitalWriteState(boiler_pin, HIGH);
       }
     } else {
-      if (pin_states[boiler_pin] != 0) {
+      if (getPinState(boiler_pin) != LOW) {
         digitalWriteState(boiler_pin, LOW);
       }
     }
@@ -126,11 +126,7 @@ JSONVar html_data() {
   if (boiler_pin == 0) {
     data["boiler_status"] = "--";
   } else {
-    if (pin_states[boiler_pin] == 0) {
-      data["boiler_status"] = "OFF";
-    } else {
-      data["boiler_status"] = "ON";
-    }
+    data["boiler_status"] = getPinState(boiler_pin) == LOW ? "OFF" : "ON";
   }
   return data;
 }
@@ -382,7 +378,7 @@ void setup() {
 #endif
   boiler_pin = preferences.getUChar(PREF_BOILER_PIN);
   if (boiler_pin != 0) {
-    pinInit(boiler_pin, OUTPUT);
+    pinMode(boiler_pin, OUTPUT);
     digitalWriteState(boiler_pin, LOW);
   }
   thermo_mode = preferences.getUChar(PREF_THERMO_MODE,THERMO_MODE_OFF);
