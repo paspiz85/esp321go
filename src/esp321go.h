@@ -1,4 +1,5 @@
 
+#include "base_memory.h"
 #include "config.h"
 #ifdef CONF_DHT
 #include "dht.h"
@@ -27,8 +28,6 @@
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-int pin_states[CONF_SCHEMA_PIN_COUNT];
-int8_t pin_channel[CONF_SCHEMA_PIN_COUNT];
 uint8_t wifi_ap_pin = 0;
 uint8_t boiler_pin = 0;
 
@@ -53,24 +52,13 @@ void items_publish(JSONVar message) {
 #endif
 }
 
-void pinInit(int pin,int mode) {
-  pinMode(pin,mode);
-  pin_states[pin] = -1;
-}
-
 String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void digitalWriteState(uint8_t pin, int value, bool skip_publish = false) {
-  digitalWrite(pin,value);
-  pin_states[pin] = value;
-}
-
-void analogWriteState(uint8_t pin, uint16_t value, bool skip_publish = false) {
-  ledcWrite(pin_channel[pin], value);
-  pin_states[pin] = value;
-}
+void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
+void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
+void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
 
 void boiler_write(bool b) {
   if (boiler_pin != 0) {
@@ -88,7 +76,7 @@ void boiler_write(bool b) {
 
 #ifdef CONF_WIFI
 void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && pin_states[wifi_ap_pin] != value) {
+  if (wifi_ap_pin != 0 && getPinState(wifi_ap_pin) != value) {
     digitalWriteState(wifi_ap_pin, value, skip_publish);
   }
 }
@@ -410,7 +398,7 @@ void setup() {
 #ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
-    pinInit(wifi_ap_pin, OUTPUT);
+    pinMode(wifi_ap_pin, OUTPUT);
   }
   for (uint8_t i = 1; i <= CONF_WIFI_COUNT; i++) {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
