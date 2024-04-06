@@ -385,9 +385,9 @@ void publish() {
       }
     }
   }
-  if (dht_publish || bmp280_publish) {
-    float bmp280_temp = bmp280_read_temperature();
-    float dht_temp = dht_read_temperature(bmp280_publish);
+  if (bmp280_publish || dht_publish) {
+    float bmp280_temp = !bmp280_publish ? NAN : bmp280_read_temperature();
+    float dht_temp = !dht_publish ? NAN : dht_read_temperature(bmp280_publish);
     if (!isnan(bmp280_temp) && !isnan(dht_temp)) {
       message["temp"] = (bmp280_temp + dht_temp) / 2;
     } else if (!isnan(bmp280_temp)) {
