@@ -3,6 +3,7 @@
 #include "config.h"
 #ifdef CONF_DHT
 #include "dht.h"
+#include "bmp280.h"
 #endif
 #ifdef CONF_WIFI
 #include "wifi.h"
@@ -26,6 +27,7 @@ const Output * pin_output[CONF_SCHEMA_PIN_COUNT] = {NULL};
 String wifi_name;
 uint8_t wifi_ap_pin = 0;
 bool dht_publish;
+bool bmp280_publish;
 
 String html_title;
 
@@ -383,14 +385,27 @@ void publish() {
       }
     }
   }
-  if (dht_publish) {
-    float dht_temp = dht_read_temperature();
-    if (!isnan(dht_temp)) {
+  if (dht_publish || bmp280_publish) {
+    float bmp280_temp = bmp280_read_temperature();
+    float dht_temp = dht_read_temperature(bmp280_publish);
+    if (!isnan(bmp280_temp) && !isnan(dht_temp)) {
+      message["temp"] = (bmp280_temp + dht_temp) / 2;
+    } else if (!isnan(bmp280_temp)) {
+      message["temp"] = bmp280_temp;
+    } else if (!isnan(dht_temp)) {
       message["temp"] = dht_temp;
     }
+  }
+  if (dht_publish) {
     float dht_hum = dht_read_humidity();
     if (!isnan(dht_hum)) {
       message["hum"] = dht_hum;
+    }
+  }
+  if (bmp280_publish) {
+    float bmp280_pressure = bmp280_read_pressure();
+    if (!isnan(bmp280_pressure)) {
+      message["pressure"] = bmp280_pressure;
     }
   }
   int message_len = message.keys().length();
@@ -534,12 +549,26 @@ void web_handle_root() {
   if (out_count > 0) {
     html += "</table>";
   }
+  bool publish_available = input_count > 0;
   if (dht_available()) {
     html += "<h2>DHT</h2>";
     html += "<table style=\"margin:auto\"><tr><th>type</th><th>pin</th><th>temp</th><th>hum</th><th>p</th></tr>";
     html += "<tr><td>"+String(preferences.getUChar(PREF_DHT_TYPE))+"</td><td>"+String(preferences.getUChar(PREF_DHT_PIN))+"</td><td>"+String(dht_read_temperature())+"</td><td>"+String(dht_read_humidity())+"</td><td>";
     html += dht_publish ? "x" : "";
     html += "</td></tr></table>";
+    if (dht_publish) {
+      publish_available = true;
+    }
+  }
+  if (bmp280_available()) {
+    html += "<h2>BMP280</h2>";
+    html += "<table style=\"margin:auto\"><tr><th>addr</th><th>temp</th><th>pressure</th><th>p</th></tr>";
+    html += "<tr><td>"+String(preferences.getUChar(PREF_BMP280_ADDR))+"</td><td>"+String(bmp280_read_temperature())+"</td><td>"+String(bmp280_read_pressure())+"</td><td>";
+    html += bmp280_publish ? "x" : "";
+    html += "</td></tr></table>";
+    if (bmp280_publish) {
+      publish_available = true;
+    }
   }
   String timestr = "";
   struct tm timeinfo;
@@ -548,7 +577,7 @@ void web_handle_root() {
     strftime(time_str,sizeof(time_str),"%A %e %B %Y %H:%M:%S",&timeinfo);
     timestr = String(time_str);
   }
-  if (input_count > 0 || dht_available()) {
+  if (publish_available) {
     html += "<form action=\""+String(CONF_WEB_URI_PUBLISH)+"\" method=\"POST\"><p>";
     if (timestr != "") {
       html += timestr + " - ";
@@ -604,7 +633,7 @@ void web_rest_handle_output(const Output * output) {
   }
 }
 
-void web_server_rest_setup(bool dht_available) {
+void web_server_rest_setup(bool dht_available,bool bmp280_available) {
   web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/in([0-9]+)$"), []() {
     int i = web_path_arg(0).toInt();
     if (i <= 0 || i > CONF_SCHEMA_INPUT_COUNT) {
@@ -653,6 +682,14 @@ void web_server_rest_setup(bool dht_available) {
     });
     web_server_register(HTTP_ANY, "/rest/dht_hum", []() {
       web_handle_rest_result(String(dht_read_humidity()));
+    });
+  }
+  if (bmp280_available) {
+    web_server_register(HTTP_ANY, "/rest/bmp280_temp", []() {
+      web_handle_rest_result(String(bmp280_read_temperature()));
+    });
+    web_server_register(HTTP_ANY, "/rest/bmp280_pressure", []() {
+      web_handle_rest_result(String(bmp280_read_pressure()));
     });
   }
 }
@@ -878,6 +915,10 @@ void setup() {
     preferences.getULong(PREF_DHT_READ_INTERVAL));
   dht_publish = dht_available && preferences.getBool(PREF_DHT_PUBLISH);
 #endif
+#ifdef CONF_BMP280
+  bool bmp280_available = bmp280_setup(preferences.getUChar(PREF_BMP280_ADDR));
+  bmp280_publish = bmp280_available && preferences.getBool(PREF_BMP280_PUBLISH);
+#endif
   rules_setup(preferences.getString(PREF_RULES));
 #ifdef CONF_WIFI
   wifi_name = preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME);
@@ -916,7 +957,7 @@ void setup() {
   );
   web_ota_setup();
   web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_server_rest_setup(dht_available);
+  web_server_rest_setup(dht_available,bmp280_available);
   web_server_register(HTTP_POST, CONF_WEB_URI_PUBLISH, []() {
     publish();
     String redirect_uri = web_header("Referer");
