@@ -390,10 +390,14 @@ void publish() {
     float dht_temp = !dht_publish ? NAN : dht_read_temperature(bmp280_publish);
     if (!isnan(bmp280_temp) && !isnan(dht_temp)) {
       message["temp"] = (bmp280_temp + dht_temp) / 2;
+      message["bmp280_temp"] = bmp280_temp;
+      message["dht_temp"] = dht_temp;
     } else if (!isnan(bmp280_temp)) {
       message["temp"] = bmp280_temp;
+      message["bmp280_temp"] = bmp280_temp;
     } else if (!isnan(dht_temp)) {
       message["temp"] = dht_temp;
+      message["dht_temp"] = dht_temp;
     }
   }
   if (dht_publish) {
