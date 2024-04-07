@@ -7,6 +7,10 @@
 
 const PROGMEM uint16_t CONF_ANALOG_READ_MAX             = 4095;
 
+#define CONF_BMP280
+#ifdef CONF_BMP280
+#endif
+
 #define CONF_DHT
 #ifdef CONF_DHT
 const PROGMEM uint32_t CONF_DHT_READ_INTERVAL_MIN       = 5000;

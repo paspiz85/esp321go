@@ -19,6 +19,11 @@
 
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
+#ifdef CONF_BMP280
+#define PREF_BMP280_ADDR                  "bmp280_addr"
+#define PREF_BMP280_PUBLISH               "bmp280_pub"
+#endif
+
 #ifdef CONF_DHT
 #define PREF_DHT_PIN                      "dht_pin"
 #define PREF_DHT_READ_INTERVAL            "dht_interval"
@@ -99,6 +104,10 @@ const Config config_defs[] = {
   { .key = PREF_WEB_SECURE,           .type = BOOL,   .desc = "Abilita solo la connessione sicura" },
 #endif
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
+#ifdef CONF_BMP280
+  { .key = PREF_BMP280_ADDR,          .type = UINT8,  .desc = "119 per 0x77 oppure 118 per 0x76" },
+  { .key = PREF_BMP280_PUBLISH,       .type = BOOL,   .desc = EMPTY },
+#endif
 #ifdef CONF_DHT
   { .key = PREF_DHT_PIN,              .type = UINT8,  .desc = EMPTY },
   { .key = PREF_DHT_TYPE,             .type = UINT8,  .desc = EMPTY },
