@@ -13,6 +13,8 @@
 DHT * dht = NULL;
 float dht_temp = NAN;
 float dht_hum = NAN;
+float dht_temp_last = NAN;
+float dht_hum_last = NAN;
 uint32_t dht_read_interval_ms;
 uint32_t dht_read_last_ms = 0;
 
@@ -24,13 +26,13 @@ bool dht_read(bool force = false) {
   if (dht_available() && (force || at_interval(dht_read_interval_ms,dht_read_last_ms))) {
     dht_read_last_ms = millis();
     dht->read(force);
-    float temp = dht->readTemperature();
-    if (!isnan(temp)) {
-      dht_temp = temp;
+    dht_temp_last = dht->readTemperature();
+    if (!isnan(dht_temp_last)) {
+      dht_temp = dht_temp_last;
     }
-    temp = dht->readHumidity();
-    if (!isnan(temp)) {
-      dht_hum = temp;
+    dht_hum_last = dht->readHumidity();
+    if (!isnan(dht_hum_last)) {
+      dht_hum = dht_hum_last;
     }
     return true;
   }
@@ -39,12 +41,12 @@ bool dht_read(bool force = false) {
 
 float dht_read_temperature(bool force = false) {
   dht_read(force);
-  return dht_temp;
+  return force ? dht_temp_last : dht_temp;
 }
 
 float dht_read_humidity(bool force = false) {
   dht_read(force);
-  return dht_hum;
+  return force ? dht_hum_last : dht_hum;
 }
 
 bool dht_setup(uint8_t pin, uint8_t type, uint32_t read_interval_ms = CONF_DHT_READ_INTERVAL_MIN) {
