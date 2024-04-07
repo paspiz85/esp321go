@@ -4,6 +4,9 @@
 #ifdef CONF_DHT
 #include "dht.h"
 #endif
+#ifdef CONF_BMP280
+#include "bmp280.h"
+#endif
 #ifdef CONF_WIFI
 #include "wifi.h"
 #include "wifi_time.h"
@@ -60,6 +63,32 @@ void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
 void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
 void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
 
+float read_temperature(bool force = false) {
+  float temp;
+  float sum = 0;
+  int count = 0;
+#ifdef CONF_BMP280
+  temp = bmp280_read_temperature();
+  if (!isnan(temp)) {
+    sum += temp;
+    count++;
+  }
+#endif
+#ifdef CONF_DHT
+  temp = dht_read_temperature(force || count > 0);
+  if (!isnan(temp)) {
+    sum += temp;
+    count++;
+  }
+#endif
+  if (count == 0) {
+    temp = NAN;
+  } else {
+    temp = sum / count;
+  }
+  return temp;
+}
+
 void boiler_write(bool b) {
   if (boiler_pin != 0) {
     if (b) {
@@ -111,18 +140,22 @@ JSONVar html_data() {
   } else {
     data["time_ref"] = "Temperatura attuale";
   }
-  float temp = dht_read_temperature();
+  float temp = read_temperature();
   if (isnan(temp)) {
     data["temp"] = "--";
   } else {
     data["temp"] = String(temp,1) + " &deg;C";
   }
+#ifdef CONF_DHT
   temp = dht_read_humidity();
   if (isnan(temp)) {
     data["hum"] = "--";
   } else {
     data["hum"] = String(temp,0) + "%";
   }
+#else
+  data["hum"] = "--";
+#endif
   if (boiler_pin == 0) {
     data["boiler_status"] = "--";
   } else {
@@ -325,7 +358,7 @@ void loop() {
       }
       if (now >= thermo_auto_last + thermo_auto_interval) {
         thermo_auto_last = now;
-        float temp = dht_read_temperature(true);
+        float temp = read_temperature(true);
         if (isnan(temp)) {
           if (thermo_auto_fail == 0) {
             thermo_auto_fail = now;
@@ -375,6 +408,9 @@ void setup() {
   dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE), 
     preferences.getULong(PREF_DHT_READ_INTERVAL));
+#endif
+#ifdef CONF_BMP280
+  bmp280_setup(preferences.getUChar(PREF_BMP280_ADDR));
 #endif
   boiler_pin = preferences.getUChar(PREF_BOILER_PIN);
   if (boiler_pin != 0) {
