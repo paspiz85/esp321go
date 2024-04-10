@@ -4,6 +4,9 @@
 #ifdef CONF_DHT
 #include "dht.h"
 #endif
+#ifdef CONF_BMP280
+#include "bmp280.h"
+#endif
 #ifdef CONF_WIFI
 #include "wifi.h"
 #include "wifi_time.h"
@@ -120,6 +123,9 @@ void setup() {
   dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE), 
     preferences.getULong(PREF_DHT_READ_INTERVAL));
+#endif
+#ifdef CONF_BMP280
+  bmp280_setup(preferences.getUChar(PREF_BMP280_ADDR));
 #endif
 #ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
