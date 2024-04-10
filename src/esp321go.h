@@ -3,6 +3,8 @@
 #include "config.h"
 #ifdef CONF_DHT
 #include "dht.h"
+#endif
+#ifdef CONF_BMP280
 #include "bmp280.h"
 #endif
 #ifdef CONF_WIFI
