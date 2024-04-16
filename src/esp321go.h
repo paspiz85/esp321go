@@ -63,7 +63,7 @@ void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
 void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
 void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
 
-float read_temperature(bool force = false) {
+float read_temperature(bool force = false, float* bmp_temp = NULL, float* dht_temp = NULL) {
   float temp;
   float sum = 0;
   int count = 0;
@@ -72,6 +72,9 @@ float read_temperature(bool force = false) {
   if (!isnan(temp)) {
     sum += temp;
     count++;
+    if (bmp_temp != NULL) {
+      *bmp_temp = temp;
+    }
   }
 #endif
 #ifdef CONF_DHT
@@ -79,6 +82,9 @@ float read_temperature(bool force = false) {
   if (!isnan(temp)) {
     sum += temp;
     count++;
+    if (dht_temp != NULL) {
+      *dht_temp = temp;
+    }
   }
 #endif
   if (count == 0) {
@@ -140,11 +146,19 @@ JSONVar html_data() {
   } else {
     data["time_ref"] = "Temperatura attuale";
   }
-  float temp = read_temperature();
+  float bmp_temp = NAN;
+  float dht_temp = NAN;
+  float temp = read_temperature(false,&bmp_temp,&dht_temp);
   if (isnan(temp)) {
     data["temp"] = "--";
   } else {
     data["temp"] = String(temp,1) + " &deg;C";
+  }
+  if (!isnan(bmp_temp)) {
+    data["bmp_temp"] = String(bmp_temp,1) + " &deg;C";
+  }
+  if (!isnan(dht_temp)) {
+    data["dht_temp"] = String(dht_temp,1) + " &deg;C";
   }
 #ifdef CONF_DHT
   temp = dht_read_humidity();
