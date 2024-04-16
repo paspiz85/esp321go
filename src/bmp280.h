@@ -24,16 +24,18 @@ bool bmp280_available() {
 }
 
 float bmp280_read_check(float x, bmp280_read* last_read, float delta) {
-  if (isnan(x) || isnan(last_read->value)) {
+  if (isnan(x)) {
     return x;
   }
   uint32_t t = millis();
-  uint32_t dt = (t - last_read->millis) / 1000;
-  if (dt < 1) {
-    dt = 1;
-  }
-  if (abs((x - last_read->value) / dt) > delta) {
-    return NAN;
+  if (!isnan(last_read->value)) {
+    uint32_t dt = (t - last_read->millis) / 1000;
+    if (dt < 1) {
+      dt = 1;
+    }
+    if (abs((x - last_read->value) / dt) > delta) {
+      return NAN;
+    }
   }
   last_read->millis = t;
   last_read->value = x;
