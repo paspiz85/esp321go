@@ -9,6 +9,7 @@
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/HTTPClient/src/HTTPClient.h
  */
 
+#include "base_utils.h"
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
@@ -59,7 +60,7 @@ String wifi_get_ip_address() {
 
 String wifi_get_info() {
   if (wifi_mode = WIFI_STA) {
-    return "Connected to \""+html_encode(WiFi.SSID())+"\" (RSSI "+String(WiFi.RSSI())+")";
+    return "Connected to \""+WiFi.SSID()+"\" (RSSI "+String(WiFi.RSSI())+")";
   } else if (wifi_mode = WIFI_AP) {
     return "Connected clients: "+String(WiFi.softAPgetStationNum());
   } else {

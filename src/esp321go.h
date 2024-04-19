@@ -57,7 +57,7 @@ String web_html_title() {
 
 String web_html_footer(bool admin) {
   String html = "<div>";
-  html += wifi_get_info();
+  html += html_encode(wifi_get_info());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
