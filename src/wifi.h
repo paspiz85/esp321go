@@ -4,16 +4,18 @@
 /**
  * Contiene variabili, tipi e funzioni per l'uso del WiFi.
  * 
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiMulti.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFi.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiMulti.h
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiClient.h
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/HTTPClient/src/HTTPClient.h
  */
 
-#include <WiFi.h>
-#include <WiFiMulti.h>
-#include <HTTPClient.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266HTTPClient.h>
+#include "base_utils.h"
 
-wifi_mode_t wifi_mode;
+WiFiMode_t wifi_mode;
 uint8_t wifi_mode_setup;
 IPAddress wifi_ap_ip;
 IPAddress wifi_ap_subnet(255,255,255,0);
@@ -25,10 +27,10 @@ uint32_t wifi_check_interval_ms;
 uint32_t wifi_check_threshold_ms;
 uint32_t wifi_last_check = 0;
 uint32_t wifi_last_check_ok = 0;
-WiFiMulti wifiMulti;
+ESP8266WiFiMulti wifiMulti;
 WiFiClient wifiClient;
 
-void wifi_set_mode(wifi_mode_t mode) {
+void wifi_set_mode(WiFiMode_t mode) {
   if (mode == WIFI_OFF) {
     WiFi.disconnect(true);
   }
@@ -59,7 +61,7 @@ String wifi_get_ip_address() {
 
 String wifi_get_info() {
   if (wifi_mode = WIFI_STA) {
-    return "Connected to \""+html_encode(WiFi.SSID())+"\" (RSSI "+String(WiFi.RSSI())+")";
+    return "Connected to \""+WiFi.SSID()+"\" (RSSI "+String(WiFi.RSSI())+")";
   } else if (wifi_mode = WIFI_AP) {
     return "Connected clients: "+String(WiFi.softAPgetStationNum());
   } else {

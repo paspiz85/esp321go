@@ -1,5 +1,5 @@
 default_profile: esp8266
-default_port: COM3
+default_port: COM6
 profiles:
   esp8266:
     fqbn: esp8266:esp8266:nodemcu
@@ -7,3 +7,4 @@ profiles:
       - platform: esp8266:esp8266 (3.1.2)
         platform_index_url: http://arduino.esp8266.com/stable/package_esp8266com_index.json
     libraries:
+      - Arduino_JSON (0.2.0)

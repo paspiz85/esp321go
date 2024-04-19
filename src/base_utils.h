@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <Arduino_JSON.h>
+#include "base_macros.h"
 
 const PROGMEM char * EMPTY = "";
 
