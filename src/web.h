@@ -92,6 +92,13 @@ void web_send_redirect(String redirect_uri, String message = "", uint16_t refres
   web_server->send(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
 }
 
+void web_send_text(int status_code, String content_type, const char * text) {
+  if (web_server == NULL) {
+    return;
+  }
+  web_server->send(status_code,content_type,text);
+}
+
 void web_send_text(int status_code, String content_type, String text) {
   if (web_server == NULL) {
     return;
@@ -138,7 +145,7 @@ void web_server_begin(const char * name) {
   web_server->collectHeaders(headerkeys, headerkeyssize);
   web_server->begin();
   Serial.print("Ready on http://");
-  Serial.print(WiFi.localIP());
+  Serial.print(wifi_get_ip_address());
   if (http_port != 80) {
     Serial.print(":");
     Serial.print(http_port);

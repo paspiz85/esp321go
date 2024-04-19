@@ -71,7 +71,7 @@ void wifi_ap_mode() {
   wifi_set_mode(WIFI_OFF);
   log_w("Attivazione AP in corso ...");
   wifi_set_mode(WIFI_AP);
-  log_d("%s %s %s",wifi_ap_ip.toString(),wifi_ap_ip.toString(),wifi_ap_subnet.toString());
+  log_d("%s %s",wifi_ap_ssid.c_str(),wifi_ap_pswd.c_str());
   WiFi.softAPConfig(wifi_ap_ip,wifi_ap_ip,wifi_ap_subnet);
   WiFi.softAP(wifi_ap_ssid.c_str(),wifi_ap_pswd.c_str());
   log_w("IP address: %s", wifi_get_ip_address().c_str());

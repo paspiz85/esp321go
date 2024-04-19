@@ -66,7 +66,9 @@ String web_html_footer(bool admin) {
 void web_handle_root() {
   int refresh = web_parameter("refresh").toInt();
   String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
-  html += "Hello";
+  html += "Hello World";
+  html += "<hr/>";
+  html += web_html_footer(false);
   html += "</body>";
   web_send_page(html_title,html,refresh);
 }
@@ -127,6 +129,7 @@ void setup() {
   delay(1000);
   wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
+  ArduinoOTA.setPassword(preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str());
   ArduinoOTA.begin();
 #ifdef CONF_WEB
   html_title = preferences.getString(PREF_WEB_HTML_TITLE);
@@ -134,6 +137,7 @@ void setup() {
     html_title = CONF_WEB_HTML_TITLE;
   }
   web_server_setup_http();
+  web_templates_setup();
   web_admin_setup(
     preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
     preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
