@@ -7,11 +7,11 @@
 
 #include <Arduino.h>
 
-#define len(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
+#define len_array(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
 
-#define log_e(format, ...) Serial.printf(format, ##__VA_ARGS__)
-#define log_w(format, ...) Serial.printf(format, ##__VA_ARGS__)
-#define log_i(format, ...) Serial.printf(format, ##__VA_ARGS__)
-#define log_d(format, ...) Serial.printf(format, ##__VA_ARGS__)
+#define log_e(format, ...) Serial.printf(format, ##__VA_ARGS__);Serial.println()
+#define log_w(format, ...) Serial.printf(format, ##__VA_ARGS__);Serial.println()
+#define log_i(format, ...) Serial.printf(format, ##__VA_ARGS__);Serial.println()
+#define log_d(format, ...) Serial.printf(format, ##__VA_ARGS__);Serial.println()
 
 #endif

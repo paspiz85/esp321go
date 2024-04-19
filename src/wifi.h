@@ -4,16 +4,14 @@
 /**
  * Contiene variabili, tipi e funzioni per l'uso del WiFi.
  * 
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFi.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/WiFi.h
  * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiMulti.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiClient.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/HTTPClient/src/HTTPClient.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/WiFiClient.h
  */
 
+#include "base_utils.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
-#include <ESP8266HTTPClient.h>
-#include "base_utils.h"
 
 WiFiMode_t wifi_mode;
 uint8_t wifi_mode_setup;
@@ -73,6 +71,7 @@ void wifi_ap_mode() {
   wifi_set_mode(WIFI_OFF);
   log_w("Attivazione AP in corso ...");
   wifi_set_mode(WIFI_AP);
+  log_d("%s %s %s",wifi_ap_ip.toString(),wifi_ap_ip.toString(),wifi_ap_subnet.toString());
   WiFi.softAPConfig(wifi_ap_ip,wifi_ap_ip,wifi_ap_subnet);
   WiFi.softAP(wifi_ap_ssid.c_str(),wifi_ap_pswd.c_str());
   log_w("IP address: %s", wifi_get_ip_address().c_str());
@@ -115,7 +114,7 @@ void wifi_add_ap(const char * ssid, const char * pswd) {
 void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, uint32_t conn_timeout, uint32_t check_interval_ms, uint32_t check_threshold_ms) {
   log_i("Preparazione WIFI ...");
   wifi_mode_setup = mode;
-  wifi_ap_ip.fromString(ap_ssid);
+  wifi_ap_ip.fromString(ap_ip);
   wifi_ap_ssid = String(ap_ssid);
   wifi_ap_pswd = String(ap_pswd);
   wifi_conn_timeout = conn_timeout;
@@ -123,7 +122,6 @@ void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const ch
   wifi_check_threshold_ms = check_threshold_ms;
   WiFi.disconnect();
   bool connected = false;
-  /*
   wifi_ap_state_changed(LOW, wifi_count == 0);
   if (wifi_count > 0) {
     wifi_set_mode(WIFI_STA);
@@ -144,7 +142,6 @@ void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const ch
       wifi_ap_mode();
     }
   }
-  */
 }
 
 #endif

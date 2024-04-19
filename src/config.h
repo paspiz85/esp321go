@@ -5,7 +5,7 @@
  * Gestione della configurazione.
  * 
  * @see https://github.com/arduino-libraries/Arduino_JSON/blob/master/src/JSON.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/Preferences/src/Preferences.h
+ * @see https://github.com/vshymanskyy/Preferences/blob/main/src/Preferences.h
  */
 
 #include "base_conf.h"
@@ -81,7 +81,7 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_AP_SSID,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PSWD,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PIN,          .type = UINT8,  .desc = "Uscita digitale attivata in modalità AP" },
-  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len(config_wifi_defs) },
+  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len_array(config_wifi_defs) },
   { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_WIFI_CHECK_INTERVAL_MIN)).c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = ("default "+String(CONF_WIFI_CHECK_THRESHOLD)+" (0 = funzione disabilitata)").c_str() },
   { .key = PREF_WIFI_NAME,            .type = STRING, .desc = EMPTY },

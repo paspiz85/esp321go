@@ -1,5 +1,6 @@
 
-#include "base_conf.h"
+#include "base_memory.h"
+#include "config.h"
 #ifdef CONF_WIFI
 #include "wifi.h"
 #include "wifi_time.h"
@@ -7,21 +8,45 @@
 #ifdef CONF_WEB
 #include "web.h"
 #include "web_templates.h"
+#include "web_config.h"
 #endif
+#include <ArduinoOTA.h>
+
+uint32_t reboot_free;
+uint32_t reboot_ms;
+
+void items_publish(JSONVar message) {
+#ifdef CONF_WIFI
+  if (!wifi_have_internet()) {
+    return;
+  }
+  // TODO
+#endif
+}
+
+String digitalString(int value) {
+  return value == HIGH ? "HIGH" : "LOW";
+}
+
+void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
+void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
+void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
 
 #ifdef CONF_WIFI
+uint8_t wifi_ap_pin = 0;
+
 void wifi_ap_state_changed(int value, bool skip_publish) {
-#ifdef CONF_WIFI_AP_PIN
-  // TODO 
-  //digitalWriteState(CONF_WIFI_AP_PIN, value, skip_publish);
-  digitalWrite(CONF_WIFI_AP_PIN, value);
-#endif
+  if (wifi_ap_pin != 0 && getPinState(wifi_ap_pin) != value) {
+    digitalWriteState(wifi_ap_pin, value, skip_publish);
+  }
 }
 #endif
 
 #ifdef CONF_WEB
+String html_title;
+
 String web_html_title() {
-  return CONF_WEB_HTML_TITLE;
+  return html_title;
 }
 
 String web_html_footer(bool admin) {
@@ -40,59 +65,81 @@ String web_html_footer(bool admin) {
 
 void web_handle_root() {
   int refresh = web_parameter("refresh").toInt();
-  String html = "<body style=\"text-align:center\"><h1>"+web_html_title()+"</h1>";
+  String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
   html += "Hello";
   html += "</body>";
-  web_send_page(web_html_title(),html,refresh);
+  web_send_page(html_title,html,refresh);
 }
 #endif
 
 void loop() {
-  Serial.println("UP");
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);         
-  Serial.println("DOWN");              // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(1000);                       // wait for a second
+  if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
+    ESP.restart();
+    return;
+  }
+  if (at_interval(reboot_ms)) {
+    ESP.restart();
+    return;
+  }
+#ifdef CONF_WIFI
+  wifi_loop(CONF_WIFI_MODE_LIMIT);
+  wifi_time_loop();
+#endif
+  ArduinoOTA.handle();
+#ifdef CONF_WEB
+  if (!wifi_is_off()) {
+    web_server_loop();
+    delay(10);
+  } else {
+    delay(1000);
+  }
+#endif
 }
-
-
 
 void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
-
-
-// TODO setup logs
-  pinMode(LED_BUILTIN, OUTPUT);
-
-
-
+  preferences.begin("my-app", false);
+  // TODO setup logs
+  reboot_free = preferences.getULong(PREF_REBOOT_FREE);
+  reboot_ms = preferences.getULong(PREF_REBOOT_MS);
 #ifdef CONF_WIFI
-#ifdef CONF_WIFI_AP_PIN
-  pinMode(CONF_WIFI_AP_PIN, OUTPUT);
-#endif
-  JSONVar wiki_networks = JSON.parse(CONF_WIFI_NETWORKS);
-  JSONVar wiki_networks_keys = wiki_networks.keys();
-  for (int i = 0; i < wiki_networks_keys.length(); i++) {
-    wifi_add_ap(wiki_networks_keys[i],wiki_networks[wiki_networks_keys[i]]);
+  wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
+  if (wifi_ap_pin != 0) {
+    pinMode(wifi_ap_pin, OUTPUT);
+  }
+  for (uint8_t i = 1; i <= CONF_WIFI_COUNT; i++) {
+    String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
+    String pswd = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_PSWD).c_str());
+    if (ssid != "") {
+      wifi_add_ap(ssid.c_str(),pswd.c_str());
+    }
   }
   wifi_setup(
-    CONF_WIFI_MODE,
-    CONF_WIFI_AP_IP,
-    CONF_WIFI_AP_SSID,
-    CONF_WIFI_AP_PSWD,
+    preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
+    preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
+    preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
+    preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD).c_str(),
     CONF_WIFI_CONN_TIMEOUT_MS,
-    CONF_WIFI_CHECK_INTERVAL_MIN,
-    CONF_WIFI_CHECK_THRESHOLD
+    max(preferences.getULong(PREF_WIFI_CHECK_INTERVAL),CONF_WIFI_CHECK_INTERVAL_MIN),
+    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
   );
   delay(1000);
-  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, CONF_TIME_ZONE);
+  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
+  ArduinoOTA.begin();
 #ifdef CONF_WEB
+  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
+  if (html_title == "") {
+    html_title = CONF_WEB_HTML_TITLE;
+  }
   web_server_setup_http();
-  //web_admin_setup(CONF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_PASSWORD);
+  web_admin_setup(
+    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
+    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
+  );
+  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_begin(CONF_WIFI_NAME);
+  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif
 }

@@ -4,8 +4,7 @@
 /**
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
  * 
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServer.h
  */
 
 #include "base_conf.h"

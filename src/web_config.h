@@ -123,7 +123,7 @@ void web_config_handle_change() {
   String title = web_html_title();
   const Config * config_selected = NULL;
   if (param_name != "") {
-    for (int i = 0; i < len(config_defs); i++) {
+    for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
         if (param_name == config_defs[i].key) {
           config_selected = &config_defs[i];
@@ -148,7 +148,7 @@ void web_config_handle_change() {
     html += "<table style=\"margin:auto\">";
     html += "<tr><th>key</th><th>type</th><th>value</th><th></th></tr>";
     JSONVar json_export;
-    for (int i = 0; i < len(config_defs); i++) {
+    for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
         if (is_download) {
           web_config_handle_value_export(config_defs[i].key,config_defs[i],&json_export);
@@ -252,7 +252,7 @@ void web_handle_config_upload() {
     config_upload_buf[config_upload_len] = 0;
     JSONVar json_import = JSON.parse(String((char *)config_upload_buf));
     config_upload_len = 0;
-    for (int i = 0; i < len(config_defs); i++) {
+    for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
         web_config_handle_value_import(config_defs[i].key,config_defs[i],&json_import);
       } else {
