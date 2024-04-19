@@ -1,7 +1,7 @@
-default_profile: esp8266
+default_profile: esp321go
 default_port: COM6
 profiles:
-  esp8266:
+  esp321go:
     fqbn: esp8266:esp8266:nodemcu
     platforms:
       - platform: esp8266:esp8266 (3.1.2)
