@@ -6,13 +6,11 @@
  * 
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiMulti.h
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiClient.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/HTTPClient/src/HTTPClient.h
  */
 
 #include "base_utils.h"
 #include <WiFi.h>
 #include <WiFiMulti.h>
-#include <HTTPClient.h>
 
 wifi_mode_t wifi_mode;
 uint8_t wifi_mode_setup;
