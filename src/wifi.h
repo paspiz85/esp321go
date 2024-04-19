@@ -114,7 +114,7 @@ void wifi_add_ap(const char * ssid, const char * pswd) {
 void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, uint32_t conn_timeout, uint32_t check_interval_ms, uint32_t check_threshold_ms) {
   log_i("Preparazione WIFI ...");
   wifi_mode_setup = mode;
-  wifi_ap_ip.fromString(ap_ssid);
+  wifi_ap_ip.fromString(ap_ip);
   wifi_ap_ssid = String(ap_ssid);
   wifi_ap_pswd = String(ap_pswd);
   wifi_conn_timeout = conn_timeout;
