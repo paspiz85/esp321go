@@ -1,7 +1,7 @@
-default_profile: esp32
+default_profile: esp321go
 default_port: COM3
 profiles:
-  esp32:
+  esp321go:
     fqbn: esp32:esp32:esp32:DebugLevel=debug
     platforms:
       - platform: esp32:esp32 (1.0.6)

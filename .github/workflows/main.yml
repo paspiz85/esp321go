@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Arduino Compile
-        run: tools/arduino-cli.exe compile -e -m esp32 --build-property build.defines='-DCOMPILE_VERSION="${{ env.version }}"'
+        run: tools/arduino-cli.exe compile -e -m esp321go --build-property build.defines='-DCOMPILE_VERSION="${{ env.version }}"'
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
