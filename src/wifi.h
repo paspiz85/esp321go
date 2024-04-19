@@ -123,6 +123,7 @@ void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const ch
   wifi_check_threshold_ms = check_threshold_ms;
   WiFi.disconnect();
   bool connected = false;
+  /*
   wifi_ap_state_changed(LOW, wifi_count == 0);
   if (wifi_count > 0) {
     wifi_set_mode(WIFI_STA);
@@ -143,6 +144,7 @@ void wifi_setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const ch
       wifi_ap_mode();
     }
   }
+  */
 }
 
 #endif

@@ -10,13 +10,12 @@
 
 #include "base_conf.h"
 #include "wifi.h"
-#include <WebServer.h>
+#include <ESP8266WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
-#include <ESPmDNS.h>
 
 uint16_t http_port = 0;
-WebServer * web_server = NULL;
+ESP8266WebServer * web_server = NULL;
 
 void web_server_loop() {
   if (web_server != NULL) {
@@ -111,14 +110,14 @@ void web_download_text(String content_type, String filename, String text) {
 
 void web_handle_notFound();
 
-void web_server_register(HTTPMethod method, const Uri &uri, WebServer::THandlerFunction fn) {
+void web_server_register(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn) {
   if (web_server == NULL) {
     return;
   }
   web_server->on(uri, method, fn);
 }
 
-void web_server_register(HTTPMethod method, const Uri &uri, WebServer::THandlerFunction fn, WebServer::THandlerFunction ufn) {
+void web_server_register(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn) {
   if (web_server == NULL) {
     return;
   }
@@ -127,7 +126,7 @@ void web_server_register(HTTPMethod method, const Uri &uri, WebServer::THandlerF
 
 void web_server_setup_http(const uint16_t port = CONF_WEB_HTTP_PORT) {
   http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
-  web_server = new WebServer(port);
+  web_server = new ESP8266WebServer(port);
 }
 
 void web_server_begin(const char * name) {
@@ -140,13 +139,7 @@ void web_server_begin(const char * name) {
   web_server->collectHeaders(headerkeys, headerkeyssize);
   web_server->begin();
   Serial.print("Ready on http://");
-  if (MDNS.begin(name)) {
-    MDNS.addService("http", "tcp", http_port);
-    Serial.print(name);
-    Serial.print(".local");
-  } else {
-    Serial.print(WiFi.localIP());
-  }
+  Serial.print(WiFi.localIP());
   if (http_port != 80) {
     Serial.print(":");
     Serial.print(http_port);
