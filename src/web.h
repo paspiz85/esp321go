@@ -145,7 +145,7 @@ void web_server_begin(const char * name) {
     Serial.print(name);
     Serial.print(".local");
   } else {
-    Serial.print(WiFi.localIP());
+    Serial.print(wifi_get_ip_address());
   }
   if (http_port != 80) {
     Serial.print(":");
