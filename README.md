@@ -12,7 +12,7 @@ Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già
 #### Compilazione
 Dalla cartella del progetto:
 ```
-arduino-cli compile -e -m esp32
+arduino-cli compile -e -m esp8266
 ```
 
 #### Caricamento
@@ -24,14 +24,14 @@ Se la board non compare potrebbe essere necessario installare il driver per Wind
 
 Dalla cartella del progetto:
 ```
-arduino-cli upload -m esp32 -i build/esp32.esp32.esp32/esp321go.ino.bin -p <porta>
+arduino-cli upload -m esp8266 -i build/esp8266.esp8266.nodemcu/esp321go.ino.bin -p COM3
 ```
 Se l'upload fallisce sempre e l'errore è "ESP32: Timed out waiting for packet header" potrebbe essere necessario tenere premuto BOOT durante l'upload.
 
 #### Debug
 Dalla cartella del progetto:
 ```
-arduino-cli monitor -c baudrate=115200 -p <porta>
+arduino-cli monitor -c baudrate=115200 -p COM6
 ```
 
 #### Configurazione iniziale arduino-cli

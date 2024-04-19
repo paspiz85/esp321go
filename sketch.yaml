@@ -1,14 +1,9 @@
-default_profile: esp32
+default_profile: esp8266
 default_port: COM3
 profiles:
-  esp32:
-    fqbn: esp32:esp32:esp32:DebugLevel=debug
+  esp8266:
+    fqbn: esp8266:esp8266:nodemcu
     platforms:
-      - platform: esp32:esp32 (1.0.6)
-        platform_index_url: https://dl.espressif.com/dl/package_esp32_index.json
+      - platform: esp8266:esp8266 (3.1.2)
+        platform_index_url: http://arduino.esp8266.com/stable/package_esp8266com_index.json
     libraries:
-      - Arduino_JSON (0.2.0)
-      - Adafruit Unified Sensor (1.1.8)
-      - DHT sensor library (1.4.4)
-      - Adafruit BusIO (1.15.0)
-      - Adafruit BMP280 Library (2.6.8)
