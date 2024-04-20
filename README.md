@@ -13,7 +13,7 @@ Inoltre è possibile effettuare l'aggiornamento OTA del firmware.
 #### Compilazione
 Dalla cartella del progetto:
 ```
-arduino-cli compile -e -m esp321go
+arduino-cli compile -e -m esp321go --output-dir target
 ```
 
 #### Caricamento
@@ -25,7 +25,7 @@ Se la board non compare potrebbe essere necessario installare il driver per Wind
 
 Dalla cartella del progetto:
 ```
-arduino-cli upload -m esp321go -i build/esp32.esp32.esp32/esp321go.ino.bin -p <porta>
+arduino-cli upload -m esp321go -i target/esp321go.ino.bin -p <porta>
 ```
 Se l'upload fallisce sempre e l'errore è "ESP8266: Timed out waiting for packet header" potrebbe essere necessario tenere premuto BOOT durante l'upload.
 
