@@ -1,6 +1,6 @@
 
-#include "base_memory.h"
 #include "config.h"
+#include "pin_memory.h"
 #ifdef CONF_DHT
 #include "dht.h"
 #endif
@@ -35,22 +35,8 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
-void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
-void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
-
 #ifdef CONF_WIFI
 uint8_t wifi_ap_pin = 0;
-
-void wifi_state_changed(uint8_t mode, bool connected) {
-  if (wifi_ap_pin == 0) {
-    return;
-  }
-  int value = mode == WIFI_AP ? HIGH : LOW;
-  if (getPinState(wifi_ap_pin) != value) {
-    digitalWriteState(wifi_ap_pin, value, true);
-  }
-}
 #endif
 
 #ifdef CONF_WEB
@@ -122,6 +108,10 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+  PinMemory.setup([](uint8_t pin, int value, bool is_init) {
+  }, [](uint8_t pin, uint16_t value, bool is_init) {
+  }, [](uint8_t pin, uint32_t value, bool is_init) {
+  });
 #ifdef CONF_DHT
   dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE), 
@@ -150,7 +140,15 @@ void setup() {
     CONF_WIFI_CONN_TIMEOUT_MS,
     preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL_MIN),
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD),
-    wifi_state_changed
+    [](uint8_t mode, bool connected) {
+      if (wifi_ap_pin == 0) {
+        return;
+      }
+      int value = mode == WIFI_AP ? HIGH : LOW;
+      if (PinMemory.getPinState(wifi_ap_pin) != value) {
+        PinMemory.digitalWrite(wifi_ap_pin, value, true);
+      }
+    }
   );
   delay(1000);
   WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
