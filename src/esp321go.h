@@ -80,7 +80,9 @@ void loop() {
   WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
   WiFiTime.loopToSynchronize();
 #endif
+#ifdef CONF_ARDUINO_OTA
   ArduinoOTA.handle();
+#endif
   if (at_interval(1000,blink_last_ms)) {
     blink_last_ms = millis();
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
@@ -152,8 +154,10 @@ void setup() {
 #endif
   admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
   admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
+#ifdef CONF_ARDUINO_OTA
   ArduinoOTA.setPassword(admin_password.c_str());
   ArduinoOTA.begin();
+#endif
 #ifdef CONF_WEB
   String web_html_title = preferences.getString(PREF_WEB_HTML_TITLE);
   if (web_html_title == "") {

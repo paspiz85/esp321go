@@ -8,6 +8,8 @@
 const PROGMEM char *   CONF_ADMIN_PASSWORD              = "admin";
 const PROGMEM char *   CONF_ADMIN_USERNAME              = "admin";
 
+#define CONF_ARDUINO_OTA
+
 const PROGMEM char *   CONF_LOG_LEVEL                   = "i";
 
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
