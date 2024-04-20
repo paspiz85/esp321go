@@ -5,6 +5,8 @@
  * Contiene le costanti di configurazione
  */
 
+const PROGMEM char *   CONF_LOG_LEVEL                   = "i";
+
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
 
 const PROGMEM uint8_t  CONF_SCHEMA_PIN_COUNT            = 10;

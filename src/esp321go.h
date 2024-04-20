@@ -74,6 +74,9 @@ void web_handle_root() {
 }
 #endif
 
+uint32_t blink_led_pin = LED_BUILTIN;
+uint32_t blink_last_ms = 0;
+
 void loop() {
   if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
     ESP.restart();
@@ -88,6 +91,10 @@ void loop() {
   wifi_time_loop();
 #endif
   ArduinoOTA.handle();
+  if (at_interval(1000,blink_last_ms)) {
+    blink_last_ms = millis();
+    digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
+  }
 #ifdef CONF_WEB
   if (!wifi_is_off()) {
     web_server_loop();
@@ -102,9 +109,20 @@ void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
   preferences.begin("my-app", false);
-  // TODO setup logs
+  String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
+  Serial.println("Log level : " + log_level);
+  if (log_level == "d") {
+    esp_log_level_set("*", ESP_LOG_DEBUG);
+  } else if (log_level == "i") {
+    esp_log_level_set("*", ESP_LOG_INFO);
+  } else if (log_level == "w") {
+    esp_log_level_set("*", ESP_LOG_WARN);
+  } else {
+    esp_log_level_set("*", ESP_LOG_ERROR);
+  }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+  pinMode(blink_led_pin, OUTPUT);
 #ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
