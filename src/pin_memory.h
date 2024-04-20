@@ -1,5 +1,5 @@
-#ifndef INCLUDE_BASE_MEMORY_H
-#define INCLUDE_BASE_MEMORY_H
+#ifndef INCLUDE_PIN_MEMORY_H
+#define INCLUDE_PIN_MEMORY_H
 
 /**
  * Contiene funzioni per la memorizzazione dello stato dei pin.
@@ -10,11 +10,12 @@
 
 class PinMemoryClass {
 public:
+  void pinAnalogModeSetup(uint8_t pin, double freq, uint8_t resolution_bits);
   int getPinState(uint8_t pin);
   void setPinState(uint8_t pin, int value);
-  void digitalWrite(uint8_t pin, int value, bool is_init = false);
-  void analogWrite(uint8_t pin, uint16_t value, bool is_init = false);
-  void tone(uint8_t pin, uint32_t value, bool is_init = false);
+  void writeDigital(uint8_t pin, int value, bool is_init = false);
+  void writePWM(uint8_t pin, uint16_t value, bool is_init = false);
+  void writeFM(uint8_t pin, uint32_t value, bool is_init = false);
   uint32_t lastWriteMillis(uint8_t pin);
   void setup(void (*on_digitalWrite)(uint8_t,int,bool),
     void (*on_analogWrite)(uint8_t,uint16_t,bool),
@@ -22,10 +23,18 @@ public:
 private:
   int _pin_states[CONF_SCHEMA_PIN_COUNT] = {-1};
   uint32_t _pin_write_last_ms[CONF_SCHEMA_PIN_COUNT] = {0};
+  int8_t _pin_channel[CONF_SCHEMA_PIN_COUNT] = {-1};
+  uint8_t _channels_used = 0;
   void (*_on_digitalWrite)(uint8_t,int,bool) = nullptr;
   void (*_on_analogWrite)(uint8_t,uint16_t,bool) = nullptr;
   void (*_on_tone)(uint8_t,uint32_t,bool) = nullptr;
 };
+
+void PinMemoryClass::pinAnalogModeSetup(uint8_t pin, double freq, uint8_t resolution_bits) {
+  ledcSetup(_channels_used, freq, resolution_bits);
+  ledcAttachPin(pin, _channels_used);
+  _pin_channel[pin] = _channels_used++;
+}
 
 int PinMemoryClass::getPinState(uint8_t pin) {
   return _pin_states[pin];
@@ -35,7 +44,7 @@ void PinMemoryClass::setPinState(uint8_t pin, int value) {
   _pin_states[pin] = value;
 }
 
-void PinMemoryClass::digitalWrite(uint8_t pin, int value, bool is_init) {
+void PinMemoryClass::writeDigital(uint8_t pin, int value, bool is_init) {
   digitalWrite(pin,value);
   _pin_states[pin] = value;
   _pin_write_last_ms[pin] = millis();
@@ -44,8 +53,8 @@ void PinMemoryClass::digitalWrite(uint8_t pin, int value, bool is_init) {
   }
 }
 
-void PinMemoryClass::analogWrite(uint8_t pin, uint16_t value, bool is_init) {
-  analogWrite(pin, value);
+void PinMemoryClass::writePWM(uint8_t pin, uint16_t value, bool is_init) {
+  ledcWrite(_pin_channel[pin], value);
   _pin_states[pin] = value;
   _pin_write_last_ms[pin] = millis();
   if (_on_analogWrite != nullptr) {
@@ -53,8 +62,8 @@ void PinMemoryClass::analogWrite(uint8_t pin, uint16_t value, bool is_init) {
   }
 }
 
-void PinMemoryClass::tone(uint8_t pin, uint32_t value, bool is_init) {
-  tone(pin, value);
+void PinMemoryClass::writeFM(uint8_t pin, uint32_t value, bool is_init) {
+  ledcWriteTone(_pin_channel[pin], value);
   _pin_states[pin] = value;
   _pin_write_last_ms[pin] = millis();
   if (_on_tone != nullptr) {

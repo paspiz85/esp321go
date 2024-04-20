@@ -146,7 +146,7 @@ void setup() {
       }
       int value = mode == WIFI_AP ? HIGH : LOW;
       if (PinMemory.getPinState(wifi_ap_pin) != value) {
-        PinMemory.digitalWrite(wifi_ap_pin, value, true);
+        PinMemory.writeDigital(wifi_ap_pin, value, true);
       }
     }
   );
