@@ -82,7 +82,7 @@ void loop() {
   ArduinoOTA.handle();
   if (at_interval(1000,blink_last_ms)) {
     blink_last_ms = millis();
-    PinMemory.writeDigital(blink_led_pin, !digitalRead(blink_led_pin));
+    digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
 #ifdef CONF_WEB
   if (WiFiUtils.isEnabled()) {
@@ -149,7 +149,7 @@ void setup() {
   delay(1000);
   WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
-  ArduinoOTA.setPassword(preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str());
+  ArduinoOTA.setPassword(preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD).c_str());
   ArduinoOTA.begin();
 #ifdef CONF_WEB
   html_title = preferences.getString(PREF_WEB_HTML_TITLE);
@@ -159,8 +159,8 @@ void setup() {
   web_server_setup_http();
   web_templates_setup();
   web_admin_setup(
-    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
-    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
+    preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME).c_str(),
+    preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD).c_str()
   );
   web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
   web_server_register(HTTP_ANY, "/", web_handle_root);

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_BASE_MEMORY_H
-#define INCLUDE_BASE_MEMORY_H
+#ifndef INCLUDE_PIN_MEMORY_H
+#define INCLUDE_PIN_MEMORY_H
 
 /**
  * Contiene funzioni per la memorizzazione dello stato dei pin.

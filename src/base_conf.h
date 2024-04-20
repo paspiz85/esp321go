@@ -5,6 +5,9 @@
  * Contiene le costanti di configurazione
  */
 
+const PROGMEM char *   CONF_ADMIN_PASSWORD          = "admin";
+const PROGMEM char *   CONF_ADMIN_USERNAME          = "admin";
+
 const PROGMEM char *   CONF_LOG_LEVEL                   = "i";
 
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
@@ -19,8 +22,6 @@ const PROGMEM char *   CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.
 
 #define CONF_WEB
 #ifdef CONF_WEB
-const PROGMEM char *   CONF_WEB_ADMIN_PASSWORD          = "admin";
-const PROGMEM char *   CONF_WEB_ADMIN_USERNAME          = "admin";
 const PROGMEM char *   CONF_WEB_HTML_TITLE              = "ESP8266";
 const PROGMEM uint16_t CONF_WEB_HTTP_PORT               = 80;
 const PROGMEM uint16_t CONF_WEB_REDIRECT_REFRESH_MIN    = 5000;

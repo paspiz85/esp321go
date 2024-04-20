@@ -17,6 +17,9 @@
 
 // ATTENZIONE: le chiavi troppo lunghe non vengono gestite (forse max 15 chars?)
 
+#define PREF_ADMIN_USERNAME               "admin_username"
+#define PREF_ADMIN_PASSWORD               "admin_password"
+
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
 #ifdef CONF_BMP280
@@ -41,8 +44,6 @@
 #define PREF_TIME_ZONE                    "time_zone"
 
 #ifdef CONF_WEB
-#define PREF_WEB_ADMIN_USERNAME           "admin_username"
-#define PREF_WEB_ADMIN_PASSWORD           "admin_password"
 #define PREF_WEB_HTML_TITLE               "html_title"
 #endif
 
@@ -88,9 +89,9 @@ const Config config_defs[] = {
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_USERNAME,   .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_PASSWORD,   .type = STRING, .desc = EMPTY },
 #endif
+  { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
+  { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #ifdef CONF_BMP280
   { .key = PREF_BMP280_ADDR,          .type = UINT8,  .desc = "119 per 0x77 oppure 118 per 0x76" },
