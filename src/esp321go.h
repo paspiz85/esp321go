@@ -34,6 +34,10 @@ uint8_t wifi_ap_pin = 0;
 #endif
 
 #ifdef CONF_WEB
+bool web_admin_authenticate() {
+  return Web.authenticate(admin_username.c_str(), admin_password.c_str());
+}
+
 String web_html_footer(bool admin) {
   String html = "<div>";
   html += html_encode(WiFiUtils.getInfo());
@@ -57,10 +61,6 @@ void web_handle_root() {
   html += WebTemplates.getFooter(false);
   html += "</body>";
   WebTemplates.sendPage(title,html,refresh);
-}
-
-bool web_admin_authenticate() {
-  return Web.authenticate(admin_username.c_str(), admin_password.c_str());
 }
 #endif
 

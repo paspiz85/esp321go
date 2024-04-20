@@ -5,6 +5,7 @@
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
  * 
  * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServer.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266mDNS/src/LEAmDNS.h
  */
 
 #include "base_conf.h"
@@ -40,6 +41,9 @@ private:
 };
 
 void WebClass::loopToHandleClients() {
+  if (_mdns_enabled) {
+    MDNS.update();
+  }
   if (!WiFiUtils.isEnabled()) {
     return;
   }
