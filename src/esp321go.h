@@ -1,6 +1,6 @@
 
-#include "base_memory.h"
 #include "config.h"
+#include "pin_memory.h"
 #ifdef CONF_WIFI
 #include "wifi_time.h"
 #endif
@@ -27,22 +27,8 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
-void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
-void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
-
 #ifdef CONF_WIFI
 uint8_t wifi_ap_pin = 0;
-
-void wifi_state_changed(uint8_t mode, bool connected) {
-  if (wifi_ap_pin == 0) {
-    return;
-  }
-  int value = mode == WIFI_AP ? HIGH : LOW;
-  if (getPinState(wifi_ap_pin) != value) {
-    digitalWriteState(wifi_ap_pin, value, true);
-}
-}
 #endif
 
 #ifdef CONF_WEB
@@ -96,7 +82,7 @@ void loop() {
   ArduinoOTA.handle();
   if (at_interval(1000,blink_last_ms)) {
     blink_last_ms = millis();
-    digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
+    PinMemory.writeDigital(blink_led_pin, !digitalRead(blink_led_pin));
   }
 #ifdef CONF_WEB
   if (WiFiUtils.isEnabled()) {
@@ -125,6 +111,10 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+  PinMemory.setup([](uint8_t pin, int value, bool is_init) {
+  }, [](uint8_t pin, uint16_t value, bool is_init) {
+  }, [](uint8_t pin, uint32_t value, bool is_init) {
+  });
   pinMode(blink_led_pin, OUTPUT);
 #ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
@@ -146,7 +136,15 @@ void setup() {
     CONF_WIFI_CONN_TIMEOUT_MS,
     preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL_MIN),
     preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD),
-    wifi_state_changed
+    [](uint8_t mode, bool connected) {
+      if (wifi_ap_pin == 0) {
+        return;
+      }
+      int value = mode == WIFI_AP ? HIGH : LOW;
+      if (PinMemory.getPinState(wifi_ap_pin) != value) {
+        PinMemory.writeDigital(wifi_ap_pin, value, true);
+      }
+    }
   );
   delay(1000);
   WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
