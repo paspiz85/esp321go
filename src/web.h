@@ -8,7 +8,7 @@
  */
 
 #include "base_conf.h"
-#include "wifi.h"
+#include "wifi_utils.h"
 #include <ESP8266WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
@@ -132,7 +132,7 @@ void web_server_register(HTTPMethod method, const Uri &uri, ESP8266WebServer::TH
 
 void web_server_setup_http(const uint16_t port = CONF_WEB_HTTP_PORT) {
   http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
-  web_server = new ESP8266WebServer(port);
+  web_server = new ESP8266WebServer(http_port);
 }
 
 void web_server_begin(const char * name) {
@@ -145,7 +145,7 @@ void web_server_begin(const char * name) {
   web_server->collectHeaders(headerkeys, headerkeyssize);
   web_server->begin();
   Serial.print("Ready on http://");
-  Serial.print(wifi_get_ip_address());
+    Serial.print(WiFiUtils.getIP());
   if (http_port != 80) {
     Serial.print(":");
     Serial.print(http_port);

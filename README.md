@@ -13,7 +13,7 @@ Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tram
 #### Compilazione
 Dalla cartella del progetto:
 ```
-arduino-cli compile -e -m esp321go --output-dir target
+arduino-cli compile -e -m esp321go --clean --output-dir target
 ```
 
 #### Caricamento
