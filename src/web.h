@@ -9,7 +9,7 @@
  */
 
 #include "base_conf.h"
-#include "wifi.h"
+#include "wifi_utils.h"
 #include <WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
@@ -127,7 +127,7 @@ void web_server_register(HTTPMethod method, const Uri &uri, WebServer::THandlerF
 
 void web_server_setup_http(const uint16_t port = CONF_WEB_HTTP_PORT) {
   http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
-  web_server = new WebServer(port);
+  web_server = new WebServer(http_port);
 }
 
 void web_server_begin(const char * name) {
@@ -145,7 +145,7 @@ void web_server_begin(const char * name) {
     Serial.print(name);
     Serial.print(".local");
   } else {
-    Serial.print(wifi_get_ip_address());
+    Serial.print(WiFiUtils.getIP());
   }
   if (http_port != 80) {
     Serial.print(":");

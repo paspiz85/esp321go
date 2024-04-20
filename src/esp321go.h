@@ -8,7 +8,6 @@
 #include "bmp280.h"
 #endif
 #ifdef CONF_WIFI
-#include "wifi.h"
 #include "wifi_time.h"
 #endif
 #ifdef CONF_WEB
@@ -21,13 +20,11 @@
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-uint8_t wifi_ap_pin = 0;
-
 String html_title;
 
 void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
-  if (!wifi_have_internet()) {
+  if (!WiFiUtils.isConnected()) {
     return;
   }
   // TODO
@@ -43,9 +40,15 @@ void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
 void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
 
 #ifdef CONF_WIFI
-void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && getPinState(wifi_ap_pin) != value) {
-    digitalWriteState(wifi_ap_pin, value, skip_publish);
+uint8_t wifi_ap_pin = 0;
+
+void wifi_state_changed(uint8_t mode, bool connected) {
+  if (wifi_ap_pin == 0) {
+    return;
+  }
+  int value = mode == WIFI_AP ? HIGH : LOW;
+  if (getPinState(wifi_ap_pin) != value) {
+    digitalWriteState(wifi_ap_pin, value, true);
   }
 }
 #endif
@@ -57,7 +60,7 @@ String web_html_title() {
 
 String web_html_footer(bool admin) {
   String html = "<div>";
-  html += html_encode(wifi_get_info());
+  html += html_encode(WiFiUtils.getInfo());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
@@ -88,11 +91,11 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  wifi_loop(CONF_WIFI_MODE_LIMIT);
-  wifi_time_loop();
+  WiFiUtils.loop(CONF_WIFI_MODE_LIMIT);
+  WiFiTime.loop();
 #endif
 #ifdef CONF_WEB
-  if (!wifi_is_off()) {
+  if (WiFiUtils.isEnabled()) {
     web_server_loop();
     delay(10);
   } else {
@@ -136,20 +139,21 @@ void setup() {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
     String pswd = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_PSWD).c_str());
     if (ssid != "") {
-      wifi_add_ap(ssid.c_str(),pswd.c_str());
+      WiFiUtils.addAP(ssid.c_str(),pswd.c_str());
     }
   }
-  wifi_setup(
+  WiFiUtils.setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
     preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
     preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
     preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD).c_str(),
     CONF_WIFI_CONN_TIMEOUT_MS,
-    max(preferences.getULong(PREF_WIFI_CHECK_INTERVAL),CONF_WIFI_CHECK_INTERVAL_MIN),
-    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
+    preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL_MIN),
+    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD),
+    wifi_state_changed
   );
   delay(1000);
-  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+  WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
 #ifdef CONF_WEB
   html_title = preferences.getString(PREF_WEB_HTML_TITLE);
