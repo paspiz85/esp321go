@@ -34,12 +34,6 @@ uint8_t wifi_ap_pin = 0;
 #endif
 
 #ifdef CONF_WEB
-String html_title;
-
-String web_html_title() {
-  return html_title;
-}
-
 String web_html_footer(bool admin) {
   String html = "<div>";
   html += html_encode(WiFiUtils.getInfo());
@@ -56,12 +50,13 @@ String web_html_footer(bool admin) {
 
 void web_handle_root() {
   int refresh = Web.getParameter("refresh").toInt();
-  String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
+  String title = WebTemplates.getTitle();
+  String html = "<body style=\"text-align:center\"><h1>"+title+"</h1>";
   html += "Hello World";
   html += "<hr/>";
-  html += web_html_footer(false);
+  html += WebTemplates.getFooter(false);
   html += "</body>";
-  web_send_page(html_title,html,refresh);
+  WebTemplates.sendPage(title,html,refresh);
 }
 
 bool web_admin_authenticate() {
@@ -160,12 +155,12 @@ void setup() {
   ArduinoOTA.setPassword(admin_password.c_str());
   ArduinoOTA.begin();
 #ifdef CONF_WEB
-  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
-  if (html_title == "") {
-    html_title = CONF_WEB_HTML_TITLE;
+  String web_html_title = preferences.getString(PREF_WEB_HTML_TITLE);
+  if (web_html_title == "") {
+    web_html_title = CONF_WEB_HTML_TITLE;
   }
   Web.setupHTTP();
-  web_templates_setup();
+  WebTemplates.setup(web_html_title, web_html_footer);
   web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
   Web.handle(HTTP_ANY, "/", web_handle_root);
   Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());

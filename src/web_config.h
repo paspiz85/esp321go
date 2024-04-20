@@ -122,7 +122,7 @@ void web_config_handle_change() {
   String param_value = Web.getParameter("value");
   bool is_reset = Web.getParameter("reset").equals("true");
   bool is_download = Web.getParameter("download").equals("true");
-  String title = web_html_title();
+  String title = WebTemplates.getTitle();
   const Config * config_selected = NULL;
   if (param_name != "") {
     for (int i = 0; i < len_array(config_defs); i++) {
@@ -188,7 +188,7 @@ void web_config_handle_change() {
     html += "<button type=\"button\" class=\"btn btn-danger\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG_UPLOAD)+"'\">Upload</button> ";
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"return confirm('Are you sure?')\">Reset</button> ";
     html += "</p></form><hr/>";
-    html += web_html_footer(true);
+    html += WebTemplates.getFooter(true);
   } else if (!Web.isRequestMethodPost()) {
     String config_value = preferences_get(param_name.c_str(),config_selected->type,true);
     html += "<p>"+param_name+"</p>";
@@ -218,7 +218,7 @@ void web_config_handle_change() {
     return Web.sendRedirect(CONF_WEB_URI_CONFIG);
   }
   html += "</body>";
-  web_send_page(title,html);
+  WebTemplates.sendPage(title,html);
 }
 
 int config_upload_len;
@@ -231,7 +231,7 @@ void web_handle_config_upload() {
     }
   }
   if (!Web.isRequestMethodPost()) {
-    String title = web_html_title();
+    String title = WebTemplates.getTitle();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Upload Configurations</h2>";
     html += "<form action=\""+String(CONF_WEB_URI_CONFIG_UPLOAD)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
     html += "<input type=\"file\" name=\"upload\" accept=\".json,application/json\" />";
@@ -240,7 +240,7 @@ void web_handle_config_upload() {
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    return web_send_page(title,html);
+    return WebTemplates.sendPage(title,html);
   }
   HTTPUpload& upload = Web.getUpload();
   if (upload.status == UPLOAD_FILE_START) {

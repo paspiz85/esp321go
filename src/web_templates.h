@@ -8,7 +8,7 @@
 #include "base_utils.h"
 #include "web.h"
 
-const char* css =
+const char* __web_templates_css =
 "body{font-family:system-ui;font-size:1rem;font-weight:400;line-height:1.5}"
 "fieldset{min-width:0;padding:0;margin:0;border:0}"
 "form fieldset>div{margin-top:.25rem;margin-bottom:.5rem}"
@@ -32,10 +32,29 @@ const char* css =
 ".input-group-text{display:flex;align-items:center;padding:.375rem .75rem;font-size:1rem;font-weight:400;line-height:1.5;color:#212529;text-align:center;white-space:nowrap;background-color:#e9ecef;border:1px solid #ced4da;border-radius:.25rem}"
 ".text-center{text-align:center}";
 
-String web_html_title();
-String web_html_footer(bool admin = false);
+class WebTemplatesClass {
+public:
+  String getTitle();
+  String getFooter(bool admin = false);
+  void sendPage(String title, String body, uint16_t refresh = 0);
+  void setup(String title, String (*footer)(bool) = nullptr);
+private:
+  String _title;
+  String (*_footer)(bool) = nullptr;
+};
 
-void web_send_page(String title, String body, uint16_t refresh = 0) {
+String WebTemplatesClass::getTitle() {
+  return _title;
+}
+
+String WebTemplatesClass::getFooter(bool admin) {
+  if (_footer == NULL) {
+    return "";
+  }
+  return _footer(admin);
+}
+
+void WebTemplatesClass::sendPage(String title, String body, uint16_t refresh) {
   String html = "<html><head><meta charset=\"utf-8\">";
   html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
   html += "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">";
@@ -52,12 +71,14 @@ void web_send_page(String title, String body, uint16_t refresh = 0) {
   Web.sendResponse(200, "text/html", html);
 }
 
-void web_handle_style() {
-  Web.sendResponse(200, "text/css", css);
+void WebTemplatesClass::setup(String title, String (*footer)(bool)) {
+  _title = title;
+  _footer = footer;
+  Web.handle(HTTP_ANY, "/css/style.css", []{
+    Web.sendResponse(200, "text/css", __web_templates_css);
+  });
 }
 
-void web_templates_setup() {
-  Web.handle(HTTP_ANY, "/css/style.css", web_handle_style);
-}
+WebTemplatesClass WebTemplates;
 
 #endif
