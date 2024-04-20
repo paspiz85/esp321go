@@ -36,7 +36,7 @@ String web_html_title();
 String web_html_footer(bool admin = false);
 
 void web_handle_notFound() {
-  web_send_text(404, "text/plain", "Not Found");
+  Web.sendResponse(404, "text/plain", "Not Found");
 }
 
 void web_send_page(String title, String body, uint16_t refresh = 0) {
@@ -53,15 +53,15 @@ void web_send_page(String title, String body, uint16_t refresh = 0) {
   }
   html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">";
   html += "</head>" + body + "</html>";
-  web_send_text(200, "text/html", html);
+  Web.sendResponse(200, "text/html", html);
 }
 
 void web_handle_style() {
-  web_send_text(200, "text/css", css);
+  Web.sendResponse(200, "text/css", css);
 }
 
 void web_templates_setup() {
-  web_server_register(HTTP_ANY, "/css/style.css", web_handle_style);
+  Web.handle(HTTP_ANY, "/css/style.css", web_handle_style);
 }
 
 #endif

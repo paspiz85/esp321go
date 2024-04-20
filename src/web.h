@@ -12,145 +12,176 @@
 #include <ESP8266WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
+#include <ESP8266mDNS.h>
 
-uint16_t http_port = 0;
-ESP8266WebServer * web_server = NULL;
+class WebClass {
+public:
+  void loopToHandleClients();
+  bool isRequestMethodPost();
+  bool authenticate(const char * username, const char * password);
+  void authenticateRequest();
+  String getParameter(String name);
+  String getPathArg(int n);
+  String getHeader(String name);
+  HTTPUpload& getUpload();
+  void sendRedirect(String redirect_uri, String message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN);
+  void sendResponse(int status_code, String content_type, const char * text);
+  void sendResponse(int status_code, String content_type, String text);
+  void sendFile(String content_type, String filename, String text);
+  void handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn);
+  void handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn);
+  void setupHTTP(const uint16_t port = CONF_WEB_HTTP_PORT);
+  void begin(const char * name);
+private:
+  String _web_server_hostname;
+  uint16_t _http_port = 0;
+  ESP8266WebServer * _http_server = NULL;
+  bool _mdns_enabled = false;
+};
 
-void web_server_loop() {
-  if (web_server != NULL) {
-   web_server->handleClient();
+void WebClass::loopToHandleClients() {
+  if (!WiFiUtils.isEnabled()) {
+    return;
+  }
+  if (_http_server != NULL) {
+    _http_server->handleClient();
   }
 }
 
-bool web_request_post() {
-  if (web_server == NULL) {
-    return false;
+bool WebClass::isRequestMethodPost() {
+  if (_http_server != NULL) {
+    return _http_server->method() == HTTP_POST;
   }
-  return web_server->method() == HTTP_POST;
+  return false;
 }
 
-bool web_authenticate(const char * username, const char * password) {
-  if (web_server == NULL) {
-    return false;
+bool WebClass::authenticate(const char * username, const char * password) {
+  if (_http_server != NULL) {
+    return _http_server->authenticate(username, password);
   }
-  return web_server->authenticate(username, password);
+  return false;
 }
 
-void web_authenticate_request() {
-  if (web_server != NULL) {
-    web_server->requestAuthentication();
+void WebClass::authenticateRequest() {
+  if (_http_server != NULL) {
+    _http_server->requestAuthentication();
   }
 }
 
-String web_parameter(String param_name) {
-  if (web_server == NULL) {
-    return "";
-  }
-  for (int i = 0; i < web_server->args(); i++) {
-    if (web_server->argName(i) == param_name) {
-      return web_server->arg(i);
+String WebClass::getParameter(String name) {
+  if (_http_server != NULL) {
+    for (int i = 0; i < _http_server->args(); i++) {
+      if (_http_server->argName(i) == name) {
+        return _http_server->arg(i);
+      }
     }
   }
   return "";
 }
 
-String web_path_arg(int n) {
-  return web_server->pathArg(n);
-}
-
-String web_header(String name) {
-  if (web_server == NULL) {
-    return "";
+String WebClass::getPathArg(int n) {
+  if (_http_server != NULL) {
+    return _http_server->pathArg(n);
   }
-  return web_server->header(name);
+  return "";
 }
 
-HTTPUpload& web_upload() {
-  return web_server->upload();
-}
-
-void web_send_redirect(String redirect_uri, String message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN) {
-  if (web_server == NULL) {
-    return;
+String WebClass::getHeader(String name) {
+  if (_http_server != NULL) {
+    return _http_server->header(name);
   }
+  return "";
+}
+
+HTTPUpload& WebClass::getUpload() {
+  return _http_server->upload();
+}
+
+void WebClass::sendRedirect(String redirect_uri, String message, uint16_t refresh ) {
   if (redirect_uri == "") {
-    redirect_uri = web_server->header("Referer");
+    redirect_uri = getHeader("Referer");
     log_d("referer %s", redirect_uri.c_str());
   }
   if (redirect_uri == "") {
     redirect_uri = "/";
   }
   log_d("redirect_uri %s", redirect_uri.c_str());
-  if (message == "") {
-    web_server->sendHeader("Location", redirect_uri, true);
-    web_server->sendHeader("Connection", "close");
-    web_server->send(302,"text/plain","");
-    return;
+  if (_http_server != NULL) {
+    if (message == "") {
+      _http_server->sendHeader("Location", redirect_uri, true);
+      _http_server->sendHeader("Connection", "close");
+      _http_server->send(302,"text/plain","");
+      return;
+    }
+    refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
+    _http_server->sendHeader("Connection", "close");
+    _http_server->send(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
   }
-  refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
-  web_server->sendHeader("Connection", "close");
-  web_server->send(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
 }
 
-void web_send_text(int status_code, String content_type, const char * text) {
-  if (web_server == NULL) {
-    return;
+void WebClass::sendResponse(int status_code, String content_type, const char * text) {
+  if (_http_server != NULL) {
+    _http_server->send(status_code,content_type,text);
   }
-  web_server->send(status_code,content_type,text);
 }
 
-void web_send_text(int status_code, String content_type, String text) {
-  if (web_server == NULL) {
-    return;
+void WebClass::sendResponse(int status_code, String content_type, String text) {
+  if (_http_server != NULL) {
+    _http_server->send(status_code,content_type,text);
   }
-  web_server->send(status_code,content_type,text);
 }
 
-void web_download_text(String content_type, String filename, String text) {
-  if (web_server == NULL) {
-    return;
+void WebClass::sendFile(String content_type, String filename, String text) {
+  if (_http_server != NULL) {
+    _http_server->sendHeader("Content-Disposition", "attachment;filename=\""+filename+"\"");
+    _http_server->send(200,content_type,text);
   }
-  web_server->sendHeader("Content-Disposition", "attachment;filename=\""+filename+"\"");
-  web_server->send(200,content_type,text);
 }
 
 void web_handle_notFound();
 
-void web_server_register(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn) {
-  if (web_server == NULL) {
-    return;
+void WebClass::handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn) {
+  if (_http_server != NULL) {
+    _http_server->on(uri, method, fn);
   }
-  web_server->on(uri, method, fn);
 }
 
-void web_server_register(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn) {
-  if (web_server == NULL) {
-    return;
+void WebClass::handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn) {
+  if (_http_server != NULL) {
+    _http_server->on(uri, method, fn, ufn);
   }
-  web_server->on(uri, method, fn, ufn);
 }
 
-void web_server_setup_http(const uint16_t port = CONF_WEB_HTTP_PORT) {
-  http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
-  web_server = new ESP8266WebServer(http_port);
+void WebClass::setupHTTP(const uint16_t port) {
+  _http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
+  _http_server = new ESP8266WebServer(_http_port);
 }
 
-void web_server_begin(const char * name) {
-  if (web_server == NULL) {
+void WebClass::begin(const char * name) {
+  if (_http_server == NULL) {
     return;
   }
-  web_server->onNotFound(web_handle_notFound);
+  if (strlen(name) > 0 && MDNS.begin(name)) {
+    _mdns_enabled = true;
+    _web_server_hostname = String(name) + ".local";
+    MDNS.addService("http", "tcp", _http_port);
+  } else {
+    _web_server_hostname = WiFiUtils.getIP();
+  }
+  _http_server->onNotFound(web_handle_notFound);
   const char * headerkeys[] = {"Accept", "Referer"};
   size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
-  web_server->collectHeaders(headerkeys, headerkeyssize);
-  web_server->begin();
+  _http_server->collectHeaders(headerkeys, headerkeyssize);
+  _http_server->begin();
   Serial.print("Ready on http://");
-    Serial.print(WiFiUtils.getIP());
-  if (http_port != 80) {
+  Serial.print(_web_server_hostname);
+  if (_http_port != 80) {
     Serial.print(":");
-    Serial.print(http_port);
+    Serial.print(_http_port);
   }
   Serial.println("/");
 }
+
+WebClass Web;
 
 #endif

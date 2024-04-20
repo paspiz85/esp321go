@@ -5,8 +5,8 @@
  * Contiene le costanti di configurazione
  */
 
-const PROGMEM char *   CONF_ADMIN_PASSWORD          = "admin";
-const PROGMEM char *   CONF_ADMIN_USERNAME          = "admin";
+const PROGMEM char *   CONF_ADMIN_PASSWORD              = "admin";
+const PROGMEM char *   CONF_ADMIN_USERNAME              = "admin";
 
 const PROGMEM char *   CONF_LOG_LEVEL                   = "i";
 

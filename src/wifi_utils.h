@@ -20,7 +20,7 @@ public:
   bool isConnected();
   String getIP();
   String getInfo();
-  void loop(uint32_t mode_limit_ms = 0);
+  void loopToHandleConnection(uint32_t mode_limit_ms = 0);
   void addAP(const char * ssid, const char * pswd);
   void setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
     uint32_t conn_timeout = CONF_WIFI_CONN_TIMEOUT_MS,
@@ -102,7 +102,7 @@ String WiFiUtilsClass::getInfo() {
   }
 }
 
-void WiFiUtilsClass::loop(uint32_t mode_limit_ms) {
+void WiFiUtilsClass::loopToHandleConnection(uint32_t mode_limit_ms) {
   if (_mode != _mode_setup && at_interval(mode_limit_ms)) {
     if (_mode_setup == WIFI_OFF) {
       setMode(WIFI_OFF);

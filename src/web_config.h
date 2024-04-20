@@ -114,12 +114,12 @@ void web_config_handle_value_import(const char * key, Config config, JSONVar * j
 
 void web_config_handle_change() {
   if (!web_admin_authenticate()) {
-    return web_authenticate_request();
+    return Web.authenticateRequest();
   }
-  String param_name = web_parameter("name");
-  String param_value = web_parameter("value");
-  bool is_reset = web_parameter("reset").equals("true");
-  bool is_download = web_parameter("download").equals("true");
+  String param_name = Web.getParameter("name");
+  String param_value = Web.getParameter("value");
+  bool is_reset = Web.getParameter("reset").equals("true");
+  bool is_download = Web.getParameter("download").equals("true");
   String title = web_html_title();
   const Config * config_selected = NULL;
   if (param_name != "") {
@@ -174,7 +174,7 @@ void web_config_handle_change() {
       }
     }
     if (is_download) {
-      return web_download_text("application/json","config.json",JSON.stringify(json_export));
+      return Web.sendFile("application/json","config.json",JSON.stringify(json_export));
     }
     html += "</table>";
     html += "<form action=\""+String(CONF_WEB_URI_RESET)+"\" method=\"POST\"><p>";
@@ -187,7 +187,7 @@ void web_config_handle_change() {
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"return confirm('Are you sure?')\">Reset</button> ";
     html += "</p></form><hr/>";
     html += web_html_footer(true);
-  } else if (!web_request_post()) {
+  } else if (!Web.isRequestMethodPost()) {
     String config_value = preferences_get(param_name.c_str(),config_selected->type,true);
     html += "<p>"+param_name+"</p>";
     html += "<form action=\""+String(CONF_WEB_URI_CONFIG)+"\" method=\"POST\"><p>";
@@ -213,7 +213,7 @@ void web_config_handle_change() {
     } else {
       preferences_put(param_name.c_str(),config_selected->type,param_value,publish_key);
     }
-    return web_send_redirect(CONF_WEB_URI_CONFIG);
+    return Web.sendRedirect(CONF_WEB_URI_CONFIG);
   }
   html += "</body>";
   web_send_page(title,html);
@@ -224,9 +224,9 @@ uint8_t config_upload_buf[CONF_WEB_UPLOAD_LIMIT];
 
 void web_handle_config_upload() {
   if (!web_admin_authenticate()) {
-    return web_authenticate_request();
+    return Web.authenticateRequest();
   }
-  if (!web_request_post()) {
+  if (!Web.isRequestMethodPost()) {
     String title = web_html_title();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Upload Configurations</h2>";
     html += "<form action=\""+String(CONF_WEB_URI_CONFIG_UPLOAD)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
@@ -238,7 +238,7 @@ void web_handle_config_upload() {
     html += "</body>";
     return web_send_page(title,html);
   }
-  HTTPUpload& upload = web_upload();
+  HTTPUpload& upload = Web.getUpload();
   if (upload.status == UPLOAD_FILE_START) {
     log_i("Upload: %s", upload.filename.c_str());
     config_upload_len = 0;
@@ -270,20 +270,20 @@ void web_handle_config_upload() {
 void web_config_setup(bool config_publish) {
   web_config_publish = config_publish;
   web_reset_setup();
-  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
-  web_server_register(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
-  web_server_register(HTTP_POST, CONF_WEB_URI_CONFIG_UPLOAD, []() {
-    web_send_redirect(CONF_WEB_URI_CONFIG);
+  Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
+  Web.handle(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
+  Web.handleUpload(HTTP_POST, CONF_WEB_URI_CONFIG_UPLOAD, []() {
+    Web.sendRedirect(CONF_WEB_URI_CONFIG);
   }, web_handle_config_upload);
-  web_server_register(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, []() {
+  Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, []() {
     if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+      return Web.authenticateRequest();
     }
-    if (web_request_post()) {
+    if (Web.isRequestMethodPost()) {
       log_i("preferences clear");
       preferences.clear();
     }
-    web_send_redirect(CONF_WEB_URI_CONFIG);
+    Web.sendRedirect(CONF_WEB_URI_CONFIG);
   });
 }
 

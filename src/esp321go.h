@@ -53,7 +53,7 @@ String web_html_footer(bool admin) {
 }
 
 void web_handle_root() {
-  int refresh = web_parameter("refresh").toInt();
+  int refresh = Web.getParameter("refresh").toInt();
   String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
   html += "Hello World";
   html += "<hr/>";
@@ -76,8 +76,8 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  WiFiUtils.loop(CONF_WIFI_MODE_LIMIT);
-  WiFiTime.loop();
+  WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
+  WiFiTime.loopToSynchronize();
 #endif
   ArduinoOTA.handle();
   if (at_interval(1000,blink_last_ms)) {
@@ -86,7 +86,7 @@ void loop() {
   }
 #ifdef CONF_WEB
   if (WiFiUtils.isEnabled()) {
-    web_server_loop();
+    Web.loopToHandleClients();
     delay(10);
   } else {
     delay(1000);
@@ -156,14 +156,14 @@ void setup() {
   if (html_title == "") {
     html_title = CONF_WEB_HTML_TITLE;
   }
-  web_server_setup_http();
+  Web.setupHTTP();
   web_templates_setup();
   web_admin_setup(
     preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME).c_str(),
     preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD).c_str()
   );
   web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
+  Web.handle(HTTP_ANY, "/", web_handle_root);
+  Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif
 }
