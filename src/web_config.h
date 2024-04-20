@@ -9,11 +9,11 @@
 
 #include "config.h"
 #include "web.h"
-#include "web_admin.h"
 #include "web_reset.h"
 #include "web_templates.h"
 #include <Arduino_JSON.h>
 
+bool (*web_config_admin_authenticate)() = nullptr;
 bool web_config_publish;
 
 void web_config_handle_value_export(const char * key, Config config, JSONVar * json_export) {
@@ -113,8 +113,10 @@ void web_config_handle_value_import(const char * key, Config config, JSONVar * j
 }
 
 void web_config_handle_change() {
-  if (!web_admin_authenticate()) {
-    return Web.authenticateRequest();
+  if (web_config_admin_authenticate != NULL) {
+    if (!web_config_admin_authenticate()) {
+      return Web.authenticateRequest();
+    }
   }
   String param_name = Web.getParameter("name");
   String param_value = Web.getParameter("value");
@@ -223,8 +225,10 @@ int config_upload_len;
 uint8_t config_upload_buf[CONF_WEB_UPLOAD_LIMIT];
 
 void web_handle_config_upload() {
-  if (!web_admin_authenticate()) {
-    return Web.authenticateRequest();
+  if (web_config_admin_authenticate != NULL) {
+    if (!web_config_admin_authenticate()) {
+      return Web.authenticateRequest();
+    }
   }
   if (!Web.isRequestMethodPost()) {
     String title = web_html_title();
@@ -267,17 +271,20 @@ void web_handle_config_upload() {
   }
 }
 
-void web_config_setup(bool config_publish) {
+void web_config_setup(bool (*web_admin_authenticate)() = nullptr, bool config_publish = false) {
+  web_config_admin_authenticate = web_admin_authenticate;
   web_config_publish = config_publish;
-  web_reset_setup();
+  web_reset_setup(web_config_admin_authenticate);
   Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
   Web.handle(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
   Web.handleUpload(HTTP_POST, CONF_WEB_URI_CONFIG_UPLOAD, []() {
     Web.sendRedirect(CONF_WEB_URI_CONFIG);
   }, web_handle_config_upload);
   Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, []() {
-    if (!web_admin_authenticate()) {
-      return Web.authenticateRequest();
+    if (web_config_admin_authenticate != NULL) {
+      if (!web_config_admin_authenticate()) {
+        return Web.authenticateRequest();
+      }
     }
     if (Web.isRequestMethodPost()) {
       log_i("preferences clear");

@@ -13,6 +13,8 @@
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
+String admin_username;
+String admin_password;
 
 void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
@@ -60,6 +62,10 @@ void web_handle_root() {
   html += web_html_footer(false);
   html += "</body>";
   web_send_page(html_title,html,refresh);
+}
+
+bool web_admin_authenticate() {
+  return Web.authenticate(admin_username.c_str(), admin_password.c_str());
 }
 #endif
 
@@ -149,7 +155,9 @@ void setup() {
   delay(1000);
   WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
-  ArduinoOTA.setPassword(preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD).c_str());
+  admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
+  admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
+  ArduinoOTA.setPassword(admin_password.c_str());
   ArduinoOTA.begin();
 #ifdef CONF_WEB
   html_title = preferences.getString(PREF_WEB_HTML_TITLE);
@@ -158,11 +166,7 @@ void setup() {
   }
   Web.setupHTTP();
   web_templates_setup();
-  web_admin_setup(
-    preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME).c_str(),
-    preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD).c_str()
-  );
-  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
+  web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
   Web.handle(HTTP_ANY, "/", web_handle_root);
   Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif
