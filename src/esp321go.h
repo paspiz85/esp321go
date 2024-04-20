@@ -29,6 +29,10 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
+bool blink_led_enabled = true;
+int blink_led_pin;
+uint32_t blink_last_ms = 0;
+
 #ifdef CONF_WIFI
 uint8_t wifi_ap_pin = 0;
 #endif
@@ -54,18 +58,42 @@ String web_html_footer(bool admin) {
 
 void web_handle_root() {
   int refresh = Web.getParameter("refresh").toInt();
+  int blink = Web.getParameter("blink").toInt();
+  switch (blink) {
+  case 0: break;
+  case 2:
+    blink_led_enabled = false;
+    digitalWrite(blink_led_pin, LOW);
+    Web.sendRedirect("/");
+    return;
+  case 3:
+    blink_led_enabled = false;
+    digitalWrite(blink_led_pin, HIGH);
+    Web.sendRedirect("/");
+    return;
+  default:
+    blink_led_enabled = true;
+    Web.sendRedirect("/");
+    return;
+  }
   String title = WebTemplates.getTitle();
   String html = "<body style=\"text-align:center\"><h1>"+title+"</h1>";
-  html += "Hello World";
-  html += "<hr/>";
+  html += "<h3>Hello World</h3>";
+  html += "<form action=\"/\" method=\"post\">";
+  html += "<select name=\"blink\" required>";
+  html += "<option value=\"0\"></option>";
+  html += "<option value=\"1\">Lampeggia</option>";
+  html += "<option value=\"2\">Sempre acceso</option>";
+  html += "<option value=\"3\">Sempre spento</option>";
+  html += "</select>";
+  html += "<p><input type=\"submit\" value=\"OK\" /></p>";
+  html += "</form>";
+  html += "<p><a href=\"/config\">Configurazione</a></p>";
   html += WebTemplates.getFooter(false);
   html += "</body>";
   WebTemplates.sendPage(title,html,refresh);
 }
 #endif
-
-uint32_t blink_led_pin = LED_BUILTIN;
-uint32_t blink_last_ms = 0;
 
 void loop() {
   if (reboot_free > 0 && ESP.getFreeHeap() < reboot_free) {
@@ -83,7 +111,7 @@ void loop() {
 #ifdef CONF_ARDUINO_OTA
   ArduinoOTA.handle();
 #endif
-  if (at_interval(1000,blink_last_ms)) {
+  if (blink_led_enabled && at_interval(1000,blink_last_ms)) {
     blink_last_ms = millis();
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
@@ -118,6 +146,7 @@ void setup() {
   }, [](uint8_t pin, uint16_t value, bool is_init) {
   }, [](uint8_t pin, uint32_t value, bool is_init) {
   });
+  blink_led_pin = preferences.getInt(PREF_BLINK_LED_PIN,LED_BUILTIN);
   pinMode(blink_led_pin, OUTPUT);
 #ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
