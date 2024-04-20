@@ -12,7 +12,7 @@ Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già
 #### Compilazione
 Dalla cartella del progetto:
 ```
-arduino-cli compile -e -m esp321go --output-dir target
+arduino-cli compile -e -m esp321go --clean --output-dir target
 ```
 
 #### Caricamento
