@@ -35,10 +35,6 @@ const char* css =
 String web_html_title();
 String web_html_footer(bool admin = false);
 
-void web_handle_notFound() {
-  Web.sendResponse(404, "text/plain", "Not Found");
-}
-
 void web_send_page(String title, String body, uint16_t refresh = 0) {
   String html = "<html><head><meta charset=\"utf-8\">";
   html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";

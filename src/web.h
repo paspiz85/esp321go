@@ -31,7 +31,7 @@ public:
   void handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn);
   void handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn);
   void setupHTTP(const uint16_t port = CONF_WEB_HTTP_PORT);
-  void begin(const char * name);
+  void begin(const char * name = "", void (*handle_notFound)() = nullptr);
 private:
   String _web_server_hostname;
   uint16_t _http_port = 0;
@@ -138,8 +138,6 @@ void WebClass::sendFile(String content_type, String filename, String text) {
   }
 }
 
-void web_handle_notFound();
-
 void WebClass::handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn) {
   if (_http_server != NULL) {
     _http_server->on(uri, method, fn);
@@ -157,9 +155,14 @@ void WebClass::setupHTTP(const uint16_t port) {
   _http_server = new ESP8266WebServer(_http_port);
 }
 
-void WebClass::begin(const char * name) {
+void __web_handle_notFound_default();
+
+void WebClass::begin(const char * name, void (*handle_notFound)()) {
   if (_http_server == NULL) {
     return;
+  }
+  if (handle_notFound == NULL) {
+    handle_notFound = &__web_handle_notFound_default;
   }
   if (strlen(name) > 0 && MDNS.begin(name)) {
     _mdns_enabled = true;
@@ -168,7 +171,7 @@ void WebClass::begin(const char * name) {
   } else {
     _web_server_hostname = WiFiUtils.getIP();
   }
-  _http_server->onNotFound(web_handle_notFound);
+  _http_server->onNotFound(handle_notFound);
   const char * headerkeys[] = {"Accept", "Referer"};
   size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
   _http_server->collectHeaders(headerkeys, headerkeyssize);
@@ -183,5 +186,9 @@ void WebClass::begin(const char * name) {
 }
 
 WebClass Web;
+
+void __web_handle_notFound_default() {
+  Web.sendResponse(404, "text/plain", "Not Found");
+}
 
 #endif
