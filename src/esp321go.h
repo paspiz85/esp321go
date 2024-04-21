@@ -59,7 +59,6 @@ String web_html_footer(bool admin) {
 }
 
 void web_handle_root() {
-  int refresh = Web.getParameter("refresh").toInt();
   int blink = Web.getParameter("blink").toInt();
   switch (blink) {
   case 0: break;
@@ -93,7 +92,7 @@ void web_handle_root() {
   html += "<p><a href=\"/config\">Configurazione</a></p>";
   html += WebTemplates.getFooter(false);
   html += "</body>";
-  WebTemplates.sendPage(title,html,refresh);
+  WebTemplates.sendPage(title,html);
 }
 #endif
 
@@ -195,6 +194,9 @@ void setup() {
     web_html_title = CONF_WEB_HTML_TITLE;
   }
   Web.setupHTTP();
+#ifdef CONF_WEB_HTTPS
+  Web.setupHTTPS(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+#endif
   WebTemplates.setup(web_html_title, web_html_footer);
   web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
   Web.handle(HTTP_ANY, "/", web_handle_root);

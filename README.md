@@ -34,11 +34,6 @@ Per l'upload tramite la rete:
 arduino-cli upload -m esp321go -i target/esp321go.ino.bin -l network -p <ip>
 ```
 
-Per l'upload tramite la rete:
-```
-arduino-cli upload -m esp321go -i target/esp321go.ino.bin -l network -p <ip>
-```
-
 #### Debug
 Dalla cartella del progetto:
 ```
