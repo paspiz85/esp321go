@@ -33,8 +33,8 @@ public:
   void sendResponse(int status_code, String content_type, const char * text);
   void sendResponse(int status_code, String content_type, String text);
   void sendFile(String content_type, String filename, String text);
-  void handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn);
-  void handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn);
+  void handle(HTTPMethod method, const Uri &uri, void (*fn)());
+  void handleUpload(HTTPMethod method, const Uri &uri, void (*fn)(), void (*ufn)());
   void setupHTTP(const uint16_t port = CONF_WEB_HTTP_PORT);
 #ifdef CONF_WEB_HTTPS
   void setupHTTPS(String crt = "", String key = "", const uint16_t port = CONF_WEB_HTTPS_PORT);
@@ -65,7 +65,7 @@ void WebClass::loopToHandleClients() {
     _https_server->handleClient();
   }
 #endif
-  if (_https_server != NULL) {
+  if (_http_server != NULL) {
     _http_server->handleClient();
   }
 }
@@ -160,18 +160,26 @@ void WebClass::sendFile(String content_type, String filename, String text) {
   }
 }
 
-void WebClass::handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn) {
+void WebClass::handle(HTTPMethod method, const Uri &uri, void (*fn)()) {
+#ifdef CONF_WEB_HTTPS
   if (_https_server != NULL) {
     _https_server->on(uri, method, fn);
-  } else if (_http_server != NULL) {
+    return;
+  }
+#endif
+  if (_http_server != NULL) {
     _http_server->on(uri, method, fn);
   }
 }
 
-void WebClass::handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn) {
+void WebClass::handleUpload(HTTPMethod method, const Uri &uri, void (*fn)(), void (*ufn)()) {
+#ifdef CONF_WEB_HTTPS
   if (_https_server != NULL) {
     _https_server->on(uri, method, fn, ufn);
-  } else if (_http_server != NULL) {
+    return;
+  }
+#endif
+  if (_http_server != NULL) {
     _http_server->on(uri, method, fn, ufn);
   }
 }
@@ -235,12 +243,14 @@ void WebClass::begin(const char * name, void (*handle_notFound)()) {
   } else {
     _http_server->onNotFound([this]() { this->_handleUpgradeHTTPS(); });
     _http_server->begin();
-    MDNS.addService("https", "tcp", _https_port);
     _https_server->onNotFound(handle_notFound);
     const char * headerkeys[] = {"Accept", "Referer"};
     size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
     _https_server->collectHeaders(headerkeys, headerkeyssize);
     _https_server->begin();
+    if (_mdns_enabled) {
+      MDNS.addService("https", "tcp", _https_port);
+    }
     _web_server = (esp8266webserver::ESP8266WebServerTemplate<WiFiServer> *) _https_server;
     Serial.print("Ready on https://");
     Serial.print(_web_server_hostname);
