@@ -34,7 +34,7 @@ const PROGMEM char *   CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.
 const PROGMEM char *   CONF_WEB_HTML_TITLE              = "ESP8266";
 const PROGMEM uint16_t CONF_WEB_HTTP_PORT               = 80;
 
-//#define CONF_WEB_HTTPS
+#define CONF_WEB_HTTPS
 #ifdef CONF_WEB_HTTPS
 /*
 const PROGMEM char *   CONF_WEB_HTTPS_CERT              = R"EOF(

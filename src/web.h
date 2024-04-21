@@ -32,11 +32,18 @@ public:
   void handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn);
   void handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn);
   void setupHTTP(const uint16_t port = CONF_WEB_HTTP_PORT);
+#ifdef CONF_WEB_HTTPS
+  bool setupHTTPS(String crt = "", String key = "", const uint16_t port = CONF_WEB_HTTPS_PORT);
+#endif
   void begin(const char * name = "", void (*handle_notFound)() = nullptr);
 private:
   String _web_server_hostname;
   uint16_t _http_port = 0;
+  uint16_t _https_port = 0;
   ESP8266WebServer * _http_server = NULL;
+#ifdef CONF_WEB_HTTPS
+  ESP8266WebServer * _https_server = NULL;
+#endif
   bool _mdns_enabled = false;
 };
 
@@ -159,6 +166,27 @@ void WebClass::setupHTTP(const uint16_t port) {
   _http_server = new ESP8266WebServer(_http_port);
 }
 
+#ifdef CONF_WEB_HTTPS
+void WebClass::setupHTTPS(String crt, String key, const uint16_t port) {
+  _https_port = port > 0 ? port : CONF_WEB_HTTPS_PORT;
+  const char * crt_str = crt != "" ? crt.c_str() : CONF_WEB_HTTPS_CERT; 
+  const char * key_str = key != "" ? key.c_str() : CONF_WEB_HTTPS_CERT_KEY;
+  _https_server = new BearSSL::ESP8266WebServerSecure(_https_port);
+  _https_server->getServer().setRSACert(new BearSSL::X509List(crt_str), new BearSSL::PrivateKey(key_str));
+}
+
+void __web_handleHTTPSupgrade() {
+  String host = web_header("Host");
+  if (host == "") {
+    host = _web_server_hostname + ":" + _https_port;
+  }
+  http_server->sendHeader("Location", String("https://") + host + "/", true);
+  http_server->send(301, "text/plain", "");
+}
+
+void __web_handle_https_upgrade();
+#endif
+
 void __web_handle_notFound_default();
 
 void WebClass::begin(const char * name, void (*handle_notFound)()) {
@@ -175,17 +203,38 @@ void WebClass::begin(const char * name, void (*handle_notFound)()) {
   } else {
     _web_server_hostname = WiFiUtils.getIP();
   }
-  _http_server->onNotFound(handle_notFound);
-  const char * headerkeys[] = {"Accept", "Referer"};
-  size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
-  _http_server->collectHeaders(headerkeys, headerkeyssize);
-  _http_server->begin();
-  Serial.print("Ready on http://");
-  Serial.print(_web_server_hostname);
-  if (_http_port != 80) {
-    Serial.print(":");
-    Serial.print(_http_port);
+#ifdef CONF_WEB_HTTPS
+  if (_https_server == NULL) {
+#endif
+    _http_server->onNotFound(handle_notFound);
+    const char * headerkeys[] = {"Accept", "Referer"};
+    size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+    _http_server->collectHeaders(headerkeys, headerkeyssize);
+    _http_server->begin();
+    Serial.print("Ready on http://");
+    Serial.print(_web_server_hostname);
+    if (_http_port != 80) {
+      Serial.print(":");
+      Serial.print(_http_port);
+    }
+#ifdef CONF_WEB_HTTPS
+  } else {
+    _http_server->onNotFound(__web_handle_https_upgradefgdgdfgdf);
+    _http_server->begin();
+    MDNS.addService("https", "tcp", _https_port);
+    _https_server->onNotFound(handle_notFound);
+    const char * headerkeys[] = {"Accept", "Referer"};
+    size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+    _https_server->collectHeaders(headerkeys, headerkeyssize);
+    _https_server->begin();
+    Serial.print("Ready on https://");
+    Serial.print(_web_server_hostname);
+    if (_https_port != 443) {
+      Serial.print(":");
+      Serial.print(_https_port);
+    }
   }
+#endif
   Serial.println("/");
 }
 
@@ -194,5 +243,16 @@ WebClass Web;
 void __web_handle_notFound_default() {
   Web.sendResponse(404, "text/plain", "Not Found");
 }
+
+#ifdef CONF_WEB_HTTPS
+void __web_handle_https_upgrade() {
+  String host = web_header("Host");
+  if (host == "") {
+    host = _web_server_hostname + ":" + _https_port;
+  }
+  http_server->sendHeader("Location", String("https://") + host + "/", true);
+  http_server->send(301, "text/plain", "");
+}
+#endif
 
 #endif
