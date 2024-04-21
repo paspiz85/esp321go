@@ -16,7 +16,9 @@
 #include "web_config.h"
 #include "web_ota.h"
 #endif
+#ifdef CONF_ARDUINO_OTA
 #include <ArduinoOTA.h>
+#endif
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
@@ -210,7 +212,7 @@ void setup() {
   Web.setupHTTP();
   WebTemplates.setup(web_html_title, web_html_footer);
   web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_ota_setup();
+  web_ota_setup(web_admin_authenticate);
   Web.handle(HTTP_ANY, "/", web_handle_root);
   Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif

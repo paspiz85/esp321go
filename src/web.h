@@ -41,9 +41,6 @@ private:
 };
 
 void WebClass::loopToHandleClients() {
-  if (_mdns_enabled) {
-    MDNS.update();
-  }
   if (!WiFiUtils.isEnabled()) {
     return;
   }
@@ -142,13 +139,13 @@ void WebClass::sendFile(String content_type, String filename, String text) {
   }
 }
 
-void WebClass::handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn) {
+void WebClass::handle(HTTPMethod method, const Uri &uri, WebServer::THandlerFunction fn) {
   if (_http_server != NULL) {
     _http_server->on(uri, method, fn);
   }
 }
 
-void WebClass::handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn) {
+void WebClass::handleUpload(HTTPMethod method, const Uri &uri, WebServer::THandlerFunction fn, WebServer::THandlerFunction ufn) {
   if (_http_server != NULL) {
     _http_server->on(uri, method, fn, ufn);
   }
@@ -156,7 +153,7 @@ void WebClass::handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer:
 
 void WebClass::setupHTTP(const uint16_t port) {
   _http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
-  _http_server = new ESP8266WebServer(_http_port);
+  _http_server = new WebServer(_http_port);
 }
 
 void __web_handle_notFound_default();

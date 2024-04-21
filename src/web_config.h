@@ -13,8 +13,8 @@
 #include "web_templates.h"
 #include <Arduino_JSON.h>
 
-bool (*web_config_admin_authenticate)() = nullptr;
-bool web_config_publish;
+bool (*__web_config_admin_authenticate)() = nullptr;
+bool __web_config_publish;
 
 void web_config_handle_value_export(const char * key, Config config, JSONVar * json_export) {
   if (!preferences.isKey(key)) {
@@ -113,8 +113,8 @@ void web_config_handle_value_import(const char * key, Config config, JSONVar * j
 }
 
 void web_config_handle_change() {
-  if (web_config_admin_authenticate != NULL) {
-    if (!web_config_admin_authenticate()) {
+  if (__web_config_admin_authenticate != NULL) {
+    if (!__web_config_admin_authenticate()) {
       return Web.authenticateRequest();
     }
   }
@@ -207,7 +207,7 @@ void web_config_handle_change() {
     html += "</p></form>";
   } else {
     String publish_key = "";
-    if (web_config_publish) {
+    if (__web_config_publish) {
       publish_key = "config."+param_name;
     }
     if (is_reset) {
@@ -225,8 +225,8 @@ int config_upload_len;
 uint8_t config_upload_buf[CONF_WEB_UPLOAD_LIMIT];
 
 void web_handle_config_upload() {
-  if (web_config_admin_authenticate != NULL) {
-    if (!web_config_admin_authenticate()) {
+  if (__web_config_admin_authenticate != NULL) {
+    if (!__web_config_admin_authenticate()) {
       return Web.authenticateRequest();
     }
   }
@@ -272,17 +272,17 @@ void web_handle_config_upload() {
 }
 
 void web_config_setup(bool (*web_admin_authenticate)() = nullptr, bool config_publish = false) {
-  web_config_admin_authenticate = web_admin_authenticate;
-  web_config_publish = config_publish;
-  web_reset_setup(web_config_admin_authenticate);
+  __web_config_admin_authenticate = web_admin_authenticate;
+  __web_config_publish = config_publish;
+  web_reset_setup(__web_config_admin_authenticate);
   Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
   Web.handle(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
   Web.handleUpload(HTTP_POST, CONF_WEB_URI_CONFIG_UPLOAD, []() {
     Web.sendRedirect(CONF_WEB_URI_CONFIG);
   }, web_handle_config_upload);
   Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, []() {
-    if (web_config_admin_authenticate != NULL) {
-      if (!web_config_admin_authenticate()) {
+    if (__web_config_admin_authenticate != NULL) {
+      if (!__web_config_admin_authenticate()) {
         return Web.authenticateRequest();
       }
     }
