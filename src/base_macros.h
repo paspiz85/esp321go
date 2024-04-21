@@ -7,6 +7,10 @@
 
 #include <Arduino.h>
 
+#define HW_ANALOG_READ_MAX    (4095)
+#define HW_PIN_COUNT          (40)
+#define LED_BUILTIN           (2)
+
 uint32_t ESP_getChipId() {
   uint32_t chipId = 0;
   for(int i=0; i<17; i=i+8) {
@@ -17,6 +21,5 @@ uint32_t ESP_getChipId() {
 
 #define len_array(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
 
-#define LED_BUILTIN (2)
 
 #endif
