@@ -7,28 +7,24 @@
 
 #include "base_conf.h"
 #include "web.h"
-#include "web_admin.h"
 #include "web_templates.h"
 #include "web_reset.h"
 #include <Update.h>
 
-uint32_t web_ota_chip_id() {
-  uint32_t chipId = 0;
-  for(int i=0; i<17; i=i+8) {
-    chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
-  }
-  return chipId;
-}
+bool (*__web_ota_admin_authenticate)(HTTPRequest * req) = nullptr;
 
-void web_ota_setup() {
-  web_server_register(HTTP_GET, CONF_WEB_URI_FIRMWARE_UPDATE, [](HTTPRequest * req, HTTPResponse * res) {
-    if (!web_admin_authenticate(req)) {
-      return web_authenticate_request(req,res);
+void web_ota_setup(bool (*web_admin_authenticate)(HTTPRequest * req) = nullptr) {
+  __web_ota_admin_authenticate = web_admin_authenticate;
+  Web.handle(HTTP_GET, CONF_WEB_URI_FIRMWARE_UPDATE, [](HTTPRequest * req, HTTPResponse * res) {
+    if (__web_ota_admin_authenticate != NULL) {
+      if (!__web_ota_admin_authenticate(req)) {
+        return Web.authenticateRequest(req,res);
+      }
     }
-    String title = web_html_title();
+    String title = WebTemplates.getTitle();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Firmware Update</h2>";
     html += "<p>ESP32 Chip model "+String(ESP.getChipModel())+" - Rev "+String(ESP.getChipRevision())+"</p>";
-    html += "<p>Chip ID "+String(web_ota_chip_id())+" - Core# "+String(ESP.getChipCores())+"</p>";
+    html += "<p>Chip ID "+String(ESP_getChipId())+" - Core# "+String(ESP.getChipCores())+"</p>";
     html += "<form action=\""+String(CONF_WEB_URI_FIRMWARE_UPDATE)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
     html += "<input type=\"file\" name=\"update\" accept=\".bin\" required=\"required\" />";
     html += "</p><p>";
@@ -36,11 +32,13 @@ void web_ota_setup() {
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='/'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    web_send_page(req,res,title,html);
+    WebTemplates.sendPage(req,res,title,html);
   });
-  web_server_register(HTTP_POST, CONF_WEB_URI_FIRMWARE_UPDATE, [](HTTPRequest * req, HTTPResponse * res) {
-    if (!web_admin_authenticate(req)) {
-      return web_authenticate_request(req,res);
+  Web.handle(HTTP_POST, CONF_WEB_URI_FIRMWARE_UPDATE, [](HTTPRequest * req, HTTPResponse * res) {
+    if (__web_ota_admin_authenticate != NULL) {
+      if (!__web_ota_admin_authenticate(req)) {
+        return Web.authenticateRequest(req,res);
+      }
     }
     HTTPBodyParser *parser;
     std::string contentType = req->getHeader("Content-Type");
@@ -51,7 +49,7 @@ void web_ota_setup() {
     if (contentType == "multipart/form-data") {
       parser = new HTTPMultipartBodyParser(req);
     } else {
-      return web_send_error_client(req,res,"Invalid Content-Type");
+      return WebTemplates.sendErrorClient(req,res,"Invalid Content-Type");
     }
     while (parser->nextField()) {
       std::string name = parser->getFieldName();
@@ -78,7 +76,7 @@ void web_ota_setup() {
       }
       return web_reset(req,res,Update.hasError() ? "FAILED" : "COMPLETED");
     }
-    web_send_error_client(req,res,"Invalid upload");
+    WebTemplates.sendErrorClient(req,res,"Invalid upload");
   });
 }
 #endif

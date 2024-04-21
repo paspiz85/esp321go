@@ -8,7 +8,7 @@
 #include "base_utils.h"
 #include "web.h"
 
-const char* css =
+const char* __web_templates_css =
 "body{font-family:system-ui;font-size:1rem;font-weight:400;line-height:1.5}"
 "fieldset{min-width:0;padding:0;margin:0;border:0}"
 "form fieldset>div{margin-top:.25rem;margin-bottom:.5rem}"
@@ -32,10 +32,31 @@ const char* css =
 ".input-group-text{display:flex;align-items:center;padding:.375rem .75rem;font-size:1rem;font-weight:400;line-height:1.5;color:#212529;text-align:center;white-space:nowrap;background-color:#e9ecef;border:1px solid #ced4da;border-radius:.25rem}"
 ".text-center{text-align:center}";
 
-String web_html_title();
-String web_html_footer(bool admin = false);
+class WebTemplatesClass {
+public:
+  String getTitle();
+  String getFooter(bool admin = false);
+  void sendNotFound(HTTPRequest * req, HTTPResponse * res);
+  void sendErrorClient(HTTPRequest * req, HTTPResponse * res, const char * message);
+  void sendPage(HTTPRequest * req, HTTPResponse * res, String title, String body, uint16_t refresh = 0);
+  void setup(String title, String (*footer)(bool) = nullptr);
+private:
+  String _title;
+  String (*_footer)(bool) = nullptr;
+};
 
-void web_handle_notFound(HTTPRequest * req, HTTPResponse * res) {
+String WebTemplatesClass::getTitle() {
+  return _title;
+}
+
+String WebTemplatesClass::getFooter(bool admin) {
+  if (_footer == NULL) {
+    return "";
+  }
+  return _footer(admin);
+}
+
+void WebTemplatesClass::sendNotFound(HTTPRequest * req, HTTPResponse * res) {
   req->discardRequestBody();
   res->setStatusCode(404);
   res->setStatusText("Not Found");
@@ -48,7 +69,7 @@ void web_handle_notFound(HTTPRequest * req, HTTPResponse * res) {
   res->finalize();
 }
 
-void web_send_error_client(HTTPRequest * req, HTTPResponse * res, const char * message) {
+void WebTemplatesClass::sendErrorClient(HTTPRequest * req, HTTPResponse * res, const char * message) {
   log_d("client_error %s", message);
   req->discardRequestBody();
   res->setStatusCode(400);
@@ -57,7 +78,7 @@ void web_send_error_client(HTTPRequest * req, HTTPResponse * res, const char * m
   res->finalize();
 }
 
-void web_send_page(HTTPRequest * req, HTTPResponse * res, String title, String body, uint16_t refresh = 0) {
+void WebTemplatesClass::sendPage(HTTPRequest * req, HTTPResponse * res, String title, String body, uint16_t refresh) {
   req->discardRequestBody();
   res->setHeader("Content-Type", "text/html");
   res->println("<!DOCTYPE html>");
@@ -72,11 +93,24 @@ void web_send_page(HTTPRequest * req, HTTPResponse * res, String title, String b
   if (title != "") {
     res->printf("<title>%s</title>", html_encode(title).c_str());
   }
-  res->printf("<style>%s</style>", css);
+  res->println("<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">");
   res->println("</head>");
   res->println(body);
   res->println("</html>");
   res->finalize();
 }
+
+void WebTemplatesClass::setup(String title, String (*footer)(bool)) {
+  _title = title;
+  _footer = footer;
+  Web.handle(HTTP_ANY, "/css/style.css", [](HTTPRequest * req, HTTPResponse * res) {
+    req->discardRequestBody();
+    res->setHeader("Content-Type", "text/css");
+    res->println(__web_templates_css);
+    res->finalize();
+  });
+}
+
+WebTemplatesClass WebTemplates;
 
 #endif

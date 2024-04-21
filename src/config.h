@@ -9,13 +9,15 @@
  */
 
 #include "base_conf.h"
-#include "base_macros.h"
 #include "base_utils.h"
 #include <Arduino.h>
 #include <Arduino_JSON.h>
 #include <Preferences.h>
 
 // ATTENZIONE: le chiavi troppo lunghe non vengono gestite (forse max 15 chars?)
+
+#define PREF_ADMIN_USERNAME               "admin_username"
+#define PREF_ADMIN_PASSWORD               "admin_password"
 
 #define PREF_BOILER_PIN                   "boiler_pin"
 
@@ -48,8 +50,6 @@
 #define PREF_TIME_ZONE                    "time_zone"
 
 #ifdef CONF_WEB
-#define PREF_WEB_ADMIN_USERNAME           "admin_username"
-#define PREF_WEB_ADMIN_PASSWORD           "admin_password"
 #define PREF_WEB_HTML_TITLE               "html_title"
 #define PREF_WEB_USERS                    "users"
 #endif
@@ -95,15 +95,13 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_AP_SSID,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PSWD,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PIN,          .type = UINT8,  .desc = "Uscita digitale attivata in modalità AP" },
-  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len(config_wifi_defs) },
+  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len_array(config_wifi_defs) },
   { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_WIFI_CHECK_INTERVAL_MIN)).c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = ("default "+String(CONF_WIFI_CHECK_THRESHOLD)+" (0 = funzione disabilitata)").c_str() },
   { .key = PREF_WIFI_NAME,            .type = STRING, .desc = EMPTY },
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_USERNAME,   .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_PASSWORD,   .type = STRING, .desc = EMPTY },
   { .key = PREF_WEB_USERS,            .type = STRUCT, .desc = EMPTY },
 #endif
 #ifdef CONF_WEB_HTTPS
@@ -111,6 +109,8 @@ const Config config_defs[] = {
   { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM solo parte Base64" },
   { .key = PREF_WEB_SECURE,           .type = BOOL,   .desc = "Abilita solo la connessione sicura" },
 #endif
+  { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
+  { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #ifdef CONF_BMP280
   { .key = PREF_BMP280_ADDR,          .type = UINT8,  .desc = "119 per 0x77 oppure 118 per 0x76" },

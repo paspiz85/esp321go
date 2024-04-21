@@ -1,6 +1,6 @@
 
-#include "base_memory.h"
 #include "config.h"
+#include "pin_memory.h"
 #ifdef CONF_DHT
 #include "dht.h"
 #endif
@@ -8,15 +8,17 @@
 #include "bmp280.h"
 #endif
 #ifdef CONF_WIFI
-#include "wifi.h"
 #include "wifi_time.h"
 #endif
 #ifdef CONF_WEB
 #include "web.h"
 #include "web_templates.h"
-#include "web_ota.h"
 #include "web_config.h"
+#include "web_ota.h"
 #include "web_users.h"
+#endif
+#ifdef CONF_ARDUINO_OTA
+#include <ArduinoOTA.h>
 #endif
 
 #define THERMO_MODE_OFF     (0)
@@ -30,11 +32,11 @@
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
+String admin_username;
+String admin_password;
 
-uint8_t wifi_ap_pin = 0;
 uint8_t boiler_pin = 0;
 
-String html_title;
 uint8_t thermo_mode;
 float thermo_target;
 uint32_t thermo_auto_interval;
@@ -48,7 +50,7 @@ uint16_t thermo_refresh;
 
 void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
-  if (!wifi_have_internet()) {
+  if (!WiFiUtils.isConnected()) {
     return;
   }
   // TODO
@@ -59,9 +61,9 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
-void on_digitalWriteState(uint8_t pin, int value, bool is_init) {}
-void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {}
-void on_toneState(uint8_t pin, uint32_t value, bool is_init) {}
+bool blink_led_enabled = true;
+int blink_led_pin;
+uint32_t blink_last_ms = 0;
 
 float read_temperature(bool force = false, float* bmp_temp = NULL, float* dht_temp = NULL) {
   float temp;
@@ -98,33 +100,29 @@ float read_temperature(bool force = false, float* bmp_temp = NULL, float* dht_te
 void boiler_write(bool b) {
   if (boiler_pin != 0) {
     if (b) {
-      if (getPinState(boiler_pin) == LOW) {
-        digitalWriteState(boiler_pin, HIGH);
+      if (PinMemory.getPinState(boiler_pin) == LOW) {
+        PinMemory.writeDigital(boiler_pin, HIGH);
       }
     } else {
-      if (getPinState(boiler_pin) != LOW) {
-        digitalWriteState(boiler_pin, LOW);
+      if (PinMemory.getPinState(boiler_pin) != LOW) {
+        PinMemory.writeDigital(boiler_pin, LOW);
       }
     }
   }
 }
 
 #ifdef CONF_WIFI
-void wifi_ap_state_changed(int value, bool skip_publish) {
-  if (wifi_ap_pin != 0 && getPinState(wifi_ap_pin) != value) {
-    digitalWriteState(wifi_ap_pin, value, skip_publish);
-  }
-}
+uint8_t wifi_ap_pin = 0;
 #endif
 
 #ifdef CONF_WEB
-String web_html_title() {
-  return html_title;
+bool web_admin_authenticate(HTTPRequest * req) {
+  return Web.authenticate(req, admin_username.c_str(), admin_password.c_str());
 }
 
 String web_html_footer(bool admin) {
-  String html = "<div>";
-  html += wifi_get_info();
+  String html = "<hr/><div>";
+  html += html_encode(WiFiUtils.getInfo());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
@@ -139,7 +137,7 @@ String web_html_footer(bool admin) {
 JSONVar html_data() {
   JSONVar data;
   struct tm timeinfo;
-  if (wifi_time_read(&timeinfo)){
+  if (WiFiTime.read(&timeinfo)){
     char time_str[100];
     strftime(time_str,sizeof(time_str),"%H:%M:%S - %A %e %B %Y",&timeinfo);
     data["time_ref"] = String(time_str);
@@ -173,13 +171,13 @@ JSONVar html_data() {
   if (boiler_pin == 0) {
     data["boiler_status"] = "--";
   } else {
-    data["boiler_status"] = getPinState(boiler_pin) == LOW ? "OFF" : "ON";
+    data["boiler_status"] = PinMemory.getPinState(boiler_pin) == LOW ? "OFF" : "ON";
   }
   return data;
 }
 
 void web_handle_rest_read(HTTPRequest * req, HTTPResponse * res) {
-  return web_send_data(req,res,html_data());
+  return Web.sendData(req,res,html_data());
 }
 
 void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
@@ -196,17 +194,17 @@ void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
     while (parser->nextField()) {
       std::string name = parser->getFieldName();
       if (name == "mode") {
-        mode = web_parameter(parser).toInt();
+        mode = Web.getParameter(parser).toInt();
       }
       if (name == "target") {
-        target = web_parameter(parser).toFloat();
+        target = Web.getParameter(parser).toFloat();
       }
     }
   } else {
-    mode = web_parameter(req, "mode").toInt();
-    target = web_parameter(req, "target").toFloat();
+    mode = Web.getParameter(req, "mode").toInt();
+    target = Web.getParameter(req, "target").toFloat();
   }
-  if (web_request_post(req)) {
+  if (Web.isRequestMethodPost(req)) {
     log_i("Setting mode = %d", mode);
     log_i("Setting target = %f", target);
     if (target < THERMO_TARGET_MIN || target > THERMO_TARGET_MAX) {
@@ -240,7 +238,7 @@ void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
       thermo_boost_stop += boost * 60000;
       log_i("Boost will end at %d", thermo_boost_stop);
       struct tm timeinfo;
-      if (wifi_time_read(&timeinfo)) {
+      if (WiFiTime.read(&timeinfo)) {
         char time_str[100];
         strftime(time_str,sizeof(time_str),"%Y-%m-%dT%H:%M",&timeinfo);
         thermo_boost_begin = String(time_str);
@@ -256,7 +254,7 @@ void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
     preferences.putFloat(PREF_THERMO_TARGET, thermo_target);
     log_i("Saved thermo_mode = %d", thermo_mode);
     log_i("Saved thermo_target = %f", thermo_target);
-    return web_send_redirect(req,res,"/");
+    return Web.sendRedirect(req,res,"/");
   }
   JSONVar data = html_data();
   String time_ref = data["time_ref"];
@@ -332,7 +330,7 @@ void web_handle_root(HTTPRequest * req, HTTPResponse * res) {
   html += "}};xhr.open('GET','"+String(CONF_WEB_URI_REST_DATA)+"',true);xhr.send();";
   html += "},"+String(thermo_refresh)+");});";
   html += "</script></body>";
-  web_send_page(req,res,html_title,html);
+  WebTemplates.sendPage(req,res,WebTemplates.getTitle(),html);
 }
 #endif
 
@@ -346,13 +344,20 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  wifi_loop(CONF_WIFI_MODE_LIMIT);
-  wifi_time_loop();
+  WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
+  WiFiTime.loopToSynchronize();
 #endif
+#ifdef CONF_ARDUINO_OTA
+  ArduinoOTA.handle();
+#endif
+  if (blink_led_enabled && at_interval(1000,blink_last_ms)) {
+    blink_last_ms = millis();
+    digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
+  }
 #ifdef CONF_WEB
-  if (!wifi_is_off()) {
+  if (WiFiUtils.isEnabled()) {
     for (int i = 0; i < 100; i++) {
-      web_server_loop();
+      Web.loopToHandleClients();
       delay(10);
     }
   } else {
@@ -403,7 +408,6 @@ void loop() {
 void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
-  uint8_t channel = 0;
   preferences.begin("my-app", false);
   String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
   Serial.println("Log level : " + log_level);
@@ -418,6 +422,10 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+  PinMemory.setup([](uint8_t pin, int value, bool is_init) {
+  }, [](uint8_t pin, uint16_t value, bool is_init) {
+  }, [](uint8_t pin, uint32_t value, bool is_init) {
+  });
 #ifdef CONF_DHT
   dht_setup(preferences.getUChar(PREF_DHT_PIN),
     preferences.getUChar(PREF_DHT_TYPE), 
@@ -429,7 +437,7 @@ void setup() {
   boiler_pin = preferences.getUChar(PREF_BOILER_PIN);
   if (boiler_pin != 0) {
     pinMode(boiler_pin, OUTPUT);
-    digitalWriteState(boiler_pin, LOW);
+    PinMemory.writeDigital(boiler_pin, LOW);
   }
   thermo_mode = preferences.getUChar(PREF_THERMO_MODE,THERMO_MODE_OFF);
   if (thermo_mode > THERMO_MODE_AUTO) {
@@ -450,40 +458,53 @@ void setup() {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
     String pswd = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_PSWD).c_str());
     if (ssid != "") {
-      wifi_add_ap(ssid.c_str(),pswd.c_str());
+      WiFiUtils.addAP(ssid.c_str(),pswd.c_str());
     }
   }
-  wifi_setup(
+  WiFiUtils.setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
     preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
     preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
     preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD).c_str(),
     CONF_WIFI_CONN_TIMEOUT_MS,
-    max(preferences.getULong(PREF_WIFI_CHECK_INTERVAL),CONF_WIFI_CHECK_INTERVAL_MIN),
-    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
+    preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL_MIN),
+    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD),
+    [](uint8_t mode, bool connected) {
+      if (wifi_ap_pin == 0) {
+        return;
+      }
+      int value = mode == WIFI_AP ? HIGH : LOW;
+      if (PinMemory.getPinState(wifi_ap_pin) != value) {
+        PinMemory.writeDigital(wifi_ap_pin, value, true);
+      }
+    }
   );
   delay(1000);
-  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+  WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+#endif
+  admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
+  admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
+#ifdef CONF_ARDUINO_OTA
+  ArduinoOTA.setPassword(admin_password.c_str());
+  ArduinoOTA.begin();
 #endif
 #ifdef CONF_WEB
-  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
-  if (html_title == "") {
-    html_title = CONF_WEB_HTML_TITLE;
+  String web_html_title = preferences.getString(PREF_WEB_HTML_TITLE);
+  if (web_html_title == "") {
+    web_html_title = CONF_WEB_HTML_TITLE;
   }
-  web_server_setup_http();
+  Web.setupHTTP();
   bool web_secure = false;
 #ifdef CONF_WEB_HTTPS
-  web_server_setup_https(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+  Web.setupHTTPS(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
   web_secure = preferences.getBool(PREF_WEB_SECURE);
 #endif
-  web_users_setup(
-    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
-    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
-  );
-  web_ota_setup();
-  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_server_register(HTTP_ANY, CONF_WEB_URI_REST_DATA, &web_handle_rest_read);
-  web_server_register(HTTP_ANY, "/", &web_handle_root);
-  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str(), web_secure);
+  WebTemplates.setup(web_html_title, web_html_footer);
+  web_users_setup(admin_username, admin_password);
+  web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
+  web_ota_setup(web_admin_authenticate);
+  Web.handle(HTTP_ANY, CONF_WEB_URI_REST_DATA, &web_handle_rest_read);
+  Web.handle(HTTP_ANY, "/", &web_handle_root);
+  Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif
 }

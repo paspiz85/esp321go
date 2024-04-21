@@ -7,7 +7,6 @@
 
 #include "config.h"
 #include "web.h"
-#include "web_admin.h"
 #include "web_templates.h"
 #include <Arduino_JSON.h>
 
@@ -16,7 +15,7 @@
 JSONVar web_users;
 
 bool web_login(HTTPRequest * req, HTTPResponse * res) {
-  String cookie = web_cookie_read(req,res,"esp32auth");
+  String cookie = Web.cookieRead(req,res,"esp32auth");
   if (cookie != "") {
     String value = base64_decode_str(cookie);
     int i = value.indexOf(':');
@@ -34,18 +33,17 @@ bool web_login(HTTPRequest * req, HTTPResponse * res) {
       }
     }
   }
-  web_send_redirect(req,res,CONF_WEB_URI_LOGIN);
+  Web.sendRedirect(req,res,CONF_WEB_URI_LOGIN);
   return false;
 }
 
 void web_logout(HTTPRequest * req, HTTPResponse * res) {
-  web_cookie_delete(req,res,"esp32auth");
-  web_cache_control(req,res,false);
-  return web_send_redirect(req,res,"/");
+  Web.cookieDelete(req,res,"esp32auth");
+  Web.cacheControl(req,res,false);
+  return Web.sendRedirect(req,res,"/");
 }
 
-void web_users_setup(const char * admin_username, const char * admin_password) {
-  web_admin_setup(admin_username,admin_password);
+void web_users_setup(String admin_username, String admin_password) {
   String config = preferences.getString(PREF_WEB_USERS);
   if (config == "") {
     config = "{}";
@@ -53,23 +51,23 @@ void web_users_setup(const char * admin_username, const char * admin_password) {
   log_d("users config is %s", config);
   web_users = JSON.parse(config);
   JSONVar admin;
-  admin[USER_PASSWORD] = web_admin_password;
-  web_users[web_admin_username] = admin;
+  admin[USER_PASSWORD] = admin_password;
+  web_users[admin_username] = admin;
   log_d("users are %s", JSON.stringify(web_users));
-  web_server_register(HTTP_ANY, CONF_WEB_URI_LOGOUT, &web_logout);
-  web_server_register(HTTP_ANY, CONF_WEB_URI_LOGIN, [](HTTPRequest * req, HTTPResponse * res) {
+  Web.handle(HTTP_ANY, CONF_WEB_URI_LOGOUT, &web_logout);
+  Web.handle(HTTP_ANY, CONF_WEB_URI_LOGIN, [](HTTPRequest * req, HTTPResponse * res) {
     JSONVar keys = web_users.keys();
     for (int i = 0; i < keys.length(); i++) {
       const char * key = keys[i];
       JSONVar user = web_users[key];
       String user_password = user[USER_PASSWORD];
-      if (web_authenticate(req, key, user_password.c_str())) {
-        web_cookie_create(req,res,"esp32auth",base64_encode_str(String(key)+":"+user_password).c_str(),23328000); // 9 mesi
-        web_cache_control(req,res,false);
-        return web_send_redirect(req,res,"/");
+      if (Web.authenticate(req, key, user_password.c_str())) {
+        Web.cookieCreate(req,res,"esp32auth",base64_encode_str(String(key)+":"+user_password).c_str(),23328000); // 9 mesi
+        Web.cacheControl(req,res,false);
+        return Web.sendRedirect(req,res,"/");
       }
     }
-    return web_authenticate_request(req,res);
+    return Web.authenticateRequest(req,res);
   });
 }
 

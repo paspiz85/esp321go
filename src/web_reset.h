@@ -7,22 +7,26 @@
 
 #include "base_conf.h"
 #include "web.h"
-#include "web_admin.h"
+
+bool (*__web_reset_admin_authenticate)(HTTPRequest * req) = nullptr;
 
 void web_reset(HTTPRequest * req, HTTPResponse * res, String message, int refresh = 0) {
   log_i("reset");
-  web_send_redirect(req,res,"/",message,refresh);
+  Web.sendRedirect(req,res,"/",message,refresh);
   delay(1000);
   ESP.restart();
 }
 
-void web_reset_setup() {
-  web_server_register(HTTP_ANY, CONF_WEB_URI_RESET, [](HTTPRequest * req, HTTPResponse * res) {
-    if (!web_admin_authenticate(req)) {
-      return web_authenticate_request(req,res);
+void web_reset_setup(bool (*web_admin_authenticate)(HTTPRequest * req) = nullptr) {
+  __web_reset_admin_authenticate = web_admin_authenticate;
+  Web.handle(HTTP_ANY, CONF_WEB_URI_RESET, [](HTTPRequest * req, HTTPResponse * res) {
+    if (__web_reset_admin_authenticate != NULL) {
+      if (!__web_reset_admin_authenticate(req)) {
+        return Web.authenticateRequest(req,res);
+      }
     }
-    if (!web_request_post(req)) {
-      return web_send_redirect(req,res,"/");
+    if (!Web.isRequestMethodPost(req)) {
+      return Web.sendRedirect(req,res,"/");
     }
     web_reset(req,res,"OK");
   });
