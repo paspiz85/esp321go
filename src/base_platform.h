@@ -1,11 +1,20 @@
-#ifndef INCLUDE_BASE_MACROS_H
-#define INCLUDE_BASE_MACROS_H
+#ifndef INCLUDE_BASE_PLATFORM_H
+#define INCLUDE_BASE_PLATFORM_H
 
 /**
  * Contiene eventuali macro non presenti sulla piattaforma di riferimento.
  */
 
 #include <Arduino.h>
+
+#define HW_ANALOG_READ_MAX    (4095)
+#define HW_PIN_COUNT          (10)
+
+// #define LED_BUILTIN           (2)
+
+uint32_t ESP_getChipId() {
+  return ESP.getChipId();
+}
 
 #define len_array(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
 
@@ -21,7 +30,5 @@ uint8_t esp_log_level = ESP_LOG_NONE;
 #define log_w(format, ...) if (esp_log_level >= ESP_LOG_WARN) { Serial.printf(format, ##__VA_ARGS__);Serial.println(); }
 #define log_i(format, ...) if (esp_log_level >= ESP_LOG_INFO) { Serial.printf(format, ##__VA_ARGS__);Serial.println(); }
 #define log_d(format, ...) if (esp_log_level >= ESP_LOG_DEBUG) { Serial.printf(format, ##__VA_ARGS__);Serial.println(); }
-
-// LED_BUILTIN 2
 
 #endif

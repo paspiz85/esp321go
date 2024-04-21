@@ -9,7 +9,7 @@
  */
 
 #include "base_conf.h"
-#include "base_macros.h"
+#include "base_platform.h"
 #include "base_utils.h"
 #include <Arduino.h>
 #include <Arduino_JSON.h>

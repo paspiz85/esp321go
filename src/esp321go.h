@@ -9,7 +9,9 @@
 #include "web_templates.h"
 #include "web_config.h"
 #endif
+#ifdef CONF_ARDUINO_OTA
 #include <ArduinoOTA.h>
+#endif
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
