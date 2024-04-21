@@ -65,7 +65,9 @@ void WebClass::loopToHandleClients() {
     _https_server->handleClient();
   }
 #endif
-  _http_server->handleClient();
+  if (_https_server != NULL) {
+    _http_server->handleClient();
+  }
 }
 
 bool WebClass::isRequestMethodPost() {
