@@ -59,7 +59,6 @@ String web_html_footer(bool admin) {
 }
 
 void web_handle_root() {
-  int refresh = Web.getParameter("refresh").toInt();
   int blink = Web.getParameter("blink").toInt();
   switch (blink) {
   case 0: break;
@@ -93,7 +92,7 @@ void web_handle_root() {
   html += "<p><a href=\"/config\">Configurazione</a></p>";
   html += WebTemplates.getFooter(false);
   html += "</body>";
-  WebTemplates.sendPage(title,html,refresh);
+  WebTemplates.sendPage(title,html);
 }
 #endif
 
