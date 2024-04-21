@@ -97,6 +97,8 @@ const Config config_defs[] = {
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
 #endif
+  { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
+  { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
 #ifdef CONF_WEB_HTTPS
   { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM solo parte Base64" },
   { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM solo parte Base64" },
