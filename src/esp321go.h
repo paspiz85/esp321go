@@ -52,7 +52,7 @@ bool web_admin_authenticate() {
 }
 
 String web_html_footer(bool admin) {
-  String html = "<div>";
+  String html = "<hr/><div>";
   html += html_encode(WiFiUtils.getInfo());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());

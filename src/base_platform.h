@@ -1,5 +1,5 @@
-#ifndef INCLUDE_BASE_MACROS_H
-#define INCLUDE_BASE_MACROS_H
+#ifndef INCLUDE_BASE_PLATFORM_H
+#define INCLUDE_BASE_PLATFORM_H
 
 /**
  * Contiene eventuali macro non presenti sulla piattaforma di riferimento.
@@ -9,6 +9,7 @@
 
 #define HW_ANALOG_READ_MAX    (4095)
 #define HW_PIN_COUNT          (40)
+
 #define LED_BUILTIN           (2)
 
 uint32_t ESP_getChipId() {

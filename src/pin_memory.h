@@ -5,7 +5,7 @@
  * Contiene funzioni per la memorizzazione dello stato dei pin.
  */
 
-#include "base_conf.h"
+#include "base_platform.h"
 #include <Arduino.h>
 
 class PinMemoryClass {
