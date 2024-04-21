@@ -5,7 +5,7 @@
  * Gestione della configurazione.
  * 
  * @see https://github.com/arduino-libraries/Arduino_JSON/blob/master/src/JSON.h
- * @see https://github.com/vshymanskyy/Preferences/blob/main/src/Preferences.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/Preferences/src/Preferences.h
  */
 
 #include "base_conf.h"

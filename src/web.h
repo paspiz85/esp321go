@@ -4,16 +4,16 @@
 /**
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
  * 
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServer.h
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266mDNS/src/LEAmDNS.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
  */
 
 #include "base_conf.h"
 #include "wifi_utils.h"
-#include <ESP8266WebServer.h>
+#include <WebServer.h>
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
-#include <ESP8266mDNS.h>
+#include <ESPmDNS.h>
 
 class WebClass {
 public:
@@ -29,14 +29,14 @@ public:
   void sendResponse(int status_code, String content_type, const char * text);
   void sendResponse(int status_code, String content_type, String text);
   void sendFile(String content_type, String filename, String text);
-  void handle(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn);
-  void handleUpload(HTTPMethod method, const Uri &uri, ESP8266WebServer::THandlerFunction fn, ESP8266WebServer::THandlerFunction ufn);
+  void handle(HTTPMethod method, const Uri &uri, WebServer::THandlerFunction fn);
+  void handleUpload(HTTPMethod method, const Uri &uri, WebServer::THandlerFunction fn, WebServer::THandlerFunction ufn);
   void setupHTTP(const uint16_t port = CONF_WEB_HTTP_PORT);
   void begin(const char * name = "", void (*handle_notFound)() = nullptr);
 private:
   String _web_server_hostname;
   uint16_t _http_port = 0;
-  ESP8266WebServer * _http_server = NULL;
+  WebServer * _http_server = NULL;
   bool _mdns_enabled = false;
 };
 

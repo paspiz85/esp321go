@@ -1,11 +1,14 @@
 default_profile: esp321go
-default_port: COM6
+default_port: COM3
 profiles:
   esp321go:
-    fqbn: esp8266:esp8266:nodemcu
+    fqbn: esp32:esp32:esp32:DebugLevel=debug
     platforms:
-      - platform: esp8266:esp8266 (3.1.2)
-        platform_index_url: http://arduino.esp8266.com/stable/package_esp8266com_index.json
+      - platform: esp32:esp32 (1.0.6)
+        platform_index_url: https://dl.espressif.com/dl/package_esp32_index.json
     libraries:
-      - Preferences (2.1.0)
       - Arduino_JSON (0.2.0)
+      - Adafruit Unified Sensor (1.1.8)
+      - DHT sensor library (1.4.4)
+      - Adafruit BusIO (1.15.0)
+      - Adafruit BMP280 Library (2.6.8)

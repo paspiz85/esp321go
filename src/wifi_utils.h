@@ -4,13 +4,13 @@
 /**
  * Contiene variabili, tipi e funzioni per l'uso del WiFi.
  * 
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/WiFi.h
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiMulti.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFi.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiMulti.h
  */
 
 #include "base_utils.h"
-#include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
 
 class WiFiUtilsClass {
 public:
@@ -40,7 +40,7 @@ private:
   uint32_t _check_threshold_ms;
   uint32_t _last_check = 0;
   uint32_t _last_check_ok = 0;
-  ESP8266WiFiMulti _multi;
+  WiFiMulti _multi;
   void (*_state_changed)(uint8_t,bool) = nullptr;
 };
 
