@@ -8,8 +8,6 @@ Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già
 
 Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tramite la rete.
 
-Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tramite la rete.
-
 ### Utility di gestione
 
 #### Compilazione
