@@ -7,28 +7,24 @@
 
 #include "base_conf.h"
 #include "web.h"
-#include "web_admin.h"
 #include "web_templates.h"
 #include "web_reset.h"
 #include <Update.h>
 
-uint32_t web_ota_chip_id() {
-  uint32_t chipId = 0;
-  for(int i=0; i<17; i=i+8) {
-    chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
-  }
-  return chipId;
-}
+bool (*__web_ota_admin_authenticate)() = nullptr;
 
-void web_ota_setup() {
-  web_server_register(HTTP_GET, CONF_WEB_URI_FIRMWARE_UPDATE, []() {
-    if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {
+  __web_ota_admin_authenticate = web_admin_authenticate;
+  Web.handle(HTTP_GET, CONF_WEB_URI_FIRMWARE_UPDATE, []() {
+    if (__web_ota_admin_authenticate != NULL) {
+      if (!__web_ota_admin_authenticate()) {
+        return Web.authenticateRequest();
+      }
     }
-    String title = web_html_title();
+    String title = WebTemplates.getTitle();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Firmware Update</h2>";
     html += "<p>ESP32 Chip model "+String(ESP.getChipModel())+" - Rev "+String(ESP.getChipRevision())+"</p>";
-    html += "<p>Chip ID "+String(web_ota_chip_id())+" - Core# "+String(ESP.getChipCores())+"</p>";
+    html += "<p>Chip ID "+String(ESP_getChipId())+" - Core# "+String(ESP.getChipCores())+"</p>";
     html += "<form action=\""+String(CONF_WEB_URI_FIRMWARE_UPDATE)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
     html += "<input type=\"file\" name=\"update\" accept=\".bin\" required=\"required\" />";
     html += "</p><p>";
@@ -36,15 +32,17 @@ void web_ota_setup() {
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='/'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    web_send_page(title,html);
+    WebTemplates.sendPage(title,html);
   });
-  web_server_register(HTTP_POST, CONF_WEB_URI_FIRMWARE_UPDATE, []() {
+  Web.handleUpload(HTTP_POST, CONF_WEB_URI_FIRMWARE_UPDATE, []() {
     web_reset(Update.hasError() ? "FAILED" : "COMPLETED");
   }, []() {
-    if (!web_admin_authenticate()) {
-      return web_authenticate_request();
+    if (__web_ota_admin_authenticate != NULL) {
+      if (!__web_ota_admin_authenticate()) {
+        return Web.authenticateRequest();
+      }
     }
-    HTTPUpload& upload = web_upload();
+    HTTPUpload& upload = Web.getUpload();
     if (upload.status == UPLOAD_FILE_START) {
       log_i("Update: %s\n", upload.filename.c_str());
       if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size

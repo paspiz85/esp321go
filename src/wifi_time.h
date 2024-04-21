@@ -12,7 +12,7 @@ class WiFiTimeClass {
 public:
   time_t read();
   bool read(struct tm * timeinfo);
-  void loop();
+  void loopToSynchronize();
   void setup(const char * ntp_server = CONF_WIFI_NTP_SERVER,
     uint32_t ntp_interval_ms = CONF_WIFI_NTP_INTERVAL,
     const char * timezone = CONF_TIME_ZONE);
@@ -38,7 +38,7 @@ bool WiFiTimeClass::read(struct tm * timeinfo) {
   return true;
 }
 
-void WiFiTimeClass::loop() {
+void WiFiTimeClass::loopToSynchronize() {
   if (at_interval(_interval_ms,_last_ms)) {
     if (getLocalTime(&_info)) {
       _last_ms = millis();

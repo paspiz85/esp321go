@@ -17,6 +17,11 @@
 
 // ATTENZIONE: le chiavi troppo lunghe non vengono gestite (forse max 15 chars?)
 
+#define PREF_ADMIN_USERNAME               "admin_username"
+#define PREF_ADMIN_PASSWORD               "admin_password"
+
+#define PREF_BLINK_LED_PIN                "blink_led_pin"
+
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
 #ifdef CONF_BMP280
@@ -41,8 +46,6 @@
 #define PREF_TIME_ZONE                    "time_zone"
 
 #ifdef CONF_WEB
-#define PREF_WEB_ADMIN_USERNAME           "admin_username"
-#define PREF_WEB_ADMIN_PASSWORD           "admin_password"
 #define PREF_WEB_HTML_TITLE               "html_title"
 #endif
 
@@ -72,6 +75,7 @@ const Config config_wifi_defs[] = {
 };
 
 const Config config_defs[] = {
+  { .key = PREF_BLINK_LED_PIN,        .type = UINT8,  .desc = EMPTY },
   { .key = PREF_REBOOT_FREE,          .type = UINT32, .desc = "Abilita il riavvio se la memoria scende sotto la soglia (0 = funzione disabilitata)" },
   { .key = PREF_REBOOT_MS,            .type = UINT32, .desc = "Abilita il riavvio dopo N millis (0 = funzione disabilitata)" },
   { .key = PREF_TIME_ZONE,            .type = STRING, .desc = EMPTY },
@@ -81,16 +85,16 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_AP_SSID,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PSWD,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PIN,          .type = UINT8,  .desc = "Uscita digitale attivata in modalità AP" },
-  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len(config_wifi_defs) },
+  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len_array(config_wifi_defs) },
   { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_WIFI_CHECK_INTERVAL_MIN)).c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = ("default "+String(CONF_WIFI_CHECK_THRESHOLD)+" (0 = funzione disabilitata)").c_str() },
   { .key = PREF_WIFI_NAME,            .type = STRING, .desc = EMPTY },
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_USERNAME,   .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_PASSWORD,   .type = STRING, .desc = EMPTY },
 #endif
+  { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
+  { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #ifdef CONF_BMP280
   { .key = PREF_BMP280_ADDR,          .type = UINT8,  .desc = "119 per 0x77 oppure 118 per 0x76" },

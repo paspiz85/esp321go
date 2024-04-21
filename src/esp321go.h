@@ -13,14 +13,17 @@
 #ifdef CONF_WEB
 #include "web.h"
 #include "web_templates.h"
-#include "web_ota.h"
 #include "web_config.h"
+#include "web_ota.h"
+#endif
+#ifdef CONF_ARDUINO_OTA
+#include <ArduinoOTA.h>
 #endif
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
-
-String html_title;
+String admin_username;
+String admin_password;
 
 void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
@@ -35,13 +38,17 @@ String digitalString(int value) {
   return value == HIGH ? "HIGH" : "LOW";
 }
 
+bool blink_led_enabled = true;
+int blink_led_pin;
+uint32_t blink_last_ms = 0;
+
 #ifdef CONF_WIFI
 uint8_t wifi_ap_pin = 0;
 #endif
 
 #ifdef CONF_WEB
-String web_html_title() {
-  return html_title;
+bool web_admin_authenticate() {
+  return Web.authenticate(admin_username.c_str(), admin_password.c_str());
 }
 
 String web_html_footer(bool admin) {
@@ -59,11 +66,41 @@ String web_html_footer(bool admin) {
 }
 
 void web_handle_root() {
-  int refresh = web_parameter("refresh").toInt();
-  String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
-  html += "Hello";
+  int refresh = Web.getParameter("refresh").toInt();
+  int blink = Web.getParameter("blink").toInt();
+  switch (blink) {
+  case 0: break;
+  case 2:
+    blink_led_enabled = false;
+    digitalWrite(blink_led_pin, LOW);
+    Web.sendRedirect("/");
+    return;
+  case 3:
+    blink_led_enabled = false;
+    digitalWrite(blink_led_pin, HIGH);
+    Web.sendRedirect("/");
+    return;
+  default:
+    blink_led_enabled = true;
+    Web.sendRedirect("/");
+    return;
+  }
+  String title = WebTemplates.getTitle();
+  String html = "<body style=\"text-align:center\"><h1>"+title+"</h1>";
+  html += "<h3>Hello World</h3>";
+  html += "<form action=\"/\" method=\"post\">";
+  html += "<select name=\"blink\" required>";
+  html += "<option value=\"0\"></option>";
+  html += "<option value=\"1\">Lampeggia</option>";
+  html += "<option value=\"2\">Sempre acceso</option>";
+  html += "<option value=\"3\">Sempre spento</option>";
+  html += "</select>";
+  html += "<p><input type=\"submit\" value=\"OK\" /></p>";
+  html += "</form>";
+  html += "<p><a href=\"/config\">Configurazione</a></p>";
+  html += WebTemplates.getFooter(false);
   html += "</body>";
-  web_send_page(html_title,html,refresh);
+  WebTemplates.sendPage(title,html,refresh);
 }
 #endif
 
@@ -77,12 +114,19 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  WiFiUtils.loop(CONF_WIFI_MODE_LIMIT);
-  WiFiTime.loop();
+  WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
+  WiFiTime.loopToSynchronize();
 #endif
+#ifdef CONF_ARDUINO_OTA
+  ArduinoOTA.handle();
+#endif
+  if (blink_led_enabled && at_interval(1000,blink_last_ms)) {
+    blink_last_ms = millis();
+    digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
+  }
 #ifdef CONF_WEB
   if (WiFiUtils.isEnabled()) {
-    web_server_loop();
+    Web.loopToHandleClients();
     delay(10);
   } else {
     delay(1000);
@@ -93,7 +137,6 @@ void loop() {
 void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
-  uint8_t channel = 0;
   preferences.begin("my-app", false);
   String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
   Serial.println("Log level : " + log_level);
@@ -120,6 +163,8 @@ void setup() {
 #ifdef CONF_BMP280
   bmp280_setup(preferences.getUChar(PREF_BMP280_ADDR));
 #endif
+  blink_led_pin = preferences.getInt(PREF_BLINK_LED_PIN,LED_BUILTIN);
+  pinMode(blink_led_pin, OUTPUT);
 #ifdef CONF_WIFI
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);
   if (wifi_ap_pin != 0) {
@@ -153,19 +198,22 @@ void setup() {
   delay(1000);
   WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
+  admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
+  admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
+#ifdef CONF_ARDUINO_OTA
+  ArduinoOTA.setPassword(admin_password.c_str());
+  ArduinoOTA.begin();
+#endif
 #ifdef CONF_WEB
-  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
-  if (html_title == "") {
-    html_title = CONF_WEB_HTML_TITLE;
+  String web_html_title = preferences.getString(PREF_WEB_HTML_TITLE);
+  if (web_html_title == "") {
+    web_html_title = CONF_WEB_HTML_TITLE;
   }
-  web_server_setup_http();
-  web_admin_setup(
-    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
-    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
-  );
-  web_ota_setup();
-  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
+  Web.setupHTTP();
+  WebTemplates.setup(web_html_title, web_html_footer);
+  web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
+  web_ota_setup(web_admin_authenticate);
+  Web.handle(HTTP_ANY, "/", web_handle_root);
+  Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif
 }

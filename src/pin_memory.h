@@ -21,9 +21,9 @@ public:
     void (*on_analogWrite)(uint8_t,uint16_t,bool),
     void (*on_tone)(uint8_t,uint32_t,bool));
 private:
-  int _pin_states[CONF_SCHEMA_PIN_COUNT] = {-1};
-  uint32_t _pin_write_last_ms[CONF_SCHEMA_PIN_COUNT] = {0};
-  int8_t _pin_channel[CONF_SCHEMA_PIN_COUNT] = {-1};
+  int _pin_states[HW_PIN_COUNT] = {-1};
+  uint32_t _pin_write_last_ms[HW_PIN_COUNT] = {0};
+  int8_t _pin_channel[HW_PIN_COUNT] = {-1};
   uint8_t _channels_used = 0;
   void (*_on_digitalWrite)(uint8_t,int,bool) = nullptr;
   void (*_on_analogWrite)(uint8_t,uint16_t,bool) = nullptr;

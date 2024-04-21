@@ -4,8 +4,10 @@ Questo progetto è una base per la realizzazione di firmware per il microcontrol
 Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già realizzate:
 
 - **/reset** : effettua il soft reset della board
-- **/firmware/update** : intefaccia che permette di aggiornare il firmware
 - **/config** : interfaccia che permette di modificare la configurazione della board (la maggior parte delle configurazioni richiedono il soft reset)
+- **/firmware/update** : intefaccia che permette di aggiornare il firmware
+
+Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tramite la rete.
 
 ### Utility di gestione
 
@@ -27,6 +29,11 @@ Dalla cartella del progetto:
 arduino-cli upload -m esp321go -i target/esp321go.ino.bin -p <porta>
 ```
 Se l'upload fallisce sempre e l'errore è "ESP32: Timed out waiting for packet header" potrebbe essere necessario tenere premuto BOOT durante l'upload.
+
+Per l'upload tramite la rete:
+```
+arduino-cli upload -m esp321go -i target/esp321go.ino.bin -l network -p <ip>
+```
 
 #### Debug
 Dalla cartella del progetto:
