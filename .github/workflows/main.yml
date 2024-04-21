@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Arduino Compile
-        run: tools/arduino-cli.exe compile -e -m esp32 --build-property build.defines='-DCOMPILE_VERSION="${{ env.version }}"'
+        run: tools/arduino-cli.exe compile -e -m esp321go --clean --output-dir target --build-property build.defines='-DCOMPILE_VERSION="${{ env.version }}"'
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
@@ -31,6 +31,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            build/esp32.esp32.esp32/esp321go.ino.bin
-            build/esp32.esp32.esp32/esp321go.ino.elf
-            build/esp32.esp32.esp32/esp321go.ino.partitions.bin
+            target/esp321go.ino.bin
+            target/esp321go.ino.elf
+            target/esp321go.ino.partitions.bin
