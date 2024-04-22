@@ -27,7 +27,7 @@ String admin_password;
 
 void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
-  if (!WiFiUtils.isConnected()) {
+  if (!WiFiUtils::isConnected()) {
     return;
   }
   // TODO
@@ -53,7 +53,7 @@ bool web_admin_authenticate() {
 
 String web_html_footer(bool admin) {
   String html = "<hr/><div>";
-  html += html_encode(WiFiUtils.getInfo());
+  html += html_encode(WiFiUtils::getInfo());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
@@ -113,7 +113,7 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
+  WiFiUtils::loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
   WiFiTime::loopToSynchronize();
 #endif
 #ifdef CONF_ARDUINO_OTA
@@ -124,7 +124,7 @@ void loop() {
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
 #ifdef CONF_WEB
-  if (WiFiUtils.isEnabled()) {
+  if (WiFiUtils::isEnabled()) {
     Web.loopToHandleClients();
     delay(10);
   } else {
@@ -173,10 +173,10 @@ void setup() {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
     String pswd = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_PSWD).c_str());
     if (ssid != "") {
-      WiFiUtils.addAP(ssid.c_str(),pswd.c_str());
+      WiFiUtils::addAP(ssid.c_str(),pswd.c_str());
     }
   }
-  WiFiUtils.setup(
+  WiFiUtils::setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
     preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
     preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),

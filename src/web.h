@@ -67,7 +67,7 @@ public:
 };
 
 void WebClass::loopToHandleClients() {
-  if (!WiFiUtils.isEnabled()) {
+  if (!WiFiUtils::isEnabled()) {
     return;
   }
 #ifdef PLATFORM_ESP8266
@@ -331,7 +331,7 @@ void WebClass::begin(const char * name, void (*handle_notFound)()) {
     _web_server_hostname = String(name) + ".local";
     MDNS.addService("http", "tcp", _http_port);
   } else {
-    _web_server_hostname = WiFiUtils.getIP();
+    _web_server_hostname = WiFiUtils::getIP();
   }
   _http_server->onNotFound(handle_notFound);
   const char * headerkeys[] = {"Accept", "Referer"};

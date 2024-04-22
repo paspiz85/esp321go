@@ -51,7 +51,7 @@ void WiFiTime::loopToSynchronize() {
 }
 
 void WiFiTime::setup(const char * ntp_server, uint32_t ntp_interval_ms, const char * timezone) {
-  if (!WiFiUtils.isConnected()) {
+  if (!WiFiUtils::isConnected()) {
     return;
   }
   configTime(0, 0, ntp_server);
