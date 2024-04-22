@@ -6,49 +6,79 @@
  * 
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFi.h
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WiFi/src/WiFiMulti.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/WiFi.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiMulti.h
  */
 
 #include "base_utils.h"
+#ifdef PLATFORM_ESP8266
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
+#else
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#endif
 
-class WiFiUtilsClass {
+class WiFiUtils {
+private:
+  static uint8_t _mode;
+  static uint8_t _mode_setup;
+  static IPAddress _ap_ip;
+  static IPAddress _ap_subnet;
+  static String _ap_ssid;
+  static String _ap_pswd;
+  static uint8_t _count; 
+  static uint32_t _conn_timeout;
+  static uint32_t _check_interval_ms;
+  static uint32_t _check_threshold_ms;
+  static uint32_t _last_check;
+  static uint32_t _last_check_ok;
+#ifdef PLATFORM_ESP8266
+  static ESP8266WiFiMulti _multi;
+#else
+  static WiFiMulti _multi;
+#endif
+  static void (*_state_changed)(uint8_t,bool);
 public:
-  uint8_t getMode();
-  void setMode(uint8_t mode);
-  bool isEnabled();
-  bool isConnected();
-  String getIP();
-  String getInfo();
-  void loopToHandleConnection(uint32_t mode_limit_ms = 0);
-  void addAP(const char * ssid, const char * pswd);
-  void setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
+  static uint8_t getMode();
+  static void setMode(uint8_t mode);
+  static bool isEnabled();
+  static bool isConnected();
+  static String getIP();
+  static String getInfo();
+  static void loopToHandleConnection(uint32_t mode_limit_ms = 0);
+  static void addAP(const char * ssid, const char * pswd);
+  static void setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
     uint32_t conn_timeout = CONF_WIFI_CONN_TIMEOUT_MS,
     uint32_t check_interval_ms = CONF_WIFI_CHECK_INTERVAL_MIN, 
     uint32_t check_threshold_ms = CONF_WIFI_CHECK_THRESHOLD,
     void (*state_changed)(uint8_t,bool) = nullptr);
-private:
-  uint8_t _mode = WIFI_OFF;
-  uint8_t _mode_setup = WIFI_OFF;
-  IPAddress _ap_ip;
-  IPAddress _ap_subnet = IPAddress(255,255,255,0);
-  String _ap_ssid;
-  String _ap_pswd;
-  uint8_t _count = 0; 
-  uint32_t _conn_timeout;
-  uint32_t _check_interval_ms;
-  uint32_t _check_threshold_ms;
-  uint32_t _last_check = 0;
-  uint32_t _last_check_ok = 0;
-  WiFiMulti _multi;
-  void (*_state_changed)(uint8_t,bool) = nullptr;
 };
 
-uint8_t WiFiUtilsClass::getMode() {
+uint8_t WiFiUtils::_mode = WIFI_OFF;
+uint8_t WiFiUtils::_mode_setup = WIFI_OFF;
+IPAddress WiFiUtils::_ap_ip;
+IPAddress WiFiUtils::_ap_subnet = IPAddress(255,255,255,0);
+String WiFiUtils::_ap_ssid;
+String WiFiUtils::_ap_pswd;
+uint8_t WiFiUtils::_count = 0; 
+uint32_t WiFiUtils::_conn_timeout;
+uint32_t WiFiUtils::_check_interval_ms;
+uint32_t WiFiUtils::_check_threshold_ms;
+uint32_t WiFiUtils::_last_check = 0;
+uint32_t WiFiUtils::_last_check_ok = 0;
+#ifdef PLATFORM_ESP8266
+ESP8266WiFiMulti WiFiUtils::_multi;
+#else
+WiFiMulti WiFiUtils::_multi;
+#endif
+void (*WiFiUtils::_state_changed)(uint8_t,bool) = nullptr;
+
+uint8_t WiFiUtils::getMode() {
   return _mode;
 }
 
-void WiFiUtilsClass::setMode(uint8_t mode) {
+void WiFiUtils::setMode(uint8_t mode) {
   if (mode == WIFI_OFF) {
     WiFi.disconnect(true);
     _mode = mode;
@@ -73,15 +103,15 @@ void WiFiUtilsClass::setMode(uint8_t mode) {
   }
 }
 
-bool WiFiUtilsClass::isEnabled() {
+bool WiFiUtils::isEnabled() {
   return _mode != WIFI_OFF;
 }
 
-bool WiFiUtilsClass::isConnected() {
+bool WiFiUtils::isConnected() {
   return _mode == WIFI_STA;
 }
 
-String WiFiUtilsClass::getIP() {
+String WiFiUtils::getIP() {
   if (_mode == WIFI_STA) {
     //return WiFi.localIPv6().toString();
     return WiFi.localIP().toString();
@@ -92,7 +122,7 @@ String WiFiUtilsClass::getIP() {
   return "";
 }
 
-String WiFiUtilsClass::getInfo() {
+String WiFiUtils::getInfo() {
   if (_mode = WIFI_STA) {
     return "Connected to \""+WiFi.SSID()+"\" (RSSI "+String(WiFi.RSSI())+")";
   } else if (_mode = WIFI_AP) {
@@ -102,7 +132,7 @@ String WiFiUtilsClass::getInfo() {
   }
 }
 
-void WiFiUtilsClass::loopToHandleConnection(uint32_t mode_limit_ms) {
+void WiFiUtils::loopToHandleConnection(uint32_t mode_limit_ms) {
   if (_mode != _mode_setup && at_interval(mode_limit_ms)) {
     if (_mode_setup == WIFI_OFF) {
       setMode(WIFI_OFF);
@@ -134,12 +164,12 @@ void WiFiUtilsClass::loopToHandleConnection(uint32_t mode_limit_ms) {
   }
 }
 
-void WiFiUtilsClass::addAP(const char * ssid, const char * pswd) {
+void WiFiUtils::addAP(const char * ssid, const char * pswd) {
   _multi.addAP(ssid,pswd);
   _count++;
 }
 
-void WiFiUtilsClass::setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
+void WiFiUtils::setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
     uint32_t conn_timeout, uint32_t check_interval_ms, uint32_t check_threshold_ms,
     void (*state_changed)(uint8_t,bool)) {
   log_i("Preparazione WIFI ...");
@@ -173,7 +203,5 @@ void WiFiUtilsClass::setup(uint8_t mode, const char * ap_ip, const char * ap_ssi
     }
   }
 }
-
-WiFiUtilsClass WiFiUtils;
 
 #endif

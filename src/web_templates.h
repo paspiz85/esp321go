@@ -55,7 +55,7 @@ String WebTemplatesClass::getFooter(bool admin) {
 }
 
 void WebTemplatesClass::sendPage(String title, String body, uint16_t refresh) {
-  String html = "<html><head><meta charset=\"utf-8\">";
+  String html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\">";
   html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
   html += "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">";
   html += "<meta http-equiv=\"Pragma\" content=\"no-cache\">";
@@ -66,7 +66,9 @@ void WebTemplatesClass::sendPage(String title, String body, uint16_t refresh) {
   if (title != "") {
     html += "<title>"+html_encode(title)+"</title>";
   }
-  html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">";
+  if (!Web.isRequestSecure()) {
+    html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">";
+  }
   html += "</head>" + body + "</html>";
   Web.sendResponse(200, "text/html", html);
 }
@@ -74,7 +76,7 @@ void WebTemplatesClass::sendPage(String title, String body, uint16_t refresh) {
 void WebTemplatesClass::setup(String title, String (*footer)(bool)) {
   _title = title;
   _footer = footer;
-  Web.handle(HTTP_ANY, "/css/style.css", []{
+  Web.handle(HTTP_ANY, "/css/style.css", []() {
     Web.sendResponse(200, "text/css", __web_templates_css);
   });
 }

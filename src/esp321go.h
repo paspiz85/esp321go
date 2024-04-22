@@ -27,7 +27,7 @@ String admin_password;
 
 void items_publish(JSONVar message) {
 #ifdef CONF_WIFI
-  if (!WiFiUtils.isConnected()) {
+  if (!WiFiUtils::isConnected()) {
     return;
   }
   // TODO
@@ -53,7 +53,7 @@ bool web_admin_authenticate() {
 
 String web_html_footer(bool admin) {
   String html = "<hr/><div>";
-  html += html_encode(WiFiUtils.getInfo());
+  html += html_encode(WiFiUtils::getInfo());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
@@ -66,7 +66,6 @@ String web_html_footer(bool admin) {
 }
 
 void web_handle_root() {
-  int refresh = Web.getParameter("refresh").toInt();
   int blink = Web.getParameter("blink").toInt();
   switch (blink) {
   case 0: break;
@@ -100,7 +99,7 @@ void web_handle_root() {
   html += "<p><a href=\"/config\">Configurazione</a></p>";
   html += WebTemplates.getFooter(false);
   html += "</body>";
-  WebTemplates.sendPage(title,html,refresh);
+  WebTemplates.sendPage(title,html);
 }
 #endif
 
@@ -114,8 +113,8 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
-  WiFiTime.loopToSynchronize();
+  WiFiUtils::loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
+  WiFiTime::loopToSynchronize();
 #endif
 #ifdef CONF_ARDUINO_OTA
   ArduinoOTA.handle();
@@ -125,7 +124,7 @@ void loop() {
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
 #ifdef CONF_WEB
-  if (WiFiUtils.isEnabled()) {
+  if (WiFiUtils::isEnabled()) {
     Web.loopToHandleClients();
     delay(10);
   } else {
@@ -174,10 +173,10 @@ void setup() {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
     String pswd = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_PSWD).c_str());
     if (ssid != "") {
-      WiFiUtils.addAP(ssid.c_str(),pswd.c_str());
+      WiFiUtils::addAP(ssid.c_str(),pswd.c_str());
     }
   }
-  WiFiUtils.setup(
+  WiFiUtils::setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
     preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
     preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
@@ -196,7 +195,7 @@ void setup() {
     }
   );
   delay(1000);
-  WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+  WiFiTime::setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
   admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
   admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
@@ -210,6 +209,9 @@ void setup() {
     web_html_title = CONF_WEB_HTML_TITLE;
   }
   Web.setupHTTP();
+#ifdef CONF_WEB_HTTPS
+  Web.setupHTTPS(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+#endif
   WebTemplates.setup(web_html_title, web_html_footer);
   web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
   web_ota_setup(web_admin_authenticate);

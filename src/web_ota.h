@@ -1,5 +1,8 @@
 #ifndef INCLUDE_WEB_OTA_H
 #define INCLUDE_WEB_OTA_H
+#ifndef PLATFORM_ESP32
+void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {}
+#else
 
 /**
  * Contiene variabili, tipi e funzioni per l'aggiornamento tramite Web Server.
@@ -62,4 +65,5 @@ void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {
     }
   });
 }
+#endif
 #endif
