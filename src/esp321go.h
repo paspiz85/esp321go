@@ -114,7 +114,7 @@ void loop() {
   }
 #ifdef CONF_WIFI
   WiFiUtils.loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
-  WiFiTime.loopToSynchronize();
+  WiFiTime::loopToSynchronize();
 #endif
 #ifdef CONF_ARDUINO_OTA
   ArduinoOTA.handle();
@@ -195,7 +195,7 @@ void setup() {
     }
   );
   delay(1000);
-  WiFiTime.setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+  WiFiTime::setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
   admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
   admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);

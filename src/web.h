@@ -29,6 +29,20 @@
 #endif
 
 class WebClass {
+private:
+  String _web_server_hostname;
+  uint16_t _http_port = 0;
+  uint16_t _https_port = 0;
+#ifdef PLATFORM_ESP8266
+  ESP8266WebServer * _http_server = NULL;
+#else
+  WebServer * _http_server = NULL;
+#endif
+#ifdef CONF_WEB_HTTPS
+  BearSSL::ESP8266WebServerSecure * _https_server = NULL;
+  void _handleUpgradeHTTPS();
+#endif
+  bool _mdns_enabled = false;
 public:
   void loopToHandleClients();
   bool isRequestSecure();
@@ -50,20 +64,6 @@ public:
   void setupHTTPS(String crt = "", String key = "", const uint16_t port = CONF_WEB_HTTPS_PORT);
 #endif
   void begin(const char * name = "", void (*handle_notFound)() = nullptr);
-private:
-  String _web_server_hostname;
-  uint16_t _http_port = 0;
-  uint16_t _https_port = 0;
-#ifdef PLATFORM_ESP8266
-  ESP8266WebServer * _http_server = NULL;
-#else
-  WebServer * _http_server = NULL;
-#endif
-#ifdef CONF_WEB_HTTPS
-  BearSSL::ESP8266WebServerSecure * _https_server = NULL;
-  void _handleUpgradeHTTPS();
-#endif
-  bool _mdns_enabled = false;
 };
 
 void WebClass::loopToHandleClients() {

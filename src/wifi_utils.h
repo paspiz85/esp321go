@@ -20,20 +20,6 @@
 #endif
 
 class WiFiUtilsClass {
-public:
-  uint8_t getMode();
-  void setMode(uint8_t mode);
-  bool isEnabled();
-  bool isConnected();
-  String getIP();
-  String getInfo();
-  void loopToHandleConnection(uint32_t mode_limit_ms = 0);
-  void addAP(const char * ssid, const char * pswd);
-  void setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
-    uint32_t conn_timeout = CONF_WIFI_CONN_TIMEOUT_MS,
-    uint32_t check_interval_ms = CONF_WIFI_CHECK_INTERVAL_MIN, 
-    uint32_t check_threshold_ms = CONF_WIFI_CHECK_THRESHOLD,
-    void (*state_changed)(uint8_t,bool) = nullptr);
 private:
   uint8_t _mode = WIFI_OFF;
   uint8_t _mode_setup = WIFI_OFF;
@@ -53,6 +39,20 @@ private:
   WiFiMulti _multi;
 #endif
   void (*_state_changed)(uint8_t,bool) = nullptr;
+public:
+  uint8_t getMode();
+  void setMode(uint8_t mode);
+  bool isEnabled();
+  bool isConnected();
+  String getIP();
+  String getInfo();
+  void loopToHandleConnection(uint32_t mode_limit_ms = 0);
+  void addAP(const char * ssid, const char * pswd);
+  void setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
+    uint32_t conn_timeout = CONF_WIFI_CONN_TIMEOUT_MS,
+    uint32_t check_interval_ms = CONF_WIFI_CHECK_INTERVAL_MIN, 
+    uint32_t check_threshold_ms = CONF_WIFI_CHECK_THRESHOLD,
+    void (*state_changed)(uint8_t,bool) = nullptr);
 };
 
 uint8_t WiFiUtilsClass::getMode() {
