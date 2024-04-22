@@ -5,7 +5,7 @@ Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già
 
 - **/reset** : effettua il soft reset della board
 - **/config** : interfaccia che permette di modificare la configurazione della board (la maggior parte delle configurazioni richiedono il soft reset)
-- **/firmware/update** : (solo ESP32) intefaccia che permette di aggiornare il firmware
+- **/firmware/update** : intefaccia che permette di aggiornare il firmware
 
 Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tramite la rete.
 
