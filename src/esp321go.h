@@ -16,7 +16,7 @@
 #include "web_config.h"
 #include "web_ota.h"
 #endif
-#ifdef CONF_ARDUINO_OTA
+#ifdef CONF_ADMIN_ARDUINO_OTA
 #include <ArduinoOTA.h>
 #endif
 
@@ -58,9 +58,11 @@ String web_html_footer(bool admin) {
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
   html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
+#ifdef CONF_ADMIN_WEB_OTA
   if (admin) {
     html += " <button class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_FIRMWARE_UPDATE)+"'\">Update</button>";
   }
+#endif
   html += "</div>";
   return html;
 }
@@ -116,7 +118,7 @@ void loop() {
   WiFiUtils::loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
   WiFiTime::loopToSynchronize();
 #endif
-#ifdef CONF_ARDUINO_OTA
+#ifdef CONF_ADMIN_ARDUINO_OTA
   ArduinoOTA.handle();
 #endif
   if (blink_led_enabled && at_interval(1000,blink_last_ms)) {
@@ -124,12 +126,7 @@ void loop() {
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
 #ifdef CONF_WEB
-  if (WiFiUtils::isEnabled()) {
-    Web.loopToHandleClients();
-    delay(10);
-  } else {
-    delay(1000);
-  }
+  Web.loopToHandleClients();
 #endif
 }
 
@@ -137,6 +134,8 @@ void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
   preferences.begin("my-app", false);
+  //preferences.putString("wifi2_ssid","");
+  //preferences.putString("wifi2_pswd","");
   String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
   Serial.println("Log level : " + log_level);
   if (log_level == "d") {
@@ -199,7 +198,7 @@ void setup() {
 #endif
   admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
   admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
-#ifdef CONF_ARDUINO_OTA
+#ifdef CONF_ADMIN_ARDUINO_OTA
   ArduinoOTA.setPassword(admin_password.c_str());
   ArduinoOTA.begin();
 #endif
@@ -214,7 +213,9 @@ void setup() {
 #endif
   WebTemplates.setup(web_html_title, web_html_footer);
   web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
+#ifdef CONF_ADMIN_WEB_OTA
   web_ota_setup(web_admin_authenticate);
+#endif
   Web.handle(HTTP_ANY, "/", web_handle_root);
   Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif

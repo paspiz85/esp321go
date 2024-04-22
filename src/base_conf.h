@@ -16,9 +16,8 @@
 const PROGMEM char *   CONF_ADMIN_PASSWORD              = "admin";
 const PROGMEM char *   CONF_ADMIN_USERNAME              = "admin";
 
-#ifndef PLATFORM_ESP32
-#define CONF_ARDUINO_OTA
-#endif
+// #define CONF_ADMIN_ARDUINO_OTA
+#define CONF_ADMIN_WEB_OTA
 
 #define CONF_BMP280
 #ifdef CONF_BMP280

@@ -6,8 +6,9 @@
  * 
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h
- * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServer.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServerSecure.h
+ * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266mDNS/src/LEAmDNS.h
  */
 
 #include "base_conf.h"
@@ -49,19 +50,19 @@ public:
   bool isRequestMethodPost();
   bool authenticate(const char * username, const char * password);
   void authenticateRequest();
-  String getParameter(String name);
+  String getParameter(const String& name);
   String getPathArg(int n);
-  String getHeader(String name);
+  String getHeader(const String& name);
   HTTPUpload& getUpload();
-  void sendRedirect(String redirect_uri, String message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN);
-  void sendResponse(int status_code, String content_type, const char * text);
-  void sendResponse(int status_code, String content_type, String text);
-  void sendFile(String content_type, String filename, String text);
+  void sendHeader(const String& name, const String& value, bool first = false);
+  void sendResponse(int status_code, const String& content_type, const String& text, const String& filename = "");
+  void sendResponse(int status_code, const String& content_type, uint8_t chunks_num, const char * chunks[]);
+  void sendRedirect(String redirect_uri, const String& message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN);
   void handle(HTTPMethod method, const Uri &uri, void (*fn)());
   void handleUpload(HTTPMethod method, const Uri &uri, void (*fn)(), void (*ufn)());
   void setupHTTP(const uint16_t port = CONF_WEB_HTTP_PORT);
 #ifdef CONF_WEB_HTTPS
-  void setupHTTPS(String crt = "", String key = "", const uint16_t port = CONF_WEB_HTTPS_PORT);
+  void setupHTTPS(const String& crt = "", const String& key = "", const uint16_t port = CONF_WEB_HTTPS_PORT);
 #endif
   void begin(const char * name = "", void (*handle_notFound)() = nullptr);
 };
@@ -130,7 +131,7 @@ void WebClass::authenticateRequest() {
   }
 }
 
-String WebClass::getParameter(String name) {
+String WebClass::getParameter(const String& name) {
 #ifdef CONF_WEB_HTTPS
   if (_https_server != NULL) {
     for (int i = 0; i < _https_server->args(); i++) {
@@ -163,7 +164,7 @@ String WebClass::getPathArg(int n) {
   return "";
 }
 
-String WebClass::getHeader(String name) {
+String WebClass::getHeader(const String& name) {
 #ifdef CONF_WEB_HTTPS
   if (_https_server != NULL) {
     return _https_server->header(name);
@@ -184,7 +185,81 @@ HTTPUpload& WebClass::getUpload() {
   return _http_server->upload();
 }
 
-void WebClass::sendRedirect(String redirect_uri, String message, uint16_t refresh ) {
+void WebClass::sendHeader(const String& name, const String& value, bool first) {
+#ifdef CONF_WEB_HTTPS
+  if (_https_server != NULL) {
+    _https_server->sendHeader(name,value,first);
+    return;
+  }
+#endif
+  if (_http_server != NULL) {
+    _http_server->sendHeader(name,value,first);
+  }
+}
+
+void WebClass::sendResponse(int status_code, const String& content_type, const String& text, const String& filename) {
+  if (filename != "") {
+    sendHeader("Content-Disposition", "attachment;filename=\""+filename+"\"");
+  }
+#ifdef CONF_WEB_HTTPS
+  if (_https_server != NULL) {
+    _https_server->send(status_code,content_type,text);
+    return;
+  }
+#endif
+  if (_http_server != NULL) {
+    _http_server->send(status_code,content_type,text);
+  }
+}
+
+void WebClass::sendResponse(int status_code, const String& content_type, uint8_t chunks_num, const char * chunks[]) {
+  if (chunks_num == 0) {
+    sendResponse(status_code,content_type,"");
+    return;
+  }
+  if (chunks_num == 1) {
+    sendResponse(status_code,content_type,chunks[0]);
+    return;
+  }
+#ifdef CONF_WEB_HTTPS
+  if (_https_server != NULL) {
+    for (int i = 0; i < chunks_num; i++) {
+      if (i == 0) {
+#ifdef PLATFORM_ESP8266
+        _https_server->chunkedResponseModeStart(status_code,content_type);
+        _https_server->sendContent(chunks[i]);
+#else
+        _https_server->send(status_code,content_type,chunks[i]);
+#endif
+      } else {
+        _https_server->sendContent(chunks[i]);
+      }
+    }
+#ifdef PLATFORM_ESP8266
+    _https_server->chunkedResponseFinalize();
+#endif
+  }
+#endif
+  if (_http_server != NULL) {
+    for (int i = 0; i < chunks_num; i++) {
+      if (i == 0) {
+#ifdef PLATFORM_ESP8266
+        _http_server->chunkedResponseModeStart(status_code,content_type);
+        _http_server->sendContent(chunks[i]);
+#else
+        _http_server->send(status_code,content_type,chunks[i]);
+#endif
+      } else {
+        _http_server->sendContent(chunks[i]);
+      }
+    }
+#ifdef PLATFORM_ESP8266
+    _http_server->chunkedResponseFinalize();
+#endif
+  }
+}
+
+void WebClass::sendRedirect(String redirect_uri, const String& message, uint16_t refresh ) {
   if (redirect_uri == "") {
     redirect_uri = getHeader("Referer");
     log_d("referer %s", redirect_uri.c_str());
@@ -193,75 +268,13 @@ void WebClass::sendRedirect(String redirect_uri, String message, uint16_t refres
     redirect_uri = "/";
   }
   log_d("redirect_uri %s", redirect_uri.c_str());
-#ifdef CONF_WEB_HTTPS
-  if (_https_server != NULL) {
-    if (message == "") {
-      _https_server->sendHeader("Location", redirect_uri, true);
-      _https_server->sendHeader("Connection", "close");
-      _https_server->send(302,"text/plain","");
-      return;
-    }
-    refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
-    _https_server->sendHeader("Connection", "close");
-    _https_server->send(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
+  if (message == "") {
+    sendHeader("Location", redirect_uri, true);
+    sendResponse(302,"text/plain","");
     return;
   }
-#endif
-  if (_http_server != NULL) {
-    if (message == "") {
-      _http_server->sendHeader("Location", redirect_uri, true);
-      _http_server->sendHeader("Connection", "close");
-      _http_server->send(302,"text/plain","");
-      return;
-    }
-    refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
-    _http_server->sendHeader("Connection", "close");
-    _http_server->send(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
-  }
-}
-
-void WebClass::sendResponse(int status_code, String content_type, const char * text) {
-#ifdef CONF_WEB_HTTPS
-  if (_https_server != NULL) {
-    _https_server->sendHeader("Connection", "close");
-    _https_server->send(status_code,content_type,text);
-    return;
-  }
-#endif
-  if (_http_server != NULL) {
-    _http_server->sendHeader("Connection", "close");
-    _http_server->send(status_code,content_type,text);
-  }
-}
-
-void WebClass::sendResponse(int status_code, String content_type, String text) {
-#ifdef CONF_WEB_HTTPS
-  if (_https_server != NULL) {
-    _https_server->sendHeader("Connection", "close");
-    _https_server->send(status_code,content_type,text);
-    return;
-  }
-#endif
-  if (_http_server != NULL) {
-    _http_server->sendHeader("Connection", "close");
-    _http_server->send(status_code,content_type,text);
-  }
-}
-
-void WebClass::sendFile(String content_type, String filename, String text) {
-#ifdef CONF_WEB_HTTPS
-  if (_https_server != NULL) {
-    _https_server->sendHeader("Content-Disposition", "attachment;filename=\""+filename+"\"");
-    _https_server->sendHeader("Connection", "close");
-    _https_server->send(200,content_type,text);
-    return;
-  }
-#endif
-  if (_http_server != NULL) {
-    _http_server->sendHeader("Content-Disposition", "attachment;filename=\""+filename+"\"");
-    _http_server->sendHeader("Connection", "close");
-    _http_server->send(200,content_type,text);
-  }
+  refresh = max(refresh, CONF_WEB_REDIRECT_REFRESH_MIN);
+  sendResponse(200, "text/html", "<html><body>"+message+"</body><script>document.addEventListener('DOMContentLoaded',function(event){setTimeout(function(){location='"+redirect_uri+"'},"+String(refresh)+")})</script></html>");
 }
 
 void WebClass::handle(HTTPMethod method, const Uri &uri, void (*fn)()) {
@@ -298,12 +311,11 @@ void WebClass::setupHTTP(const uint16_t port) {
 }
 
 #ifdef CONF_WEB_HTTPS
-void WebClass::setupHTTPS(String crt, String key, const uint16_t port) {
+void WebClass::setupHTTPS(const String& crt, const String& key, const uint16_t port) {
   _https_port = port > 0 ? port : CONF_WEB_HTTPS_PORT;
   const char * crt_str = crt != "" ? crt.c_str() : CONF_WEB_HTTPS_CERT; 
   const char * key_str = key != "" ? key.c_str() : CONF_WEB_HTTPS_CERT_KEY;
   _https_server = new BearSSL::ESP8266WebServerSecure(_https_port);
-  //_https_server = &__https_server;
   _https_server->getServer().setRSACert(new BearSSL::X509List(crt_str), new BearSSL::PrivateKey(key_str));
 }
 
@@ -333,17 +345,40 @@ void WebClass::begin(const char * name, void (*handle_notFound)()) {
   } else {
     _web_server_hostname = WiFiUtils::getIP();
   }
-  _http_server->onNotFound(handle_notFound);
-  const char * headerkeys[] = {"Accept", "Referer"};
-  size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
-  _http_server->collectHeaders(headerkeys, headerkeyssize);
-  _http_server->begin();
-  Serial.print("Ready on http://");
-  Serial.print(_web_server_hostname);
-  if (_http_port != 80) {
-    Serial.print(":");
-    Serial.print(_http_port);
+#ifdef CONF_WEB_HTTPS
+  if (_https_server == NULL) {
+#endif
+    _http_server->onNotFound(handle_notFound);
+    const char * headerkeys[] = {"Accept", "Referer"};
+    size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+    _http_server->collectHeaders(headerkeys, headerkeyssize);
+    _http_server->begin();
+    Serial.print("Ready on http://");
+    Serial.print(_web_server_hostname);
+    if (_http_port != 80) {
+      Serial.print(":");
+      Serial.print(_http_port);
+    }
+#ifdef CONF_WEB_HTTPS
+  } else {
+    _http_server->onNotFound([this]() { this->_handleUpgradeHTTPS(); });
+    _http_server->begin();
+    _https_server->onNotFound(handle_notFound);
+    const char * headerkeys[] = {"Accept", "Referer"};
+    size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+    _https_server->collectHeaders(headerkeys, headerkeyssize);
+    _https_server->begin();
+    if (_mdns_enabled) {
+      MDNS.addService("https", "tcp", _https_port);
+    }
+    Serial.print("Ready on https://");
+    Serial.print(_web_server_hostname);
+    if (_https_port != 443) {
+      Serial.print(":");
+      Serial.print(_https_port);
+    }
   }
+#endif
   Serial.println("/");
 }
 

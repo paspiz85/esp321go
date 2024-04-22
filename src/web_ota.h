@@ -1,8 +1,5 @@
 #ifndef INCLUDE_WEB_OTA_H
 #define INCLUDE_WEB_OTA_H
-#ifndef PLATFORM_ESP32
-void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {}
-#else
 
 /**
  * Contiene variabili, tipi e funzioni per l'aggiornamento tramite Web Server.
@@ -12,7 +9,13 @@ void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {}
 #include "web.h"
 #include "web_templates.h"
 #include "web_reset.h"
+#ifdef PLATFORM_ESP32
 #include <Update.h>
+#endif
+
+#ifndef UPDATE_SIZE_UNKNOWN
+#define UPDATE_SIZE_UNKNOWN 0x00100000
+#endif
 
 bool (*__web_ota_admin_authenticate)() = nullptr;
 
@@ -26,8 +29,12 @@ void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {
     }
     String title = WebTemplates.getTitle();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Firmware Update</h2>";
+#ifdef PLATFORM_ESP32
     html += "<p>ESP32 Chip model "+String(ESP.getChipModel())+" - Rev "+String(ESP.getChipRevision())+"</p>";
     html += "<p>Chip ID "+String(ESP_getChipId())+" - Core# "+String(ESP.getChipCores())+"</p>";
+#else
+    html += "<p>ESP8266 Chip ID "+String(ESP_getChipId())+"</p>";
+#endif
     html += "<form action=\""+String(CONF_WEB_URI_FIRMWARE_UPDATE)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
     html += "<input type=\"file\" name=\"update\" accept=\".bin\" required=\"required\" />";
     html += "</p><p>";
@@ -65,5 +72,4 @@ void web_ota_setup(bool (*web_admin_authenticate)() = nullptr) {
     }
   });
 }
-#endif
 #endif

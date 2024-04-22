@@ -123,7 +123,7 @@ String WiFiUtils::getIP() {
 }
 
 String WiFiUtils::getInfo() {
-  if (_mode = WIFI_STA) {
+  if (_mode == WIFI_STA) {
     return "Connected to \""+WiFi.SSID()+"\" (RSSI "+String(WiFi.RSSI())+")";
   } else if (_mode = WIFI_AP) {
     return "Connected clients: "+String(WiFi.softAPgetStationNum());

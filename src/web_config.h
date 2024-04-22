@@ -176,7 +176,7 @@ void web_config_handle_change() {
       }
     }
     if (is_download) {
-      return Web.sendFile("application/json","config.json",JSON.stringify(json_export));
+      return Web.sendResponse(200,"application/json",JSON.stringify(json_export),"config.json");
     }
     html += "</table>";
     html += "<form action=\""+String(CONF_WEB_URI_RESET)+"\" method=\"POST\"><p>";
@@ -187,7 +187,7 @@ void web_config_handle_change() {
     html += "<button type=\"button\" class=\"btn btn-success\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"?download=true'\">Download</button> ";
     html += "<button type=\"button\" class=\"btn btn-danger\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG_UPLOAD)+"'\">Upload</button> ";
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"return confirm('Are you sure?')\">Reset</button> ";
-    html += "</p></form><hr/>";
+    html += "</p></form>";
     html += WebTemplates.getFooter(true);
   } else if (!Web.isRequestMethodPost()) {
     String config_value = preferences_get(param_name.c_str(),config_selected->type,true);

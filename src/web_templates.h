@@ -67,10 +67,11 @@ void WebTemplatesClass::sendPage(String title, String body, uint16_t refresh) {
     html += "<title>"+html_encode(title)+"</title>";
   }
   if (!Web.isRequestSecure()) {
-    html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">";
+    html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\" />";
   }
-  html += "</head>" + body + "</html>";
-  Web.sendResponse(200, "text/html", html);
+  html += "</head>";
+  const char * chunks[] = {html.c_str(), body.c_str(), "</html>"};
+  Web.sendResponse(200, "text/html", len_array(chunks), chunks);
 }
 
 void WebTemplatesClass::setup(String title, String (*footer)(bool)) {
