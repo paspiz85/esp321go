@@ -5,6 +5,12 @@
  * Contiene le costanti di configurazione
  */
 
+#if defined(ESP32)
+#define PLATFORM_ESP32
+#elif defined(ESP8266)
+#define PLATFORM_ESP8266
+#endif
+
 const PROGMEM char *   CONF_ADMIN_PASSWORD              = "admin";
 const PROGMEM char *   CONF_ADMIN_USERNAME              = "admin";
 
