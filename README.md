@@ -1,10 +1,11 @@
-Questo progetto è una base per la realizzazione di firmware per il microcontrollore ESP8266 collegati attraverso WiFi (sono supportate sia modalità Station che Access Point).
+Questo progetto è una base per la realizzazione di firmware per il microcontrollore ESP32/ESP8266 collegati attraverso WiFi (sono supportate sia modalità Station che Access Point).
 
 ### Funzioni base
 Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già realizzate:
 
 - **/reset** : effettua il soft reset della board
 - **/config** : interfaccia che permette di modificare la configurazione della board (la maggior parte delle configurazioni richiedono il soft reset)
+- **/firmware/update** : (solo ESP32) intefaccia che permette di aggiornare il firmware
 
 Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tramite la rete.
 
@@ -27,7 +28,7 @@ Dalla cartella del progetto:
 ```
 arduino-cli upload -m esp321go -i target/esp321go.ino.bin -p <porta>
 ```
-Se l'upload fallisce sempre e l'errore è "ESP8266: Timed out waiting for packet header" potrebbe essere necessario tenere premuto BOOT durante l'upload.
+Se l'upload fallisce sempre e l'errore è "ESP32: Timed out waiting for packet header" potrebbe essere necessario tenere premuto BOOT durante l'upload.
 
 Per l'upload tramite la rete:
 ```

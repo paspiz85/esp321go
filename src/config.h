@@ -5,6 +5,7 @@
  * Gestione della configurazione.
  * 
  * @see https://github.com/arduino-libraries/Arduino_JSON/blob/master/src/JSON.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/Preferences/src/Preferences.h
  * @see https://github.com/vshymanskyy/Preferences/blob/main/src/Preferences.h
  */
 
@@ -100,8 +101,8 @@ const Config config_defs[] = {
   { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
   { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
 #ifdef CONF_WEB_HTTPS
-  { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM solo parte Base64" },
-  { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM solo parte Base64" },
+  { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM" },
+  { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM" },
 #endif
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #ifdef CONF_BMP280

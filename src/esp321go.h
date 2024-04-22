@@ -1,6 +1,12 @@
 
 #include "config.h"
 #include "pin_memory.h"
+#ifdef CONF_DHT
+#include "dht.h"
+#endif
+#ifdef CONF_BMP280
+#include "bmp280.h"
+#endif
 #ifdef CONF_WIFI
 #include "wifi_time.h"
 #endif
@@ -8,6 +14,7 @@
 #include "web.h"
 #include "web_templates.h"
 #include "web_config.h"
+#include "web_ota.h"
 #endif
 #ifdef CONF_ARDUINO_OTA
 #include <ArduinoOTA.h>
@@ -147,6 +154,14 @@ void setup() {
   }, [](uint8_t pin, uint16_t value, bool is_init) {
   }, [](uint8_t pin, uint32_t value, bool is_init) {
   });
+#ifdef CONF_DHT
+  dht_setup(preferences.getUChar(PREF_DHT_PIN),
+    preferences.getUChar(PREF_DHT_TYPE), 
+    preferences.getULong(PREF_DHT_READ_INTERVAL));
+#endif
+#ifdef CONF_BMP280
+  bmp280_setup(preferences.getUChar(PREF_BMP280_ADDR));
+#endif
   blink_led_pin = preferences.getInt(PREF_BLINK_LED_PIN,LED_BUILTIN);
   pinMode(blink_led_pin, OUTPUT);
 #ifdef CONF_WIFI
@@ -199,6 +214,7 @@ void setup() {
 #endif
   WebTemplates.setup(web_html_title, web_html_footer);
   web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
+  web_ota_setup(web_admin_authenticate);
   Web.handle(HTTP_ANY, "/", web_handle_root);
   Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif

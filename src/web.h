@@ -4,22 +4,29 @@
 /**
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
  * 
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServer.h
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WebServer/src/ESP8266WebServerSecure.h
- * @see https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266mDNS/src/LEAmDNS.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/src/WebServer.h
+ * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/ESPmDNS/src/ESPmDNS.h
  */
 
 #include "base_conf.h"
 #include "wifi_utils.h"
+#ifdef PLATFORM_ESP8266
 #include <ESP8266WebServer.h>
+#else
+#include <WebServer.h>
+#endif
 #include <uri/UriBraces.h>
 #include <uri/UriRegex.h>
+#ifdef PLATFORM_ESP8266
 #ifdef CONF_WEB_HTTPS
 #include <ESP8266WebServerSecure.h>
 #endif
 #include <ESP8266mDNS.h>
-
-//BearSSL::ESP8266WebServerSecure __https_server(443);
+#else
+#include <ESPmDNS.h>
+#endif
 
 class WebClass {
 public:
@@ -47,7 +54,11 @@ private:
   String _web_server_hostname;
   uint16_t _http_port = 0;
   uint16_t _https_port = 0;
+#ifdef PLATFORM_ESP8266
   ESP8266WebServer * _http_server = NULL;
+#else
+  WebServer * _http_server = NULL;
+#endif
 #ifdef CONF_WEB_HTTPS
   BearSSL::ESP8266WebServerSecure * _https_server = NULL;
   void _handleUpgradeHTTPS();
@@ -56,12 +67,14 @@ private:
 };
 
 void WebClass::loopToHandleClients() {
-  if (_mdns_enabled) {
-    MDNS.update();
-  }
   if (!WiFiUtils.isEnabled()) {
     return;
   }
+#ifdef PLATFORM_ESP8266
+  if (_mdns_enabled) {
+    MDNS.update();
+  }
+#endif
 #ifdef CONF_WEB_HTTPS
   if (_https_server != NULL) {
     _https_server->handleClient();
@@ -277,7 +290,11 @@ void WebClass::handleUpload(HTTPMethod method, const Uri &uri, void (*fn)(), voi
 
 void WebClass::setupHTTP(const uint16_t port) {
   _http_port = port > 0 ? port : CONF_WEB_HTTP_PORT;
+#ifdef PLATFORM_ESP8266
   _http_server = new ESP8266WebServer(_http_port);
+#else
+  _http_server = new WebServer(_http_port);
+#endif
 }
 
 #ifdef CONF_WEB_HTTPS
@@ -316,40 +333,17 @@ void WebClass::begin(const char * name, void (*handle_notFound)()) {
   } else {
     _web_server_hostname = WiFiUtils.getIP();
   }
-#ifdef CONF_WEB_HTTPS
-  if (_https_server == NULL) {
-#endif
-    _http_server->onNotFound(handle_notFound);
-    const char * headerkeys[] = {"Accept", "Referer"};
-    size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
-    _http_server->collectHeaders(headerkeys, headerkeyssize);
-    _http_server->begin();
-    Serial.print("Ready on http://");
-    Serial.print(_web_server_hostname);
-    if (_http_port != 80) {
-      Serial.print(":");
-      Serial.print(_http_port);
-    }
-#ifdef CONF_WEB_HTTPS
-  } else {
-    _http_server->onNotFound([this]() { this->_handleUpgradeHTTPS(); });
-    _http_server->begin();
-    _https_server->onNotFound(handle_notFound);
-    const char * headerkeys[] = {"Accept", "Referer"};
-    size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
-    _https_server->collectHeaders(headerkeys, headerkeyssize);
-    _https_server->begin();
-    if (_mdns_enabled) {
-      MDNS.addService("https", "tcp", _https_port);
-    }
-    Serial.print("Ready on https://");
-    Serial.print(_web_server_hostname);
-    if (_https_port != 443) {
-      Serial.print(":");
-      Serial.print(_https_port);
-    }
+  _http_server->onNotFound(handle_notFound);
+  const char * headerkeys[] = {"Accept", "Referer"};
+  size_t headerkeyssize = sizeof(headerkeys) / sizeof(char*);
+  _http_server->collectHeaders(headerkeys, headerkeyssize);
+  _http_server->begin();
+  Serial.print("Ready on http://");
+  Serial.print(_web_server_hostname);
+  if (_http_port != 80) {
+    Serial.print(":");
+    Serial.print(_http_port);
   }
-#endif
   Serial.println("/");
 }
 

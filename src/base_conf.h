@@ -7,14 +7,18 @@
 
 #if defined(ESP32)
 #define PLATFORM_ESP32
+#define PLATFORM_TITLE "esp32"
 #elif defined(ESP8266)
 #define PLATFORM_ESP8266
+#define PLATFORM_TITLE "esp8266"
 #endif
 
 const PROGMEM char *   CONF_ADMIN_PASSWORD              = "admin";
 const PROGMEM char *   CONF_ADMIN_USERNAME              = "admin";
 
+#ifndef PLATFORM_ESP32
 #define CONF_ARDUINO_OTA
+#endif
 
 #define CONF_BMP280
 #ifdef CONF_BMP280
@@ -37,9 +41,10 @@ const PROGMEM char *   CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.
 
 #define CONF_WEB
 #ifdef CONF_WEB
-const PROGMEM char *   CONF_WEB_HTML_TITLE              = "ESP8266";
+const PROGMEM char *   CONF_WEB_HTML_TITLE              = PLATFORM_TITLE;
 const PROGMEM uint16_t CONF_WEB_HTTP_PORT               = 80;
 
+#ifdef PLATFORM_ESP8266
 // #define CONF_WEB_HTTPS
 #ifdef CONF_WEB_HTTPS
 static const char CONF_WEB_HTTPS_CERT[] PROGMEM = R"EOF(
@@ -81,7 +86,8 @@ elVVC46RfjDK9G0=
 -----END PRIVATE KEY-----
 )EOF";
 const PROGMEM uint16_t CONF_WEB_HTTPS_PORT              = 443;
-const PROGMEM char *   CONF_WEB_HTTPS_NAME              = "esp8266";
+const PROGMEM char *   CONF_WEB_HTTPS_NAME              = PLATFORM_TITLE;
+#endif
 #endif
 
 const PROGMEM uint16_t CONF_WEB_REDIRECT_REFRESH_MIN    = 5000;
@@ -93,16 +99,16 @@ const PROGMEM char *   CONF_WEB_URI_FIRMWARE_UPDATE     = "/firmware/update";
 const PROGMEM char *   CONF_WEB_URI_RESET               = "/reset";
 #endif
 
-const PROGMEM char *   CONF_WIFI_AP_IP                  = "192.168.12.1";
-const PROGMEM char *   CONF_WIFI_AP_PSWD                = "esp8266";
-const PROGMEM char *   CONF_WIFI_AP_SSID                = "esp8266";
+const PROGMEM char *   CONF_WIFI_AP_IP                  = "192.168.32.1";
+const PROGMEM char *   CONF_WIFI_AP_PSWD                = PLATFORM_TITLE;
+const PROGMEM char *   CONF_WIFI_AP_SSID                = PLATFORM_TITLE;
 const PROGMEM uint32_t CONF_WIFI_CHECK_INTERVAL_MIN     = 60000;
 const PROGMEM uint32_t CONF_WIFI_CHECK_THRESHOLD        = 300000;
 const PROGMEM uint32_t CONF_WIFI_CONN_TIMEOUT_MS        = 10000;
 const PROGMEM uint8_t  CONF_WIFI_COUNT                  = 3;
 const PROGMEM uint8_t  CONF_WIFI_MODE                   = 1;
 const PROGMEM uint32_t CONF_WIFI_MODE_LIMIT             = 180000;
-const PROGMEM char *   CONF_WIFI_NAME                   = "esp8266";
+const PROGMEM char *   CONF_WIFI_NAME                   = PLATFORM_TITLE;
 const PROGMEM char *   CONF_WIFI_NTP_SERVER             = "pool.ntp.org";
 const PROGMEM uint32_t CONF_WIFI_NTP_INTERVAL           = 300000;
 const PROGMEM uint32_t CONF_WIFI_NTP_INTERVAL_MIN       = 60000;
