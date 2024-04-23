@@ -92,10 +92,15 @@ const PROGMEM char *   CONF_WEB_HTTPS_NAME              = PLATFORM_TITLE;
 const PROGMEM uint16_t CONF_WEB_REDIRECT_REFRESH_MIN    = 5000;
 const PROGMEM uint16_t CONF_WEB_UPLOAD_LIMIT            = 10240;
 const PROGMEM char *   CONF_WEB_URI_CONFIG              = "/config";
-const PROGMEM char *   CONF_WEB_URI_CONFIG_RESET        = "/config/reset";
-const PROGMEM char *   CONF_WEB_URI_CONFIG_UPLOAD       = "/config/upload";
 const PROGMEM char *   CONF_WEB_URI_FIRMWARE_UPDATE     = "/firmware/update";
 const PROGMEM char *   CONF_WEB_URI_RESET               = "/reset";
+
+#define CONF_WEB_USERS
+#ifdef CONF_WEB_USERS
+const PROGMEM char *   CONF_WEB_URI_LOGIN               = "/login";
+const PROGMEM char *   CONF_WEB_URI_LOGOUT              = "/logout";
+#endif
+
 #endif
 
 const PROGMEM char *   CONF_WIFI_AP_IP                  = "192.168.32.1";

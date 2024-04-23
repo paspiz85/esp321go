@@ -8,13 +8,12 @@
  */
 
 #include "config.h"
-#include "web.h"
+#include "web_gui.h"
 #include "web_reset.h"
-#include "web_templates.h"
 #include <Arduino_JSON.h>
 
-bool (*__web_config_admin_authenticate)() = nullptr;
-bool __web_config_publish;
+#define WEB_CONFIG_PATH_RESET   "/reset"
+#define WEB_CONFIG_PATH_UPLOAD  "/upload"
 
 void web_config_handle_value_export(const char * key, Config config, JSONVar * json_export) {
   if (!preferences.isKey(key)) {
@@ -112,17 +111,29 @@ void web_config_handle_value_import(const char * key, Config config, JSONVar * j
   }
 }
 
-void web_config_handle_change() {
-  if (__web_config_admin_authenticate != NULL) {
-    if (!__web_config_admin_authenticate()) {
-      return Web.authenticateRequest();
-    }
+class WebConfig : public WebAdminComponent {
+private:
+  WebGUI* _web_gui;
+  WebReset* _web_reset;
+  String _web_uri;
+  bool _config_publish;
+  void _handle_change();
+  int _upload_len;
+  uint8_t _upload_buf[CONF_WEB_UPLOAD_LIMIT];
+  void _handle_upload();
+public:
+  WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, bool (*web_admin_authenticate)() = nullptr, bool config_publish = false);
+};
+
+void WebConfig::_handle_change() {
+  if (authenticateAdmin()) {
+    return;
   }
-  String param_name = Web.getParameter("name");
-  String param_value = Web.getParameter("value");
-  bool is_reset = Web.getParameter("reset").equals("true");
-  bool is_download = Web.getParameter("download").equals("true");
-  String title = WebTemplates.getTitle();
+  String param_name = _web_gui->getParameter("name");
+  String param_value = _web_gui->getParameter("value");
+  bool is_reset = _web_gui->getParameter("reset").equals("true");
+  bool is_download = _web_gui->getParameter("download").equals("true");
+  String title = _web_gui->getTitle();
   const Config * config_selected = NULL;
   if (param_name != "") {
     for (int i = 0; i < len_array(config_defs); i++) {
@@ -157,7 +168,7 @@ void web_config_handle_change() {
         } else {
           html += "<tr><td>"+String(config_defs[i].key)+"</td><td>"+String(ctype_str(config_defs[i].type))+"</td>";
           html += "<td><pre>"+html_encode(preferences_get(config_defs[i].key,config_defs[i].type,true))+"</pre></td>";
-          html += "<td><button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"?name="+String(config_defs[i].key)+"'\">Edit</button></td></tr>";
+          html += "<td><button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+_web_uri+"?name="+String(config_defs[i].key)+"'\">Edit</button></td></tr>";
         }
       } else {
         for (int j = 1; j <= config_defs[i].count; j++) {
@@ -169,30 +180,30 @@ void web_config_handle_change() {
             } else {
               html += "<tr><td>"+config_key_str+"</td><td>"+String(ctype_str(config_defs[i].refs[k].type))+"</td>";
               html += "<td><pre>"+html_encode(preferences_get(config_key,config_defs[i].refs[k].type,true))+"</pre></td>";
-              html += "<td><button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"?name="+config_key_str+"'\">Edit</button></td></tr>";
+              html += "<td><button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+_web_uri+"?name="+config_key_str+"'\">Edit</button></td></tr>";
             }
           }
         }
       }
     }
     if (is_download) {
-      return Web.sendResponse(200,"application/json",JSON.stringify(json_export),"config.json");
+      return _web_gui->sendResponse(200,"application/json",JSON.stringify(json_export),"config.json");
     }
     html += "</table>";
-    html += "<form action=\""+String(CONF_WEB_URI_RESET)+"\" method=\"POST\"><p>";
+    html += "<form action=\""+_web_reset->getUri()+"\" method=\"POST\"><p>";
     html += "<button type=\"submit\" class=\"btn btn-primary\" onclick=\"return confirm('Are you sure?')\">Restart</button> ";
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='/'\">Cancel</button>";
     html += "</p></form>";
-    html += "<form action=\""+String(CONF_WEB_URI_CONFIG_RESET)+"\" method=\"POST\"><p>";
-    html += "<button type=\"button\" class=\"btn btn-success\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"?download=true'\">Download</button> ";
-    html += "<button type=\"button\" class=\"btn btn-danger\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG_UPLOAD)+"'\">Upload</button> ";
+    html += "<form action=\""+_web_uri+WEB_CONFIG_PATH_RESET+"\" method=\"POST\"><p>";
+    html += "<button type=\"button\" class=\"btn btn-success\" onclick=\"location='"+_web_uri+"?download=true'\">Download</button> ";
+    html += "<button type=\"button\" class=\"btn btn-danger\" onclick=\"location='"+_web_uri+WEB_CONFIG_PATH_UPLOAD+"'\">Upload</button> ";
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"return confirm('Are you sure?')\">Reset</button> ";
     html += "</p></form>";
-    html += WebTemplates.getFooter(true);
-  } else if (!Web.isRequestMethodPost()) {
+    html += _web_gui->getFooter(true);
+  } else if (!_web_gui->isRequestMethodPost()) {
     String config_value = preferences_get(param_name.c_str(),config_selected->type,true);
     html += "<p>"+param_name+"</p>";
-    html += "<form action=\""+String(CONF_WEB_URI_CONFIG)+"\" method=\"POST\"><p>";
+    html += "<form action=\""+_web_uri+"\" method=\"POST\"><p>";
     html += "<input type=\"hidden\" name=\"name\" value=\""+html_encode(param_name)+"\" />";
     html += html_input(config_selected->type,"value",config_value);
     html += "</p>";
@@ -203,11 +214,11 @@ void web_config_handle_change() {
     html += "<input type=\"hidden\" name=\"reset\" value=\"false\" />";
     html += "<button type=\"submit\" class=\"btn btn-primary\">Save</button> ";
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"this.form.reset.value = 'true'\">Reset</button> ";
-    html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Cancel</button>";
+    html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+_web_uri+"'\">Cancel</button>";
     html += "</p></form>";
   } else {
     String publish_key = "";
-    if (__web_config_publish) {
+    if (_config_publish) {
       publish_key = "config."+param_name;
     }
     if (is_reset) {
@@ -215,47 +226,42 @@ void web_config_handle_change() {
     } else {
       preferences_put(param_name.c_str(),config_selected->type,param_value,publish_key);
     }
-    return Web.sendRedirect(CONF_WEB_URI_CONFIG);
+    return _web_gui->sendRedirect(_web_uri);
   }
   html += "</body>";
-  WebTemplates.sendPage(title,html);
+  _web_gui->sendPage(title,html);
 }
 
-int config_upload_len;
-uint8_t config_upload_buf[CONF_WEB_UPLOAD_LIMIT];
-
-void web_handle_config_upload() {
-  if (__web_config_admin_authenticate != NULL) {
-    if (!__web_config_admin_authenticate()) {
-      return Web.authenticateRequest();
-    }
+void WebConfig::_handle_upload() {
+  if (authenticateAdmin()) {
+    return;
   }
-  if (!Web.isRequestMethodPost()) {
-    String title = WebTemplates.getTitle();
+  if (!_web_gui->isRequestMethodPost()) {
+    String title = _web_gui->getTitle();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Upload Configurations</h2>";
-    html += "<form action=\""+String(CONF_WEB_URI_CONFIG_UPLOAD)+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
+    html += "<form action=\""+_web_uri+WEB_CONFIG_PATH_UPLOAD+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
     html += "<input type=\"file\" name=\"upload\" accept=\".json,application/json\" />";
     html += "</p><p>";
     html += "<button type=\"submit\" class=\"btn btn-primary\">Upload</button> ";
-    html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Cancel</button>";
+    html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+_web_uri+"'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    return WebTemplates.sendPage(title,html);
+    return _web_gui->sendPage(title,html);
   }
-  HTTPUpload& upload = Web.getUpload();
+  HTTPUpload& upload = _web_gui->getUpload();
   if (upload.status == UPLOAD_FILE_START) {
     log_i("Upload: %s", upload.filename.c_str());
-    config_upload_len = 0;
+    _upload_len = 0;
   } else if (upload.status == UPLOAD_FILE_WRITE) {
-    if (config_upload_len + upload.currentSize + 1 < CONF_WEB_UPLOAD_LIMIT) {
-      memcpy(&config_upload_buf[config_upload_len],upload.buf,upload.currentSize * sizeof(uint8_t));
-      config_upload_len += upload.currentSize;
+    if (_upload_len + upload.currentSize + 1 < CONF_WEB_UPLOAD_LIMIT) {
+      memcpy(&_upload_buf[_upload_len],upload.buf,upload.currentSize * sizeof(uint8_t));
+      _upload_len += upload.currentSize;
     }
   } else if (upload.status == UPLOAD_FILE_END) {
     log_i("Upload Success: %u", upload.totalSize);
-    config_upload_buf[config_upload_len] = 0;
-    JSONVar json_import = JSON.parse(String((char *)config_upload_buf));
-    config_upload_len = 0;
+    _upload_buf[_upload_len] = 0;
+    JSONVar json_import = JSON.parse(String((char *)_upload_buf));
+    _upload_len = 0;
     for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
         web_config_handle_value_import(config_defs[i].key,config_defs[i],&json_import);
@@ -271,26 +277,31 @@ void web_handle_config_upload() {
   }
 }
 
-void web_config_setup(bool (*web_admin_authenticate)() = nullptr, bool config_publish = false) {
-  __web_config_admin_authenticate = web_admin_authenticate;
-  __web_config_publish = config_publish;
-  web_reset_setup(__web_config_admin_authenticate);
-  Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG, web_config_handle_change);
-  Web.handle(HTTP_GET, CONF_WEB_URI_CONFIG_UPLOAD, web_handle_config_upload);
-  Web.handleUpload(HTTP_POST, CONF_WEB_URI_CONFIG_UPLOAD, []() {
-    Web.sendRedirect(CONF_WEB_URI_CONFIG);
-  }, web_handle_config_upload);
-  Web.handle(HTTP_ANY, CONF_WEB_URI_CONFIG_RESET, []() {
-    if (__web_config_admin_authenticate != NULL) {
-      if (!__web_config_admin_authenticate()) {
-        return Web.authenticateRequest();
-      }
+WebConfig::WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, bool (*web_admin_authenticate)(), bool config_publish) : WebAdminComponent(web_gui,web_admin_authenticate) {
+  _web_gui = web_gui;
+  _web_reset = web_reset;
+  _web_uri = uri;
+  _config_publish = config_publish;
+  _web_gui->handle(HTTP_ANY, this->_web_uri, [this]() {
+    this->_handle_change();
+  });
+  _web_gui->handle(HTTP_GET, this->_web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
+    this->_handle_upload();
+  });
+  _web_gui->handleUpload(HTTP_POST, this->_web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
+    this->_web_gui->sendRedirect(this->_web_uri);
+  }, [this]() {
+    this->_handle_upload();
+  });
+  _web_gui->handle(HTTP_ANY, this->_web_uri + WEB_CONFIG_PATH_RESET, [this]() {
+    if (this->authenticateAdmin()) {
+      return;
     }
-    if (Web.isRequestMethodPost()) {
+    if (this->_web_gui->isRequestMethodPost()) {
       log_i("preferences clear");
       preferences.clear();
     }
-    Web.sendRedirect(CONF_WEB_URI_CONFIG);
+    this->_web_gui->sendRedirect(this->_web_uri);
   });
 }
 

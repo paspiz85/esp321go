@@ -11,10 +11,10 @@
 #include "wifi_time.h"
 #endif
 #ifdef CONF_WEB
-#include "web.h"
-#include "web_templates.h"
+#include "web_gui.h"
 #include "web_config.h"
 #include "web_ota.h"
+#include "web_users.h"
 #endif
 #ifdef CONF_ADMIN_ARDUINO_OTA
 #include <ArduinoOTA.h>
@@ -47,8 +47,17 @@ uint8_t wifi_ap_pin = 0;
 #endif
 
 #ifdef CONF_WEB
+WebGUI* web_gui;
+WebConfig* web_config;
+#ifdef CONF_ADMIN_WEB_OTA
+WebOTA* web_ota;
+#endif
+#ifdef CONF_WEB_USERS
+WebUsers* web_users;
+#endif
+
 bool web_admin_authenticate() {
-  return Web.authenticate(admin_username.c_str(), admin_password.c_str());
+  return web_gui->authenticate(admin_username.c_str(), admin_password.c_str());
 }
 
 String web_html_footer(bool admin) {
@@ -68,29 +77,28 @@ String web_html_footer(bool admin) {
 }
 
 void web_handle_root() {
-  int blink = Web.getParameter("blink").toInt();
-  switch (blink) {
-  case 0: break;
-  case 2:
-    blink_led_enabled = false;
-    digitalWrite(blink_led_pin, LOW);
-    Web.sendRedirect("/");
-    return;
-  case 3:
-    blink_led_enabled = false;
-    digitalWrite(blink_led_pin, HIGH);
-    Web.sendRedirect("/");
-    return;
-  default:
-    blink_led_enabled = true;
-    Web.sendRedirect("/");
+  int action = web_gui->getParameter("action").toInt();
+  if (action != 0) {
+    switch (action) {
+    case 2:
+      blink_led_enabled = false;
+      digitalWrite(blink_led_pin, LOW);
+      break;
+    case 3:
+      blink_led_enabled = false;
+      digitalWrite(blink_led_pin, HIGH);
+      break;
+    default:
+      blink_led_enabled = true;
+    }
+    web_gui->sendRedirect("/");
     return;
   }
-  String title = WebTemplates.getTitle();
+  String title = web_gui->getTitle();
   String html = "<body style=\"text-align:center\"><h1>"+title+"</h1>";
   html += "<h3>Hello World</h3>";
   html += "<form action=\"/\" method=\"post\">";
-  html += "<select name=\"blink\" required>";
+  html += "<select name=\"action\" required>";
   html += "<option value=\"0\"></option>";
   html += "<option value=\"1\">Lampeggia</option>";
   html += "<option value=\"2\">Sempre acceso</option>";
@@ -99,9 +107,9 @@ void web_handle_root() {
   html += "<p><input type=\"submit\" value=\"OK\" /></p>";
   html += "</form>";
   html += "<p><a href=\"/config\">Configurazione</a></p>";
-  html += WebTemplates.getFooter(false);
+  html += web_gui->getFooter(false);
   html += "</body>";
-  WebTemplates.sendPage(title,html);
+  web_gui->sendPage(title,html);
 }
 #endif
 
@@ -126,7 +134,7 @@ void loop() {
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
 #ifdef CONF_WEB
-  Web.loopToHandleClients();
+  web_gui->loopToHandleClients();
 #endif
 }
 
@@ -207,16 +215,22 @@ void setup() {
   if (web_html_title == "") {
     web_html_title = CONF_WEB_HTML_TITLE;
   }
-  Web.setupHTTP();
 #ifdef CONF_WEB_HTTPS
-  Web.setupHTTPS(preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+  web_gui = new WebGUI(80,443,preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+#else
+  web_gui = new WebGUI();
 #endif
-  WebTemplates.setup(web_html_title, web_html_footer);
-  web_config_setup(web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
+  web_gui->setTitle(web_html_title);
+  web_gui->setFooter(web_html_footer);
+  WebReset* web_reset = new WebReset(web_gui,CONF_WEB_URI_RESET,web_admin_authenticate);
+  web_config = new WebConfig(web_gui,web_reset,CONF_WEB_URI_CONFIG,web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
 #ifdef CONF_ADMIN_WEB_OTA
-  web_ota_setup(web_admin_authenticate);
+  web_ota = new WebOTA(web_gui,CONF_WEB_URI_FIRMWARE_UPDATE,web_admin_authenticate);
 #endif
-  Web.handle(HTTP_ANY, "/", web_handle_root);
-  Web.begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
+#ifdef CONF_WEB_USERS
+  web_users = new WebUsers(web_gui,admin_username,admin_password,preferences.getString(PREF_WEB_USERS));
+#endif
+  web_gui->handle(HTTP_ANY, "/", web_handle_root);
+  web_gui->begin(preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME).c_str());
 #endif
 }

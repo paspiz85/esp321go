@@ -8,6 +8,12 @@
 #include "base_platform.h"
 #include <Arduino.h>
 #include <Arduino_JSON.h>
+#include <base64.h>
+#ifdef PLATFORM_ESP32
+extern "C" {
+#include "crypto/base64.h"
+}
+#endif
 
 const PROGMEM char * EMPTY = "";
 
@@ -286,5 +292,59 @@ String html_input(ctype_t type, String name = "value", String value = EMPTY, Str
     return "<input type=\""+input_type+"\" name=\""+name+"\" value=\""+html_encode(value)+"\" "+input_options+" "+attrs+"/>";
   }
 }
+
+String base64_encode_str(String input) {
+  return base64::encode(input);
+}
+
+#ifdef PLATFORM_ESP32
+String base64_decode_str(String input) {
+  const char *base64String = input.c_str();
+  size_t length;
+  unsigned char *array = base64_decode(reinterpret_cast<const unsigned char *>(base64String), strlen(base64String), &length);
+  String result = "";
+  for (size_t i = 0; i < length; i++) {
+    result += (char)array[i];
+  }
+  return result;
+  return "";
+}
+#else
+static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+int base64_index(char c) {
+  if (c >= 'A' && c <= 'Z')
+    return c - 'A';
+  if (c >= 'a' && c <= 'z')
+    return c - 'a' + 26;
+  if (c >= '0' && c <= '9')
+    return c - '0' + 52;
+  if (c == '+')
+    return 62;
+  if (c == '/')
+    return 63;
+  return -1;
+}
+
+String base64_decode_str(String encodedString) {
+  String decodedString = "";
+  size_t len = encodedString.length();
+
+  for (size_t i = 0; i < len; i += 4) {
+    unsigned char a = base64_index(encodedString[i]);
+    unsigned char b = base64_index(encodedString[i + 1]);
+    unsigned char c = base64_index(encodedString[i + 2]);
+    unsigned char d = base64_index(encodedString[i + 3]);
+
+    decodedString += (a << 2) | (b >> 4);
+    if (encodedString[i + 2] != '=')
+      decodedString += ((b & 15) << 4) | (c >> 2);
+    if (encodedString[i + 3] != '=')
+      decodedString += ((c & 3) << 6) | d;
+  }
+
+  return decodedString;
+}
+#endif
 
 #endif

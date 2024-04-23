@@ -16,6 +16,14 @@ Dalla cartella del progetto:
 ```
 arduino-cli compile -e -m esp321go --clean --output-dir target
 ```
+Tale comando suò essere configurato come alias Git con:
+```
+git config alias.build '!arduino-cli compile -e -m esp321go --clean --output-dir target'
+```
+In questo modo le successive compilazioni posso essere fatte con:
+```
+git build
+```
 
 #### Caricamento
 Individuare la porta a cui è collegata la scheda:

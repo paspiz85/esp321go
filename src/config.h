@@ -54,6 +54,10 @@
 #define PREF_WEB_CERT_KEY                 "web_cert_key"
 #endif
 
+#ifdef CONF_WEB_USERS
+#define PREF_WEB_USERS                    "users"
+#endif
+
 #ifdef CONF_WIFI
 #define PREF_WIFI_AP_IP                   "wifi0_ip"
 #define PREF_WIFI_AP_PIN                  "wifi0_pin"
@@ -100,6 +104,9 @@ const Config config_defs[] = {
 #endif
   { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
   { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
+#ifdef CONF_WEB_USERS
+  { .key = PREF_WEB_USERS,            .type = STRUCT, .desc = EMPTY },
+#endif
 #ifdef CONF_WEB_HTTPS
   { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM" },
   { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM" },
