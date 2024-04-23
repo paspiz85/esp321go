@@ -35,12 +35,12 @@ private:
   uint16_t _http_port = 0;
   uint16_t _https_port = 0;
 #ifdef PLATFORM_ESP8266
-  ESP8266WebServer * _http_server = NULL;
+  ESP8266WebServer* _http_server = NULL;
 #else
-  WebServer * _http_server = NULL;
+  WebServer* _http_server = NULL;
 #endif
 #ifdef CONF_WEB_HTTPS
-  BearSSL::ESP8266WebServerSecure * _https_server = NULL;
+  BearSSL::ESP8266WebServerSecure* _https_server = NULL;
   void _handleUpgradeHTTPS();
 #endif
   bool _mdns_enabled = false;
@@ -53,7 +53,7 @@ public:
   void loopToHandleClients();
   bool isRequestSecure();
   bool isRequestMethodPost();
-  bool authenticate(const char * username, const char * password);
+  bool authenticate(const char* username, const char* password);
   void authenticateRequest();
   String getParameter(const String& name);
   String getPathArg(int n);
@@ -65,11 +65,11 @@ public:
   String cookieRead(const String& name);
   HTTPUpload& getUpload();
   void sendResponse(int status_code, const String& content_type, const String& text, const String& filename = "");
-  void sendResponse(int status_code, const String& content_type, uint8_t chunks_num, const char * chunks[]);
+  void sendResponse(int status_code, const String& content_type, uint8_t chunks_num, const char* chunks[]);
   void sendRedirect(String redirect_uri, const String& message = "", uint16_t refresh = CONF_WEB_REDIRECT_REFRESH_MIN);
   void handle(HTTPMethod method, const Uri &uri, std::function<void(void)> fn);
   void handleUpload(HTTPMethod method, const Uri &uri, std::function<void(void)> fn, std::function<void(void)> ufn);
-  virtual void begin(const char * name = "", void (*handle_notFound)() = nullptr);
+  virtual void begin(const char* name = "", std::function<void(void)> handle_notFound = NULL);
 };
 
 void WebPlatform::loopToHandleClients() {
@@ -112,7 +112,7 @@ bool WebPlatform::isRequestMethodPost() {
   return false;
 }
 
-bool WebPlatform::authenticate(const char * username, const char * password) {
+bool WebPlatform::authenticate(const char* username, const char* password) {
 #ifdef CONF_WEB_HTTPS
   if (_https_server != NULL) {
     return _https_server->authenticate(username, password);
@@ -205,7 +205,7 @@ void WebPlatform::cookieCreate(const String& name, const String& value, unsigned
   String cookieHeader = name + "=" + value;
   if (max_age > 0) {
     cookieHeader += "; max-age=";
-    cookieHeader += String(max_age).c_str();
+    cookieHeader += max_age;
   }
   sendHeader("Set-Cookie", cookieHeader);
 }
@@ -262,7 +262,7 @@ void WebPlatform::sendResponse(int status_code, const String& content_type, cons
   }
 }
 
-void WebPlatform::sendResponse(int status_code, const String& content_type, uint8_t chunks_num, const char * chunks[]) {
+void WebPlatform::sendResponse(int status_code, const String& content_type, uint8_t chunks_num, const char* chunks[]) {
   if (chunks_num == 0) {
     sendResponse(status_code,content_type,"");
     return;
@@ -309,15 +309,15 @@ void WebPlatform::sendResponse(int status_code, const String& content_type, uint
   }
 }
 
-void WebPlatform::sendRedirect(String redirect_uri, const String& message, uint16_t refresh ) {
+void WebPlatform::sendRedirect(String redirect_uri, const String& message, uint16_t refresh) {
   if (redirect_uri == "") {
     redirect_uri = getHeader("Referer");
-    log_d("referer %s", redirect_uri.c_str());
+    log_d("referer %s", redirect_uri);
   }
   if (redirect_uri == "") {
     redirect_uri = "/";
   }
-  log_d("redirect_uri %s", redirect_uri.c_str());
+  log_d("redirect_uri %s", redirect_uri);
   if (message == "") {
     sendHeader("Location", redirect_uri, true);
     sendResponse(302,"text/plain","");
@@ -376,14 +376,14 @@ WebPlatform::WebPlatform(const uint16_t http_port) {
     return;
   }
   _https_port = https_port > 0 ? https_port : CONF_WEB_HTTPS_PORT;
-  const char * crt_str = crt != "" ? crt.c_str() : CONF_WEB_HTTPS_CERT; 
-  const char * key_str = key != "" ? key.c_str() : CONF_WEB_HTTPS_CERT_KEY;
+  const char* crt_str = crt != "" ? crt.c_str() : CONF_WEB_HTTPS_CERT; 
+  const char* key_str = key != "" ? key.c_str() : CONF_WEB_HTTPS_CERT_KEY;
   _https_server = new BearSSL::ESP8266WebServerSecure(_https_port);
   _https_server->getServer().setRSACert(new BearSSL::X509List(crt_str), new BearSSL::PrivateKey(key_str));
 #endif
 }
 
-void WebPlatform::begin(const char * name, void (*handle_notFound)()) {
+void WebPlatform::begin(const char* name, std::function<void(void)> handle_notFound) {
   if (_http_server == NULL) {
     return;
   }
@@ -394,7 +394,7 @@ void WebPlatform::begin(const char * name, void (*handle_notFound)()) {
   } else {
     _web_server_hostname = WiFiUtils::getIP();
   }
-  const char * header_keys[] = {"Accept", "Referer"};
+  const char* header_keys[] = {"Accept", "Referer"};
   size_t header_keys_size = sizeof(header_keys) / sizeof(char*);
 #ifdef CONF_WEB_HTTPS
   if (_https_server == NULL) {

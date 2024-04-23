@@ -21,7 +21,7 @@ private:
   WebGUI* _web_gui;
   String _web_uri;
 public:
-  WebOTA(WebGUI* web_gui, const String& uri, bool (*web_admin_authenticate)() = nullptr) : WebAdminComponent(web_gui,web_admin_authenticate) {
+  WebOTA(WebGUI* web_gui, const String& uri, std::function<bool(void)> web_admin_authenticate = NULL) : WebAdminComponent(web_gui,web_admin_authenticate) {
     _web_gui = web_gui;
     _web_uri = uri;
     _web_gui->handle(HTTP_GET, _web_uri, [this]() {
@@ -53,7 +53,7 @@ public:
       }
       HTTPUpload& upload = _web_gui->getUpload();
       if (upload.status == UPLOAD_FILE_START) {
-        log_i("Update: %s\n", upload.filename.c_str());
+        log_i("Update: %s\n", upload.filename);
         if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
           Update.printError(Serial);
         }

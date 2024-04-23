@@ -10,7 +10,7 @@
 
 // https://github.com/adafruit/DHT-sensor-library/blob/master/DHT.h
 
-DHT * dht = NULL;
+DHT* dht = NULL;
 float dht_temp = NAN;
 float dht_hum = NAN;
 float dht_temp_last = NAN;

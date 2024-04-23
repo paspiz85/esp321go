@@ -38,7 +38,7 @@ private:
 #else
   static WiFiMulti _multi;
 #endif
-  static void (*_state_changed)(uint8_t,bool);
+  static std::function<void(uint8_t,bool)> _state_changed;
 public:
   static uint8_t getMode();
   static void setMode(uint8_t mode);
@@ -47,12 +47,12 @@ public:
   static String getIP();
   static String getInfo();
   static void loopToHandleConnection(uint32_t mode_limit_ms = 0);
-  static void addAP(const char * ssid, const char * pswd);
-  static void setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
+  static void addAP(const char* ssid, const char* pswd);
+  static void setup(uint8_t mode, const char* ap_ip, const char* ap_ssid, const char* ap_pswd, 
     uint32_t conn_timeout = CONF_WIFI_CONN_TIMEOUT_MS,
     uint32_t check_interval_ms = CONF_WIFI_CHECK_INTERVAL_MIN, 
     uint32_t check_threshold_ms = CONF_WIFI_CHECK_THRESHOLD,
-    void (*state_changed)(uint8_t,bool) = nullptr);
+    std::function<void(uint8_t,bool)> state_changed = NULL);
 };
 
 uint8_t WiFiUtils::_mode = WIFI_OFF;
@@ -72,7 +72,7 @@ ESP8266WiFiMulti WiFiUtils::_multi;
 #else
 WiFiMulti WiFiUtils::_multi;
 #endif
-void (*WiFiUtils::_state_changed)(uint8_t,bool) = nullptr;
+std::function<void(uint8_t,bool)> WiFiUtils::_state_changed = NULL;
 
 uint8_t WiFiUtils::getMode() {
   return _mode;
@@ -82,23 +82,23 @@ void WiFiUtils::setMode(uint8_t mode) {
   if (mode == WIFI_OFF) {
     WiFi.disconnect(true);
     _mode = mode;
-    if (_state_changed != nullptr) {
+    if (_state_changed != NULL) {
       _state_changed(_mode,false);
     }
     return;
   }
   if (mode == WIFI_AP) {
     log_w("Attivazione AP in corso ...");
-    log_d("%s %s",_ap_ssid.c_str(),_ap_pswd.c_str());
+    log_d("%s %s",_ap_ssid,_ap_pswd);
     WiFi.softAPConfig(_ap_ip,_ap_ip,_ap_subnet);
     WiFi.softAP(_ap_ssid.c_str(),_ap_pswd.c_str());
   }
   WiFi.mode((WiFiMode_t) mode);
   _mode = mode;
   if (_mode == WIFI_AP) {
-    log_w("IP address: %s", getIP().c_str());
+    log_w("IP address: %s",getIP());
   }
-  if (_state_changed != nullptr) {
+  if (_state_changed != NULL) {
     _state_changed(_mode,_mode == WIFI_AP);
   }
 }
@@ -148,11 +148,11 @@ void WiFiUtils::loopToHandleConnection(uint32_t mode_limit_ms) {
       _last_check = millis();
       if (_multi.run(_conn_timeout) == WL_CONNECTED) {
         _last_check_ok = _last_check;
-        if (_state_changed != nullptr) {
+        if (_state_changed != NULL) {
           _state_changed(_mode,false);
         }
       } else {
-        if (_state_changed != nullptr) {
+        if (_state_changed != NULL) {
           _state_changed(_mode,true);
         }
         if (_check_threshold_ms == 0 || at_interval(_check_threshold_ms,_last_check_ok)) {
@@ -164,14 +164,14 @@ void WiFiUtils::loopToHandleConnection(uint32_t mode_limit_ms) {
   }
 }
 
-void WiFiUtils::addAP(const char * ssid, const char * pswd) {
+void WiFiUtils::addAP(const char* ssid, const char* pswd) {
   _multi.addAP(ssid,pswd);
   _count++;
 }
 
-void WiFiUtils::setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, const char * ap_pswd, 
+void WiFiUtils::setup(uint8_t mode, const char* ap_ip, const char* ap_ssid, const char* ap_pswd, 
     uint32_t conn_timeout, uint32_t check_interval_ms, uint32_t check_threshold_ms,
-    void (*state_changed)(uint8_t,bool)) {
+    std::function<void(uint8_t,bool)> state_changed) {
   log_i("Preparazione WIFI ...");
   _mode_setup = mode;
   _ap_ip.fromString(ap_ip);
@@ -187,7 +187,7 @@ void WiFiUtils::setup(uint8_t mode, const char * ap_ip, const char * ap_ssid, co
     setMode(WIFI_STA);
     log_i("Connessione in corso ...");
     if (_multi.run(_conn_timeout) == WL_CONNECTED) {
-      log_i("IP address: %s", getIP().c_str());
+      log_i("IP address: %s", getIP());
       connected = true;
     } else {
       log_i("Connessione non riuscita");

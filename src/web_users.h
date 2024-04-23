@@ -19,7 +19,7 @@ private:
   WebPlatform* _platform;
   JSONVar _users;
 public:
-  WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, String config);
+  WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, const String& config);
   bool login();
   void logout();
 };
@@ -32,8 +32,8 @@ bool WebUsers::login() {
     if (i != -1) {
       String username = value.substring(0, i);
       String password = value.substring(i + 1);
-      log_d("username %s", username.c_str());
-      log_d("password %s", password.c_str());
+      log_d("username %s", username);
+      log_d("password %s", password);
       if (_users.hasOwnProperty(username)) {
         JSONVar user = _users[username];
         String user_password = user[USER_PASSWORD];
@@ -53,13 +53,10 @@ void WebUsers::logout() {
   _platform->sendRedirect("/");
 }
 
-WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, String config) {
+WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, const String& config) {
   _platform = platform;
-  if (config == "") {
-    config = "{}";
-  }
   log_d("users config is %s", config);
-  _users = JSON.parse(config);
+  _users = JSON.parse(config == "" ? "{}" : config);
   JSONVar admin;
   admin[USER_PASSWORD] = admin_password;
   _users[admin_username] = admin;
@@ -70,11 +67,11 @@ WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const St
   _platform->handle(HTTP_ANY, CONF_WEB_URI_LOGIN, [this]() {
     JSONVar keys = _users.keys();
     for (int i = 0; i < keys.length(); i++) {
-      const char * key = keys[i];
+      const char* key = keys[i];
       JSONVar user = _users[key];
       String user_password = user[USER_PASSWORD];
       if (_platform->authenticate(key, user_password.c_str())) {
-        _platform->cookieCreate(USER_COOKIE,base64_encode_str(String(key)+":"+user_password).c_str(),USER_COOKIE_MAXAGE);
+        _platform->cookieCreate(USER_COOKIE,base64_encode_str(String(key)+":"+user_password),USER_COOKIE_MAXAGE);
         _platform->cacheControl(false);
         return _platform->sendRedirect("/");
       }

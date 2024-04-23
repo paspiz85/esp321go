@@ -14,7 +14,9 @@
 #include "web_gui.h"
 #include "web_config.h"
 #include "web_ota.h"
+#ifdef CONF_WEB_USERS
 #include "web_users.h"
+#endif
 #endif
 #ifdef CONF_ADMIN_ARDUINO_OTA
 #include <ArduinoOTA.h>
@@ -69,7 +71,7 @@ String web_html_footer(bool admin) {
   html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
 #ifdef CONF_ADMIN_WEB_OTA
   if (admin) {
-    html += " <button class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_FIRMWARE_UPDATE)+"'\">Update</button>";
+    html += " <button class=\"btn btn-secondary\" onclick=\"location='"+web_ota->getUri()+"'\">Update</button>";
   }
 #endif
   html += "</div>";
@@ -199,10 +201,11 @@ void setup() {
       if (PinMemory.getPinState(wifi_ap_pin) != value) {
         PinMemory.writeDigital(wifi_ap_pin, value, true);
       }
-    }
-  );
+    });
   delay(1000);
-  WiFiTime::setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+  WiFiTime::setup(CONF_WIFI_NTP_SERVER,
+    CONF_WIFI_NTP_INTERVAL,
+    preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
 #endif
   admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
   admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
@@ -223,7 +226,8 @@ void setup() {
   web_gui->setTitle(web_html_title);
   web_gui->setFooter(web_html_footer);
   WebReset* web_reset = new WebReset(web_gui,CONF_WEB_URI_RESET,web_admin_authenticate);
-  web_config = new WebConfig(web_gui,web_reset,CONF_WEB_URI_CONFIG,web_admin_authenticate,preferences.getBool(PREF_CONFIG_PUBLISH));
+  web_config = new WebConfig(web_gui,web_reset,CONF_WEB_URI_CONFIG,web_admin_authenticate,
+    preferences.getBool(PREF_CONFIG_PUBLISH));
 #ifdef CONF_ADMIN_WEB_OTA
   web_ota = new WebOTA(web_gui,CONF_WEB_URI_FIRMWARE_UPDATE,web_admin_authenticate);
 #endif

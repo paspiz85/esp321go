@@ -6,16 +6,16 @@
 class WebAdminComponent {
 private:
   WebPlatform* _platform;
-  bool (*_web_admin_authenticate)();
+  std::function<bool(void)> _web_admin_authenticate;
 public:
-  WebAdminComponent(WebPlatform* platform, bool (*web_admin_authenticate)() = nullptr) {
+  WebAdminComponent(WebPlatform* platform, std::function<bool(void)> web_admin_authenticate = NULL) {
     _platform = platform;
     _web_admin_authenticate = web_admin_authenticate;
   };
   WebPlatform* getPlatform() {
     return _platform;
   };
-  virtual bool authenticateAdmin() {
+  bool authenticateAdmin() {
     if (_web_admin_authenticate != NULL) {
       if (!_web_admin_authenticate()) {
         _platform->authenticateRequest();

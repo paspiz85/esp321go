@@ -70,11 +70,11 @@
 #endif
 
 typedef struct config {
-  const char * key;
+  const char* key;
   ctype_t type;
-  const char * desc;
+  const char* desc;
   int count;
-  const struct config * refs;
+  const struct config* refs;
   int refs_len;
 } Config;
 
@@ -125,7 +125,7 @@ const Config config_defs[] = {
 
 Preferences preferences;
 
-String preferences_get(const char * key, ctype_t type, bool emptyOnNull = false) {
+String preferences_get(const char* key, ctype_t type, bool emptyOnNull = false) {
   if (emptyOnNull && !preferences.isKey(key)) {
     return EMPTY;
   }
@@ -147,7 +147,7 @@ String preferences_get(const char * key, ctype_t type, bool emptyOnNull = false)
   }
 }
 
-bool preferences_remove(const char * key,ctype_t type, String publish_key = EMPTY) {
+bool preferences_remove(const char* key,ctype_t type, String publish_key = EMPTY) {
   log_d("removing %s",key);
   preferences.remove(key);
   if (publish_key != EMPTY) {
@@ -162,7 +162,7 @@ bool preferences_remove(const char * key,ctype_t type, String publish_key = EMPT
   return true;
 }
 
-bool preferences_put(const char * key, ctype_t type, String value, String publish_key = EMPTY) {
+bool preferences_put(const char* key, ctype_t type, String value, String publish_key = EMPTY) {
   if (type == UINT8) {
     uint8_t number = str_to_uint8(value);
     log_d("saving %s = %hhu",key,number);

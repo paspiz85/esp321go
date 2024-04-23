@@ -15,7 +15,7 @@ typedef struct bmp280_read {
   float value = NAN;
 } bmp280_read_t;
 
-Adafruit_BMP280 * bmp280 = NULL;
+Adafruit_BMP280* bmp280 = NULL;
 bmp280_read_t last_temp;
 bmp280_read_t last_pressure;
 

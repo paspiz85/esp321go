@@ -9,6 +9,16 @@
 #include <Arduino.h>
 
 class PinMemoryClass {
+private:
+  int _pin_states[HW_PIN_COUNT] = {-1};
+  uint32_t _pin_write_last_ms[HW_PIN_COUNT] = {0};
+#ifdef PLATFORM_ESP32
+  int8_t _pin_channel[HW_PIN_COUNT] = {-1};
+  uint8_t _channels_used = 0;
+#endif
+  void (*_on_digitalWrite)(uint8_t,int,bool) = NULL;
+  void (*_on_analogWrite)(uint8_t,uint16_t,bool) = NULL;
+  void (*_on_tone)(uint8_t,uint32_t,bool) = NULL;
 public:
 #ifdef PLATFORM_ESP32
   void pinAnalogModeSetup(uint8_t pin, double freq, uint8_t resolution_bits);
@@ -22,16 +32,6 @@ public:
   void setup(void (*on_digitalWrite)(uint8_t,int,bool),
     void (*on_analogWrite)(uint8_t,uint16_t,bool),
     void (*on_tone)(uint8_t,uint32_t,bool));
-private:
-  int _pin_states[HW_PIN_COUNT] = {-1};
-  uint32_t _pin_write_last_ms[HW_PIN_COUNT] = {0};
-#ifdef PLATFORM_ESP32
-  int8_t _pin_channel[HW_PIN_COUNT] = {-1};
-  uint8_t _channels_used = 0;
-#endif
-  void (*_on_digitalWrite)(uint8_t,int,bool) = nullptr;
-  void (*_on_analogWrite)(uint8_t,uint16_t,bool) = nullptr;
-  void (*_on_tone)(uint8_t,uint32_t,bool) = nullptr;
 };
 
 #ifdef PLATFORM_ESP32
@@ -54,7 +54,7 @@ void PinMemoryClass::writeDigital(uint8_t pin, int value, bool is_init) {
   digitalWrite(pin,value);
   _pin_states[pin] = value;
   _pin_write_last_ms[pin] = millis();
-  if (_on_digitalWrite != nullptr) {
+  if (_on_digitalWrite != NULL) {
     _on_digitalWrite(pin,value,is_init);
   }
 }
@@ -67,7 +67,7 @@ void PinMemoryClass::writePWM(uint8_t pin, uint16_t value, bool is_init) {
 #endif
   _pin_states[pin] = value;
   _pin_write_last_ms[pin] = millis();
-  if (_on_analogWrite != nullptr) {
+  if (_on_analogWrite != NULL) {
     _on_analogWrite(pin,value,is_init);
   }
 }
@@ -80,7 +80,7 @@ void PinMemoryClass::writeFM(uint8_t pin, uint32_t value, bool is_init) {
 #endif
   _pin_states[pin] = value;
   _pin_write_last_ms[pin] = millis();
-  if (_on_tone != nullptr) {
+  if (_on_tone != NULL) {
     _on_tone(pin,value,is_init);
   }
 }

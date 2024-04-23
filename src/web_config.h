@@ -15,7 +15,7 @@
 #define WEB_CONFIG_PATH_RESET   "/reset"
 #define WEB_CONFIG_PATH_UPLOAD  "/upload"
 
-void web_config_handle_value_export(const char * key, Config config, JSONVar * json_export) {
+void web_config_handle_value_export(const char* key, const Config& config, JSONVar* json_export) {
   if (!preferences.isKey(key)) {
     return;
   }
@@ -58,13 +58,13 @@ void web_config_handle_value_export(const char * key, Config config, JSONVar * j
       break;
     case STRUCT:
       // funziona solo perchè c'è una sola STRUCT (rules)
-      static JSONVar v = JSON.parse(preferences.getString(key).c_str());
+      static JSONVar v = JSON.parse(preferences.getString(key));
       (*json_export)[key] = v;
       break;
   }
 }
   
-void web_config_handle_value_import(const char * key, Config config, JSONVar * json_import) {
+void web_config_handle_value_import(const char* key, const Config& config, JSONVar* json_import) {
   if (!(json_import->hasOwnProperty(key))) {
     return;
   }
@@ -122,7 +122,7 @@ private:
   uint8_t _upload_buf[CONF_WEB_UPLOAD_LIMIT];
   void _handle_upload();
 public:
-  WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, bool (*web_admin_authenticate)() = nullptr, bool config_publish = false);
+  WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, std::function<bool(void)> web_admin_authenticate = NULL, bool config_publish = false);
 };
 
 void WebConfig::_handle_change() {
@@ -134,7 +134,7 @@ void WebConfig::_handle_change() {
   bool is_reset = _web_gui->getParameter("reset").equals("true");
   bool is_download = _web_gui->getParameter("download").equals("true");
   String title = _web_gui->getTitle();
-  const Config * config_selected = NULL;
+  const Config* config_selected = NULL;
   if (param_name != "") {
     for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
@@ -174,7 +174,7 @@ void WebConfig::_handle_change() {
         for (int j = 1; j <= config_defs[i].count; j++) {
           for (int k = 0; k < config_defs[i].refs_len; k++) {
             String config_key_str = config_defs[i].key+String(j)+config_defs[i].refs[k].key;
-            const char * config_key = config_key_str.c_str();
+            const char* config_key = config_key_str.c_str();
             if (is_download) {
               web_config_handle_value_export(config_key,config_defs[i].refs[k],&json_export);
             } else {
@@ -260,7 +260,7 @@ void WebConfig::_handle_upload() {
   } else if (upload.status == UPLOAD_FILE_END) {
     log_i("Upload Success: %u", upload.totalSize);
     _upload_buf[_upload_len] = 0;
-    JSONVar json_import = JSON.parse(String((char *)_upload_buf));
+    JSONVar json_import = JSON.parse(String((char*)_upload_buf));
     _upload_len = 0;
     for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
@@ -277,7 +277,7 @@ void WebConfig::_handle_upload() {
   }
 }
 
-WebConfig::WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, bool (*web_admin_authenticate)(), bool config_publish) : WebAdminComponent(web_gui,web_admin_authenticate) {
+WebConfig::WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, std::function<bool(void)> web_admin_authenticate, bool config_publish) : WebAdminComponent(web_gui,web_admin_authenticate) {
   _web_gui = web_gui;
   _web_reset = web_reset;
   _web_uri = uri;
