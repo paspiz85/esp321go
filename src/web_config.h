@@ -282,26 +282,26 @@ WebConfig::WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, bo
   _web_reset = web_reset;
   _web_uri = uri;
   _config_publish = config_publish;
-  _web_gui->handle(HTTP_ANY, this->_web_uri, [this]() {
-    this->_handle_change();
+  _web_gui->handle(HTTP_ANY, _web_uri, [this]() {
+    _handle_change();
   });
-  _web_gui->handle(HTTP_GET, this->_web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
-    this->_handle_upload();
+  _web_gui->handle(HTTP_GET, _web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
+    _handle_upload();
   });
-  _web_gui->handleUpload(HTTP_POST, this->_web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
-    this->_web_gui->sendRedirect(this->_web_uri);
+  _web_gui->handleUpload(HTTP_POST, _web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
+    _web_gui->sendRedirect(_web_uri);
   }, [this]() {
-    this->_handle_upload();
+    _handle_upload();
   });
-  _web_gui->handle(HTTP_ANY, this->_web_uri + WEB_CONFIG_PATH_RESET, [this]() {
-    if (this->authenticateAdmin()) {
+  _web_gui->handle(HTTP_ANY, _web_uri + WEB_CONFIG_PATH_RESET, [this]() {
+    if (authenticateAdmin()) {
       return;
     }
-    if (this->_web_gui->isRequestMethodPost()) {
+    if (_web_gui->isRequestMethodPost()) {
       log_i("preferences clear");
       preferences.clear();
     }
-    this->_web_gui->sendRedirect(this->_web_uri);
+    _web_gui->sendRedirect(_web_uri);
   });
 }
 

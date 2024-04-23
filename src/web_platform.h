@@ -400,7 +400,7 @@ void WebPlatform::begin(const char * name, void (*handle_notFound)()) {
   if (_https_server == NULL) {
 #endif
     if (handle_notFound == NULL) {
-      _http_server->onNotFound([this]() { this->sendResponse(404, "text/plain", "Not Found"); });
+      _http_server->onNotFound([this]() { sendResponse(404, "text/plain", "Not Found"); });
     } else {
       _http_server->onNotFound(handle_notFound);
     }
@@ -414,10 +414,10 @@ void WebPlatform::begin(const char * name, void (*handle_notFound)()) {
     }
 #ifdef CONF_WEB_HTTPS
   } else {
-    _http_server->onNotFound([this]() { this->_handleUpgradeHTTPS(); });
+    _http_server->onNotFound([this]() { _handleUpgradeHTTPS(); });
     _http_server->begin();
     if (handle_notFound == NULL) {
-      _https_server->onNotFound([this]() { this->sendResponse(404, "text/plain", "Not Found"); });
+      _https_server->onNotFound([this]() { sendResponse(404, "text/plain", "Not Found"); });
     } else {
       _https_server->onNotFound(handle_notFound);
     }

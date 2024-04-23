@@ -25,10 +25,10 @@ public:
     _web_gui = web_gui;
     _web_uri = uri;
     _web_gui->handle(HTTP_GET, _web_uri, [this]() {
-      if (this->authenticateAdmin()) {
+      if (authenticateAdmin()) {
         return;
       }
-      String title = this->_web_gui->getTitle();
+      String title = _web_gui->getTitle();
       String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Firmware Update</h2>";
   #ifdef PLATFORM_ESP32
       html += "<p>ESP32 Chip model "+String(ESP.getChipModel())+" - Rev "+String(ESP.getChipRevision())+"</p>";
@@ -43,15 +43,15 @@ public:
       html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='/'\">Cancel</button>";
       html += "</p></form>";
       html += "</body>";
-      this->_web_gui->sendPage(title,html);
+      _web_gui->sendPage(title,html);
     });
     _web_gui->handleUpload(HTTP_POST, _web_uri, [this]() {
-      web_reset(this->getPlatform(), Update.hasError() ? "FAILED" : "COMPLETED");
+      web_reset(getPlatform(), Update.hasError() ? "FAILED" : "COMPLETED");
     }, [this]() {
-      if (this->authenticateAdmin()) {
+      if (authenticateAdmin()) {
         return;
       }
-      HTTPUpload& upload = this->_web_gui->getUpload();
+      HTTPUpload& upload = _web_gui->getUpload();
       if (upload.status == UPLOAD_FILE_START) {
         log_i("Update: %s\n", upload.filename.c_str());
         if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size

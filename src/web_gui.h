@@ -37,9 +37,14 @@ private:
   String _title;
   String (*_footer)(bool) = nullptr;
 public:
+#ifdef CONF_WEB_HTTPS
+  WebGUI(const uint16_t http_port = CONF_WEB_HTTP_PORT, const uint16_t https_port = CONF_WEB_HTTPS_PORT, String crt = "", String key = "") : WebPlatform(http_port,https_port,crt,key) {};
+#else
+  WebGUI(const uint16_t http_port = CONF_WEB_HTTP_PORT) : WebPlatform(http_port) {};
+#endif
   void begin(const char * name = "", void (*handle_notFound)() = nullptr) override {
     handle(HTTP_ANY, "/css/style.css", [this]() {
-      this->sendResponse(200, "text/css", __web_templates_css);
+      sendResponse(200, "text/css", __web_templates_css);
     });
     WebPlatform::begin(name, handle_notFound);
   };

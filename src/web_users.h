@@ -65,21 +65,21 @@ WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const St
   _users[admin_username] = admin;
   log_d("users are %s", JSON.stringify(_users));
   _platform->handle(HTTP_ANY, CONF_WEB_URI_LOGOUT, [this]() {
-    this->logout();
+    logout();
   });
   _platform->handle(HTTP_ANY, CONF_WEB_URI_LOGIN, [this]() {
-    JSONVar keys = this->_users.keys();
+    JSONVar keys = _users.keys();
     for (int i = 0; i < keys.length(); i++) {
       const char * key = keys[i];
-      JSONVar user = this->_users[key];
+      JSONVar user = _users[key];
       String user_password = user[USER_PASSWORD];
-      if (this->_platform->authenticate(key, user_password.c_str())) {
-        this->_platform->cookieCreate(USER_COOKIE,base64_encode_str(String(key)+":"+user_password).c_str(),USER_COOKIE_MAXAGE);
-        this->_platform->cacheControl(false);
-        return this->_platform->sendRedirect("/");
+      if (_platform->authenticate(key, user_password.c_str())) {
+        _platform->cookieCreate(USER_COOKIE,base64_encode_str(String(key)+":"+user_password).c_str(),USER_COOKIE_MAXAGE);
+        _platform->cacheControl(false);
+        return _platform->sendRedirect("/");
       }
     }
-    return this->_platform->authenticateRequest();
+    return _platform->authenticateRequest();
   });
 }
 

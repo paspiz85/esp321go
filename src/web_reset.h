@@ -22,13 +22,13 @@ public:
   WebReset(WebPlatform* platform, const String& uri, bool (*web_admin_authenticate)() = nullptr) : WebAdminComponent(platform,web_admin_authenticate) {
     _web_uri = uri;
     platform->handle(HTTP_ANY, _web_uri, [this]() {
-      if (this->authenticateAdmin()) {
+      if (authenticateAdmin()) {
         return;
       }
-      if (!this->getPlatform()->isRequestMethodPost()) {
-        return this->getPlatform()->sendRedirect("/");
+      if (!getPlatform()->isRequestMethodPost()) {
+        return getPlatform()->sendRedirect("/");
       }
-      web_reset(this->getPlatform(),"OK");
+      web_reset(getPlatform(),"OK");
     });
   };
   const String& getUri() {
