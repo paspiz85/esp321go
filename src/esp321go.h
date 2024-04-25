@@ -101,7 +101,7 @@ String web_html_footer(bool admin) {
   html += "<a href=\""+String(PROJECT_URL)+"\">"+String(PROJECT_URL)+"</a>";
   html += "</div>";
   html += "<div style=\"margin-top:1rem\">";
-  html += String(COMPILE_VERSION)+"["+String(__TIMESTAMP__)+"]";
+  html += String(COMPILE_VERSION)+" ["+String(__TIMESTAMP__)+"]";
 #ifdef CONF_ADMIN_WEB_OTA
   if (admin) {
     html += " <button class=\"btn btn-secondary\" style=\"font-size:0.75rem;padding:0.25rem 0.5rem\" onclick=\"location='"+web_ota->getUri()+"'\">Update</button>";
