@@ -95,12 +95,16 @@ String web_html_footer(bool admin) {
   String html = "<hr/><div>";
   html += html_encode(WiFiUtils::getInfo());
   html += " - ";
-  html += "Memory Free: " +String(ESP.getFreeHeap());
-  html += " - Uptime: " +String(millis()) + "</div>";
-  html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
+  html += "Memory Free: "+String(ESP.getFreeHeap());
+  html += " - Uptime: "+String(millis())+"</div>";
+  html += "<div style=\"margin-top:1rem\">";
+  html += "<a href=\""+String(PROJECT_URL)+"\">"+String(PROJECT_URL)+"</a>";
+  html += "</div>";
+  html += "<div style=\"margin-top:1rem\">";
+  html += String(COMPILE_VERSION)+"["+String(__TIMESTAMP__)+"]";
 #ifdef CONF_ADMIN_WEB_OTA
   if (admin) {
-    html += " <button class=\"btn btn-secondary\" onclick=\"location='"+web_ota->getUri()+"'\">Update</button>";
+    html += " <button class=\"btn btn-secondary\" style=\"font-size:0.75rem;padding:0.25rem 0.5rem\" onclick=\"location='"+web_ota->getUri()+"'\">Update</button>";
   }
 #endif
   html += "</div>";
