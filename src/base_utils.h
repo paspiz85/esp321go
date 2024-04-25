@@ -5,10 +5,17 @@
  * Contiene tipi e funzioni di uso generico.
  */
 
+#include "base_platform.h"
 #include <Arduino.h>
 #include <Arduino_JSON.h>
+#include <base64.h>
+#ifdef PLATFORM_ESP32
+extern "C" {
+#include "crypto/base64.h"
+}
+#endif
 
-const PROGMEM char * EMPTY = "";
+const PROGMEM char* EMPTY = "";
 
 typedef enum {
   UINT8  = 16,
@@ -27,7 +34,7 @@ typedef enum {
   STRUCT = 29
 } ctype_t;
 
-const char * ctype_str(ctype_t type) {
+const char* ctype_str(ctype_t type) {
   switch (type) {
     case UINT8:  return "uint8";
     case UINT16: return "uint16";
@@ -78,55 +85,55 @@ String int64_to_string(int64_t num) {
   return str;
 }
 
-uint8_t str_to_uint8(const char * str) {
+uint8_t str_to_uint8(const char* str) {
   uint8_t number;
   sscanf(str, "%hhu", &number);
   return number;
 }
 
-uint16_t str_to_uint16(const char * str) {
+uint16_t str_to_uint16(const char* str) {
   uint16_t number;
   sscanf(str, "%" SCNu16, &number);
   return number;
 }
 
-uint32_t str_to_uint32(const char * str) {
+uint32_t str_to_uint32(const char* str) {
   uint32_t number;
   sscanf(str, "%" SCNu32, &number);
   return number;
 }
 
-uint64_t str_to_uint64(const char * str) {
+uint64_t str_to_uint64(const char* str) {
   uint64_t number;
   sscanf(str, "%" SCNu64, &number);
   return number;
 }
 
-int8_t str_to_int8(const char * str) {
+int8_t str_to_int8(const char* str) {
   int8_t number;
   sscanf(str, "%hhd", &number);
   return number;
 }
 
-int16_t str_to_int16(const char * str) {
+int16_t str_to_int16(const char* str) {
   int16_t number;
   sscanf(str, "%" SCNi16, &number);
   return number;
 }
 
-int32_t str_to_int32(const char * str) {
+int32_t str_to_int32(const char* str) {
   int32_t number;
   sscanf(str, "%" SCNi32, &number);
   return number;
 }
 
-int64_t str_to_int64(const char * str) {
+int64_t str_to_int64(const char* str) {
   int64_t number;
   sscanf(str, "%" SCNi64, &number);
   return number;
 }
 
-bool str_to_bool(const char * str) {
+bool str_to_bool(const char* str) {
   bool number = false;
   if (String(str) == "true") {
     number = true;
@@ -134,13 +141,13 @@ bool str_to_bool(const char * str) {
   return number;
 }
 
-float str_to_float(const char * str) {
+float str_to_float(const char* str) {
   float number;
   sscanf(str, "%f", &number);
   return number;
 }
 
-double str_to_double(const char * str) {
+double str_to_double(const char* str) {
   double number;
   sscanf(str, "%lf", &number);
   return number;
@@ -196,37 +203,37 @@ bool at_interval(uint32_t interval, uint32_t from = 0) {
 
 void items_publish(JSONVar message);
 
-void item_publish(const char * name, String value) {
+void item_publish(const char* name, String value) {
   JSONVar message;
   message[name] = value;
   items_publish(message);
 }
 
-void item_publish(const char * name, int32_t value) {
+void item_publish(const char* name, int32_t value) {
   JSONVar message;
   message[name] = value;
   items_publish(message);
 }
 
-void item_publish(const char * name, uint32_t value) {
+void item_publish(const char* name, uint32_t value) {
   JSONVar message;
   message[name] = value;
   items_publish(message);
 }
 
-void item_publish(const char * name, bool value) {
+void item_publish(const char* name, bool value) {
   JSONVar message;
   message[name] = value;
   items_publish(message);
 }
 
-void item_publish(const char * name, double value) {
+void item_publish(const char* name, double value) {
   JSONVar message;
   message[name] = value;
   items_publish(message);
 }
 
-String html_encode(String str) {
+String html_encode(const String& str) {
   String buffer;
   buffer.reserve(str.length());
   for (size_t pos = 0; pos != str.length(); ++pos) {
@@ -285,5 +292,56 @@ String html_input(ctype_t type, String name = "value", String value = EMPTY, Str
     return "<input type=\""+input_type+"\" name=\""+name+"\" value=\""+html_encode(value)+"\" "+input_options+" "+attrs+"/>";
   }
 }
+
+String base64_encode_str(const String& input) {
+  return base64::encode(input);
+}
+
+#ifdef PLATFORM_ESP32
+String base64_decode_str(const String& input) {
+  const char* base64String = input.c_str();
+  size_t length;
+  unsigned char* array = base64_decode(reinterpret_cast<const unsigned char*>(base64String), strlen(base64String), &length);
+  String result = "";
+  for (size_t i = 0; i < length; i++) {
+    result += (char)array[i];
+  }
+  return result;
+  return "";
+}
+#else
+static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+int base64_index(char c) {
+  if (c >= 'A' && c <= 'Z')
+    return c - 'A';
+  if (c >= 'a' && c <= 'z')
+    return c - 'a' + 26;
+  if (c >= '0' && c <= '9')
+    return c - '0' + 52;
+  if (c == '+')
+    return 62;
+  if (c == '/')
+    return 63;
+  return -1;
+}
+
+String base64_decode_str(String encodedString) {
+  String decodedString = "";
+  size_t len = encodedString.length();
+  for (size_t i = 0; i < len; i += 4) {
+    unsigned char a = base64_index(encodedString[i]);
+    unsigned char b = base64_index(encodedString[i + 1]);
+    unsigned char c = base64_index(encodedString[i + 2]);
+    unsigned char d = base64_index(encodedString[i + 3]);
+    decodedString += (a << 2) | (b >> 4);
+    if (encodedString[i + 2] != '=')
+      decodedString += ((b & 15) << 4) | (c >> 2);
+    if (encodedString[i + 3] != '=')
+      decodedString += ((c & 3) << 6) | d;
+  }
+  return decodedString;
+}
+#endif
 
 #endif

@@ -1,6 +1,6 @@
 
-#include "base_memory.h"
 #include "config.h"
+#include "pin_memory.h"
 #ifdef CONF_DHT
 #include "dht.h"
 #endif
@@ -8,33 +8,43 @@
 #include "bmp280.h"
 #endif
 #ifdef CONF_WIFI
-#include "wifi.h"
 #include "wifi_time.h"
+#include "openhab.h"
 #endif
 #ifdef CONF_WEB
-#include "web.h"
-#include "web_templates.h"
-#include "web_ota.h"
+#include "web_gui.h"
 #include "web_config.h"
-#include "openhab.h"
+#ifdef CONF_ADMIN_WEB_OTA
+#include "web_ota.h"
+#endif
+#ifdef CONF_WEB_USERS
+#include "web_users.h"
+#endif
+#endif
+#ifdef CONF_ADMIN_ARDUINO_OTA
+#include <ArduinoOTA.h>
 #endif
 #include "types.h"
 
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
-Input inputs[CONF_SCHEMA_INPUT_COUNT];
-Output outputs[CONF_SCHEMA_OUTPUT_COUNT];
-const Output * pin_output[CONF_SCHEMA_PIN_COUNT] = {NULL};
+String admin_username;
+String admin_password;
+
+#ifdef CONF_WIFI
 String wifi_name;
 uint8_t wifi_ap_pin = 0;
+String openhab_bus_item;
+OpenHAB* openhab = NULL;
+#endif
+
+Input inputs[CONF_SCHEMA_INPUT_COUNT];
+Output outputs[CONF_SCHEMA_OUTPUT_COUNT];
+const Output * pin_output[HW_PIN_COUNT] = {NULL};
 bool dht_publish;
 bool bmp280_publish;
 
-String html_title;
-
-String openhab_rest_uri;
-String openhab_bus_item;
 uint32_t input_read_interval_ms;
 uint32_t input_read_last_ms = 0;
 uint32_t publish_interval_ms;
@@ -45,10 +55,10 @@ bool publish_rssi;
 
 void items_publish(JSONVar data) {
 #ifdef CONF_WIFI
-  if (!wifi_have_internet()) {
+  if (!WiFiUtils::isConnected()) {
     return;
   }
-  if (openhab_rest_uri != "") {
+  if (openhab != NULL) {
     JSONVar source;
     source["type"] = "esp32";
     if (wifi_name != "") {
@@ -61,12 +71,12 @@ void items_publish(JSONVar data) {
       source["signal"] = WiFi.RSSI();
     }
     if (publish_ip) {
-      source["ipAddress"] = wifi_get_ip_address();
+      source["ipAddress"] = WiFiUtils::getIP();
     }
     JSONVar message;
     message["source"] = source;
     message["data"] = data;
-    openhab_item_state_write(openhab_rest_uri,openhab_bus_item,JSON.stringify(message));
+    openhab->item_write(openhab_bus_item,JSON.stringify(message));
   }
   // TODO gestire MQTT ?
 #endif
@@ -79,42 +89,6 @@ String digitalString(int value) {
 void on_pin_read(uint8_t pin, int value, input_type_t type, bool change = false);
 void on_pin_read(uint8_t pin, double value, input_type_t type, bool change = false);
 void on_output_write(uint8_t num,bool reset=false);
-
-void on_digitalWriteState(uint8_t pin, int value, bool is_init) {
-  const Output * output = pin_output[pin];
-  if (output != NULL) {
-    if (output->stored) {
-      preferences.putInt((output->key).c_str(),value);
-    }
-    if (!is_init && output->published) {
-      item_publish((output->name).c_str(),digitalString(value));
-    }
-  }
-}
-
-void on_analogWriteState(uint8_t pin, uint16_t value, bool is_init) {
-  const Output * output = pin_output[pin];
-  if (output != NULL) {
-    if (output->stored) {
-      preferences.putInt((output->key).c_str(),value);
-    }
-    if (!is_init && output->published) {
-      item_publish((output->name).c_str(),value);
-    }
-  }
-}
-
-void on_toneState(uint8_t pin, uint32_t value, bool is_init) {
-  const Output * output = pin_output[pin];
-  if (output != NULL) {
-    if (output->stored) {
-      preferences.putInt((output->key).c_str(),value);
-    }
-    if (!is_init && output->published) {
-      item_publish((output->name).c_str(),value);
-    }
-  }
-}
 
 int output_var_type(output_type_t type) {
   switch(type) {
@@ -138,21 +112,21 @@ String output_write(const Output * output,String input_value,bool reset=false) {
   int8_t pin = output->pin;
   if (output->type == DIGITAL_OUTPUT && pin >= 0) {
     if (input_value == "") {
-      if (getPinState(pin) == HIGH) {
-        digitalWriteState(pin,LOW);
+      if (PinMemory.getPinState(pin) == HIGH) {
+        PinMemory.writeDigital(pin,LOW);
       } else {
-        digitalWriteState(pin,HIGH);
+        PinMemory.writeDigital(pin,HIGH);
       }
       on_output_write(output->num);
     } else if (input_value == "HIGH") {
-      digitalWriteState(pin,HIGH);
+      PinMemory.writeDigital(pin,HIGH);
       on_output_write(output->num);
     } else if (input_value == "LOW") {
-      digitalWriteState(pin,LOW);
+      PinMemory.writeDigital(pin,LOW);
       on_output_write(output->num);
     }
   } else if ((output->type == PULSE_1_OUTPUT || output->type == PULSE_2_OUTPUT || output->type == PULSE_3_OUTPUT) && pin >= 0) {
-    digitalWriteState(pin,HIGH);
+    PinMemory.writeDigital(pin,HIGH);
     on_output_write(output->num);
   } else if (output->type == ANALOG_PWM_OUTPUT && pin >= 0) {
     if (input_value == "") {
@@ -164,10 +138,10 @@ String output_write(const Output * output,String input_value,bool reset=false) {
       }
     }
     int value = input_value.toInt();
-    if (value < 0 || value >= (1<<CONF_SCHEMA_PWM_RES)) {
+    if (value < 0 || value >= (1<<HW_ANALOG_CHANNEL_PWM_RES)) {
       return "Out-of-bound value: " + input_value;
     }
-    analogWriteState(pin,value);
+    PinMemory.writePWM(pin,value);
     on_output_write(output->num);
   } else if (output->type == ANALOG_FM_OUTPUT && pin >= 0) {
     int value = 0;
@@ -185,7 +159,7 @@ String output_write(const Output * output,String input_value,bool reset=false) {
         return "Out-of-bound value: " + input_value;
       }
     }
-    toneState(pin,value);
+    PinMemory.writeFM(pin,value);
     on_output_write(output->num);
   } else {
     int type = output_var_type(output->type);
@@ -217,7 +191,7 @@ float mq2ResistanceCalculation(int raw_adc, float rl) {
   if (raw_adc == 0) {
     raw_adc = 1;
   }
-  return rl*(CONF_ANALOG_READ_MAX-raw_adc)/raw_adc;
+  return rl*(HW_ANALOG_READ_MAX-raw_adc)/raw_adc;
 }
 
 float mq2Read(uint8_t pin, bool skipRules = false, float rl = CONF_MQ2_RL_VALUE) {
@@ -284,7 +258,7 @@ String output_get(const Output * output) {
   if (isDigitalOut || output->type == ANALOG_PWM_OUTPUT || output->type == ANALOG_FM_OUTPUT) {
     int value;
     if (output->pin >= 0) {
-      value = getPinState(output->pin);
+      value = PinMemory.getPinState(output->pin);
     } else {
       value = preferences.getInt(key);
     }
@@ -335,7 +309,7 @@ void publish() {
     if (isDigitalOut || outputs[i].type == ANALOG_PWM_OUTPUT || outputs[i].type == ANALOG_FM_OUTPUT) {
       int value;
       if (outputs[i].pin >= 0) {
-        value = getPinState(outputs[i].pin);
+        value = PinMemory.getPinState(outputs[i].pin);
       } else {
         value = preferences.getInt(key);
       }
@@ -424,36 +398,44 @@ void publish() {
 
 #include "rules.h"
 
-#ifdef CONF_WIFI
-void wifi_ap_state_changed(int value, bool is_init) {
-  if (wifi_ap_pin != 0 && getPinState(wifi_ap_pin) != value) {
-    digitalWriteState(wifi_ap_pin, value, is_init);
-  }
-}
+#ifdef CONF_WEB
+WebGUI* web_gui;
+WebConfig* web_config;
+#ifdef CONF_ADMIN_WEB_OTA
+WebOTA* web_ota;
+#endif
+#ifdef CONF_WEB_USERS
+WebUsers* web_users;
 #endif
 
-#ifdef CONF_WEB
-String web_html_title() {
-  return html_title;
+bool web_admin_authenticate() {
+  return web_gui->authenticate(admin_username.c_str(), admin_password.c_str());
 }
 
 String web_html_footer(bool admin) {
-  String html = "<div>";
-  html += wifi_get_info();
+  String html = "<hr/><div>";
+  html += html_encode(WiFiUtils::getInfo());
   html += " - ";
   html += "Memory Free: " +String(ESP.getFreeHeap());
   html += " - Uptime: " +String(millis()) + "</div>";
   html += "<div style=\"margin-top:1rem\">" + String(COMPILE_VERSION)+" [" + String(__TIMESTAMP__)+"]";
+#ifdef CONF_ADMIN_WEB_OTA
   if (admin) {
-    html += " <button class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_FIRMWARE_UPDATE)+"'\">Update</button>";
+    html += " <button class=\"btn btn-secondary\" onclick=\"location='"+web_ota->getUri()+"'\">Update</button>";
   }
+#endif
   html += "</div>";
   return html;
 }
 
+void web_handle_notFound() {
+  web_gui->sendResponse(404,"text/plain","Not Found");
+}
+
 void web_handle_root() {
-  int refresh = web_parameter("refresh").toInt();
-  String html = "<body style=\"text-align:center\"><h1>"+html_title+"</h1>";
+  int refresh = web_gui->getParameter("refresh").toInt();
+  String title = web_gui->getTitle();
+  String html = "<body style=\"text-align:center\"><h1>"+title+"</h1>";
   uint8_t input_count = 0;
   for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
     if (inputs[i].type == NO_INPUT) {
@@ -510,7 +492,7 @@ void web_handle_root() {
       output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
       output_editor += "<input type=\"hidden\" name=\"reset\" value=\"false\" />";
       output_editor += "<button type=\"button\" class=\"btn btn-secondary toggleable\" onclick=\"Array.prototype.slice.call(this.form.getElementsByClassName('toggleable')).forEach(function(e){e.classList.toggle('d-none')})\">Edit</button>";
-      output_editor += "<input type=\"number\" class=\"form-control toggleable d-none\" name=\"value\" value=\""+html_encode(output_value_str)+"\" min=\"0\" max=\""+String((1<<CONF_SCHEMA_PWM_RES)-1)+"\" />";
+      output_editor += "<input type=\"number\" class=\"form-control toggleable d-none\" name=\"value\" value=\""+html_encode(output_value_str)+"\" min=\"0\" max=\""+String((1<<HW_ANALOG_CHANNEL_PWM_RES)-1)+"\" />";
       output_editor += " <button type=\"submit\" class=\"btn btn-primary toggleable d-none\">Save</button>";
       output_editor += " <button type=\"button\" class=\"btn btn-secondary toggleable d-none\" onclick=\"Array.prototype.slice.call(this.form.getElementsByClassName('toggleable')).forEach(function(e){e.classList.toggle('d-none')})\">Cancel</button>";
       output_editor += "</form>";
@@ -578,7 +560,7 @@ void web_handle_root() {
   }
   String timestr = "";
   struct tm timeinfo;
-  if (wifi_time_read(&timeinfo)) {
+  if (WiFiTime::read(&timeinfo)) {
     char time_str[100];
     strftime(time_str,sizeof(time_str),"%A %e %B %Y %H:%M:%S",&timeinfo);
     timestr = String(time_str);
@@ -597,67 +579,67 @@ void web_handle_root() {
   html += "<p><button type=\"button\" class=\"btn btn-secondary\" onclick=\"location=''\">Refresh</button>";
   html += " <button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='?refresh=30'\">AutoRefresh</button>";
   html += " <button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Configuration</button></p><hr/>";
-  html += web_html_footer();
+  html += web_gui->getFooter();
   html += "</body>";
-  web_send_page(html_title,html,refresh);
+  web_gui->sendPage(title,html);
 }
 
 void web_rest_handle_input(const Input * input) {
   int8_t pin = input->pin;
   if (pin >= 0 && input->type == DIGITAL_INPUT) {
-    web_handle_rest_result(digitalString(digitalReadRuled(pin)));
+    web_gui->sendResponse(200,"text/plain",digitalString(digitalReadRuled(pin)));
   } else if (pin >= 0 && input->type == ANALOG_INPUT) {
-    web_handle_rest_result(String(analogReadRuled(pin)));
+    web_gui->sendResponse(200,"text/plain",String(analogReadRuled(pin)));
   } else if (pin >= 0 && input->type == MQ2) {
-    web_handle_rest_result(String(mq2Read(pin)));
+    web_gui->sendResponse(200,"text/plain",String(mq2Read(pin)));
   } else {
-    web_handle_rest_notFound();
+    web_handle_notFound();
   }
 }
 
 void web_rest_handle_output(const Output * output) {
-  String input_value = web_parameter("value");
-  bool is_reset = web_parameter("reset").equals("true");
+  String input_value = web_gui->getParameter("value");
+  bool is_reset = web_gui->getParameter("reset").equals("true");
   if (output->type == NONE) {
-    web_handle_rest_notFound();
+    web_handle_notFound();
     return;
   }
-  if (!web_request_post()) {
-    web_handle_rest_result(output_get(output));
+  if (!web_gui->isRequestMethodPost()) {
+    web_gui->sendResponse(200,"text/plain",output_get(output));
     return;
   }
   String error = output_write(output,input_value,is_reset);
   if (error != "") {
-    web_send_text(400, "text/plain", error);
+    web_gui->sendResponse(400,"text/plain",error);
     return;
   }
-  String redirect_uri = web_header("Referer");
+  String redirect_uri = web_gui->getHeader("Referer");
   if (redirect_uri == "") {
-    web_send_text(200, "text/plain", "OK");
+    web_gui->sendResponse(200,"text/plain","OK");
   } else {
-    web_send_redirect(redirect_uri);
+    web_gui->sendRedirect(redirect_uri);
   }
 }
 
 void web_server_rest_setup(bool dht_available,bool bmp280_available) {
-  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/in([0-9]+)$"), []() {
-    int i = web_path_arg(0).toInt();
+  web_gui->handle(HTTP_ANY, UriRegex("^\\/rest\\/in([0-9]+)$"), []() {
+    int i = web_gui->getPathArg(0).toInt();
     if (i <= 0 || i > CONF_SCHEMA_INPUT_COUNT) {
-      web_handle_rest_notFound();
+      web_handle_notFound();
       return;
     }
     web_rest_handle_input(&inputs[i-1]);
   });
-  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/out([0-9]+)$"), []() {
-    int i = web_path_arg(0).toInt();
+  web_gui->handle(HTTP_ANY, UriRegex("^\\/rest\\/out([0-9]+)$"), []() {
+    int i = web_gui->getPathArg(0).toInt();
     if (i <= 0 || i > CONF_SCHEMA_OUTPUT_COUNT) {
-      web_handle_rest_notFound();
+      web_handle_notFound();
       return;
     }
     web_rest_handle_output(&outputs[i-1]);
   });
-  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/in\\/(.+)$"), []() {
-    String input_name = web_path_arg(0);
+  web_gui->handle(HTTP_ANY, UriRegex("^\\/rest\\/in\\/(.+)$"), []() {
+    String input_name = web_gui->getPathArg(0);
     for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
       if (inputs[i].type == NO_INPUT) {
         continue;
@@ -667,10 +649,10 @@ void web_server_rest_setup(bool dht_available,bool bmp280_available) {
         return;
       }
     }
-    web_handle_rest_notFound();
+    web_handle_notFound();
   });
-  web_server_register(HTTP_ANY, UriRegex("^\\/rest\\/out\\/(.+)$"), []() {
-    String input_name = web_path_arg(0);
+  web_gui->handle(HTTP_ANY, UriRegex("^\\/rest\\/out\\/(.+)$"), []() {
+    String input_name = web_gui->getPathArg(0);
     for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
       if (outputs[i].type == NONE) {
         continue;
@@ -680,22 +662,22 @@ void web_server_rest_setup(bool dht_available,bool bmp280_available) {
         return;
       }
     }
-    web_handle_rest_notFound();
+    web_handle_notFound();
   });
   if (dht_available) {
-    web_server_register(HTTP_ANY, "/rest/dht_temp", []() {
-      web_handle_rest_result(String(dht_read_temperature()));
+    web_gui->handle(HTTP_ANY, "/rest/dht_temp", []() {
+      web_gui->sendResponse(200,"text/plain",String(dht_read_temperature()));
     });
-    web_server_register(HTTP_ANY, "/rest/dht_hum", []() {
-      web_handle_rest_result(String(dht_read_humidity()));
+    web_gui->handle(HTTP_ANY, "/rest/dht_hum", []() {
+      web_gui->sendResponse(200,"text/plain",String(dht_read_humidity()));
     });
   }
   if (bmp280_available) {
-    web_server_register(HTTP_ANY, "/rest/bmp280_temp", []() {
-      web_handle_rest_result(String(bmp280_read_temperature()));
+    web_gui->handle(HTTP_ANY, "/rest/bmp280_temp", []() {
+      web_gui->sendResponse(200,"text/plain",String(bmp280_read_temperature()));
     });
-    web_server_register(HTTP_ANY, "/rest/bmp280_pressure", []() {
-      web_handle_rest_result(String(bmp280_read_pressure()));
+    web_gui->handle(HTTP_ANY, "/rest/bmp280_pressure", []() {
+      web_gui->sendResponse(200,"text/plain",String(bmp280_read_pressure()));
     });
   }
 }
@@ -711,8 +693,11 @@ void loop() {
     return;
   }
 #ifdef CONF_WIFI
-  wifi_loop(CONF_WIFI_MODE_LIMIT);
-  wifi_time_loop();
+  WiFiUtils::loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
+  WiFiTime::loopToSynchronize();
+#endif
+#ifdef CONF_ADMIN_ARDUINO_OTA
+  ArduinoOTA.handle();
 #endif
   if (at_interval(input_read_interval_ms,input_read_last_ms)) {
     input_read_last_ms = millis();
@@ -726,9 +711,9 @@ void loop() {
         case DIGITAL_INPUT:
           if (pin >= 0) {
             rs = digitalRead(pin);
-            if (rs != getPinState(pin)) {
+            if (rs != PinMemory.getPinState(pin)) {
               log_d("button %d changed: %d",pin,rs);
-              setPinState(pin,rs);
+              PinMemory.setPinState(pin,rs);
               on_pin_read(pin,rs,DIGITAL_INPUT,true);
               if (inputs[i].published) {
                 item_publish((inputs[i].name).c_str(),digitalString(rs));
@@ -739,9 +724,9 @@ void loop() {
         case ANALOG_INPUT:
           if (pin >= 0) {
             rs = analogRead(pin);
-            if (rs != getPinState(pin)) {
+            if (rs != PinMemory.getPinState(pin)) {
               log_d("dimmer %d changed: %d",pin,rs);
-              setPinState(pin,rs);
+              PinMemory.setPinState(pin,rs);
               on_pin_read(pin,rs,ANALOG_INPUT,true);
             }
           }
@@ -752,22 +737,14 @@ void loop() {
   for (uint8_t i = 0; i < CONF_SCHEMA_OUTPUT_COUNT; i++) {
     if ((outputs[i].type == PULSE_1_OUTPUT || outputs[i].type == PULSE_2_OUTPUT || outputs[i].type == PULSE_3_OUTPUT) && outputs[i].pin >= 0) {
       int8_t pin = outputs[i].pin;
-      if (getPinState(pin) == HIGH && at_interval((outputs[i].type - PULSE_1_OUTPUT + 1)*1000,lastWriteMillis(pin))) {
-        digitalWriteState(pin,LOW);
+      if (PinMemory.getPinState(pin) == HIGH && at_interval((outputs[i].type - PULSE_1_OUTPUT + 1)*1000,PinMemory.lastWriteMillis(pin))) {
+        PinMemory.writeDigital(pin,LOW);
         on_output_write(outputs[i].num);
       }
     }
   }
 #ifdef CONF_WEB
-  if (!wifi_is_off()) {
-    web_server_loop();
-    delay(10);
-    if (at_interval(publish_interval_ms,publish_last_ms)) {
-      publish();
-    }
-  } else {
-    delay(1000);
-  }
+  web_gui->loopToHandleClients();
 #endif
 }
 
@@ -775,6 +752,8 @@ void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
   preferences.begin("my-app", false);
+  //preferences.putString("wifi2_ssid","");
+  //preferences.putString("wifi2_pswd","");
   String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
   Serial.println("Log level : " + log_level);
   if (log_level == "d") {
@@ -788,8 +767,39 @@ void setup() {
   }
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+  PinMemory.setup([](uint8_t pin, int value, bool is_init) {
+    const Output * output = pin_output[pin];
+    if (output != NULL) {
+      if (output->stored) {
+        preferences.putInt((output->key).c_str(),value);
+      }
+      if (!is_init && output->published) {
+        item_publish((output->name).c_str(),digitalString(value));
+      }
+    }
+  }, [](uint8_t pin, uint16_t value, bool is_init) {
+    const Output * output = pin_output[pin];
+    if (output != NULL) {
+      if (output->stored) {
+        preferences.putInt((output->key).c_str(),value);
+      }
+      if (!is_init && output->published) {
+        item_publish((output->name).c_str(),value);
+      }
+    }
+  }, [](uint8_t pin, uint32_t value, bool is_init) {
+    const Output * output = pin_output[pin];
+    if (output != NULL) {
+      if (output->stored) {
+        preferences.putInt((output->key).c_str(),value);
+      }
+      if (!is_init && output->published) {
+        item_publish((output->name).c_str(),value);
+      }
+    }
+  });
   input_read_interval_ms = max(preferences.getULong(PREF_INPUT_READ_INTERVAL),CONF_INPUT_READ_INTERVAL_MIN);
-  openhab_rest_uri = preferences.getString(PREF_OPENHAB_REST_URI);
+  openhab = new OpenHAB(preferences.getString(PREF_OPENHAB_REST_URI));
   openhab_bus_item = preferences.getString(PREF_OPENHAB_BUS_ITEM);
   if (openhab_bus_item == "") {
     openhab_bus_item = CONF_OPENHAB_BUS_ITEM;
@@ -836,10 +846,10 @@ void setup() {
       if (inputs[i].monitored) {
         switch (inputs[i].type) {
           case DIGITAL_INPUT:
-            setPinState(pin,digitalRead(pin));
+            PinMemory.setPinState(pin,digitalRead(pin));
             break;
           case ANALOG_INPUT:
-            setPinState(pin,analogRead(pin));
+            PinMemory.setPinState(pin,analogRead(pin));
             break;
         }
       }
@@ -892,25 +902,25 @@ void setup() {
           if (outputs[i].stored) {
             value = preferences.getInt(key);
           }
-          digitalWriteState(pin,value,true);
+          PinMemory.writeDigital(pin,value,true);
           break;
         case ANALOG_PWM_OUTPUT:
-          pinAnalogModeSetup(pin,CONF_SCHEMA_PWM_FRQ,CONF_SCHEMA_PWM_RES);
+          PinMemory.pinAnalogModeSetup(pin,HW_ANALOG_CHANNEL_PWM_FRQ,HW_ANALOG_CHANNEL_PWM_RES);
           pin_output[pin] = &outputs[i];
           value = 0;
           if (outputs[i].stored) {
             value = preferences.getInt(key);
           }
-          analogWriteState(pin,value,true);
+          PinMemory.writePWM(pin,value,true);
           break;
         case ANALOG_FM_OUTPUT:
-          pinAnalogModeSetup(pin,0,CONF_SCHEMA_PWM_RES);
+          PinMemory.pinAnalogModeSetup(pin,0,HW_ANALOG_CHANNEL_PWM_RES);
           pin_output[pin] = &outputs[i];
           value = 0;
           if (outputs[i].stored) {
             value = preferences.getInt(key);
           }
-          toneState(pin,value,true);
+          PinMemory.writeFM(pin,value,true);
           break;
       }
     }
@@ -936,43 +946,68 @@ void setup() {
     String ssid = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_SSID).c_str());
     String pswd = preferences.getString((PREF_PREFIX_WIFI+String(i)+PREF_PREFIX_WIFI_PSWD).c_str());
     if (ssid != "") {
-      wifi_add_ap(ssid.c_str(),pswd.c_str());
+      WiFiUtils::addAP(ssid.c_str(),pswd.c_str());
     }
   }
-  wifi_setup(
+  WiFiUtils::setup(
     preferences.getUChar(PREF_WIFI_MODE,CONF_WIFI_MODE),
     preferences.getString(PREF_WIFI_AP_IP,CONF_WIFI_AP_IP).c_str(),
     preferences.getString(PREF_WIFI_AP_SSID,CONF_WIFI_AP_SSID).c_str(),
     preferences.getString(PREF_WIFI_AP_PSWD,CONF_WIFI_AP_PSWD).c_str(),
     CONF_WIFI_CONN_TIMEOUT_MS,
-    max(preferences.getULong(PREF_WIFI_CHECK_INTERVAL),CONF_WIFI_CHECK_INTERVAL_MIN),
-    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD)
-  );
+    preferences.getULong(PREF_WIFI_CHECK_INTERVAL,CONF_WIFI_CHECK_INTERVAL_MIN),
+    preferences.getULong(PREF_WIFI_CHECK_THRESHOLD,CONF_WIFI_CHECK_THRESHOLD),
+    [](uint8_t mode, bool connected) {
+      if (wifi_ap_pin == 0) {
+        return;
+      }
+      int value = mode == WIFI_AP ? HIGH : LOW;
+      if (PinMemory.getPinState(wifi_ap_pin) != value) {
+        PinMemory.writeDigital(wifi_ap_pin, value, true);
+      }
+    });
   delay(1000);
-  wifi_time_setup(CONF_WIFI_NTP_SERVER, CONF_WIFI_NTP_INTERVAL, preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+  WiFiTime::setup(CONF_WIFI_NTP_SERVER,
+    CONF_WIFI_NTP_INTERVAL,
+    preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
+#endif
+  admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
+  admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
+#ifdef CONF_ADMIN_ARDUINO_OTA
+  ArduinoOTA.setPassword(admin_password.c_str());
+  ArduinoOTA.begin();
 #endif
 #ifdef CONF_WEB
-  html_title = preferences.getString(PREF_WEB_HTML_TITLE);
-  if (html_title == "") {
-    html_title = CONF_WEB_HTML_TITLE;
+  String web_html_title = preferences.getString(PREF_WEB_HTML_TITLE);
+  if (web_html_title == "") {
+    web_html_title = CONF_WEB_HTML_TITLE;
   }
-  web_server_setup_http();
-  web_admin_setup(
-    preferences.getString(PREF_WEB_ADMIN_USERNAME,CONF_WEB_ADMIN_USERNAME).c_str(),
-    preferences.getString(PREF_WEB_ADMIN_PASSWORD,CONF_WEB_ADMIN_PASSWORD).c_str()
-  );
-  web_ota_setup();
-  web_config_setup(preferences.getBool(PREF_CONFIG_PUBLISH));
-  web_server_rest_setup(dht_available,bmp280_available);
-  web_server_register(HTTP_POST, CONF_WEB_URI_PUBLISH, []() {
+#ifdef CONF_WEB_HTTPS
+  web_gui = new WebGUI(80,443,preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+#else
+  web_gui = new WebGUI();
+#endif
+  web_gui->setTitle(web_html_title);
+  web_gui->setFooter(web_html_footer);
+  WebReset* web_reset = new WebReset(web_gui,CONF_WEB_URI_RESET,web_admin_authenticate);
+  web_config = new WebConfig(web_gui,web_reset,CONF_WEB_URI_CONFIG,web_admin_authenticate,
+    preferences.getBool(PREF_CONFIG_PUBLISH));
+#ifdef CONF_ADMIN_WEB_OTA
+  web_ota = new WebOTA(web_gui,CONF_WEB_URI_FIRMWARE_UPDATE,web_admin_authenticate);
+#endif
+#ifdef CONF_WEB_USERS
+  web_users = new WebUsers(web_gui,admin_username,admin_password,preferences.getString(PREF_WEB_USERS));
+#endif
+  // TODO web_server_rest_setup(dht_available,bmp280_available);
+  web_gui->handle(HTTP_POST, CONF_WEB_URI_PUBLISH, []() {
     publish();
-    String redirect_uri = web_header("Referer");
+    String redirect_uri = web_gui->getHeader("Referer");
     if (redirect_uri == "") {
       redirect_uri = "/";
     }
-    web_send_redirect(redirect_uri);
+    web_gui->sendRedirect(redirect_uri);
   });
-  web_server_register(HTTP_ANY, "/", web_handle_root);
-  web_server_begin(wifi_name.c_str());
+  web_gui->handle(HTTP_ANY, "/", web_handle_root);
+  web_gui->begin(wifi_name.c_str());
 #endif
 }

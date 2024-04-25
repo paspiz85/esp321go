@@ -6,16 +6,21 @@
  * 
  * @see https://github.com/arduino-libraries/Arduino_JSON/blob/master/src/JSON.h
  * @see https://github.com/espressif/arduino-esp32/blob/master/libraries/Preferences/src/Preferences.h
+ * @see https://github.com/vshymanskyy/Preferences/blob/main/src/Preferences.h
  */
 
 #include "base_conf.h"
-#include "base_macros.h"
 #include "base_utils.h"
 #include <Arduino.h>
 #include <Arduino_JSON.h>
 #include <Preferences.h>
 
 // ATTENZIONE: le chiavi troppo lunghe non vengono gestite (forse max 15 chars?)
+
+#define PREF_ADMIN_USERNAME               "admin_username"
+#define PREF_ADMIN_PASSWORD               "admin_password"
+
+#define PREF_BLINK_LED_PIN                "blink_led_pin"
 
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
@@ -72,9 +77,16 @@
 #define PREF_TIME_ZONE                    "time_zone"
 
 #ifdef CONF_WEB
-#define PREF_WEB_ADMIN_USERNAME           "admin_username"
-#define PREF_WEB_ADMIN_PASSWORD           "admin_password"
 #define PREF_WEB_HTML_TITLE               "html_title"
+#endif
+
+#ifdef CONF_WEB_HTTPS
+#define PREF_WEB_CERT                     "web_cert"
+#define PREF_WEB_CERT_KEY                 "web_cert_key"
+#endif
+
+#ifdef CONF_WEB_USERS
+#define PREF_WEB_USERS                    "users"
 #endif
 
 #ifdef CONF_WIFI
@@ -89,11 +101,11 @@
 #endif
 
 typedef struct config {
-  const char * key;
+  const char* key;
   ctype_t type;
-  const char * desc;
+  const char* desc;
   int count;
-  const struct config * refs;
+  const struct config* refs;
   int refs_len;
 } Config;
 
@@ -113,6 +125,7 @@ const Config config_output_defs[] = {
 };
 
 const Config config_defs[] = {
+  { .key = PREF_BLINK_LED_PIN,        .type = UINT8,  .desc = EMPTY },
   { .key = PREF_REBOOT_FREE,          .type = UINT32, .desc = "Abilita il riavvio se la memoria scende sotto la soglia (0 = funzione disabilitata)" },
   { .key = PREF_REBOOT_MS,            .type = UINT32, .desc = "Abilita il riavvio dopo N millis (0 = funzione disabilitata)" },
   { .key = PREF_TIME_ZONE,            .type = STRING, .desc = EMPTY },
@@ -122,15 +135,22 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_AP_SSID,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PSWD,         .type = STRING, .desc = EMPTY },
   { .key = PREF_WIFI_AP_PIN,          .type = UINT8,  .desc = "Uscita digitale attivata in modalità AP" },
-  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len(config_wifi_defs) },
+  { .key = PREF_PREFIX_WIFI,          .type = DARRAY, .desc = EMPTY, .count = CONF_WIFI_COUNT, .refs = &config_wifi_defs[0], .refs_len = len_array(config_wifi_defs) },
   { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_WIFI_CHECK_INTERVAL_MIN)).c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = ("default "+String(CONF_WIFI_CHECK_THRESHOLD)+" (0 = funzione disabilitata)").c_str() },
   { .key = PREF_WIFI_NAME,            .type = STRING, .desc = EMPTY },
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_USERNAME,   .type = STRING, .desc = EMPTY },
-  { .key = PREF_WEB_ADMIN_PASSWORD,   .type = STRING, .desc = EMPTY },
+#endif
+  { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
+  { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },
+#ifdef CONF_WEB_USERS
+  { .key = PREF_WEB_USERS,            .type = STRUCT, .desc = EMPTY },
+#endif
+#ifdef CONF_WEB_HTTPS
+  { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM" },
+  { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM" },
 #endif
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #ifdef CONF_BMP280
@@ -143,8 +163,8 @@ const Config config_defs[] = {
   { .key = PREF_DHT_READ_INTERVAL,    .type = UINT32, .desc = ("default e min "+String(CONF_DHT_READ_INTERVAL_MIN)).c_str() },
   { .key = PREF_DHT_PUBLISH,          .type = BOOL,   .desc = EMPTY },
 #endif
-  { .key = PREF_PREFIX_INPUT,         .type = DARRAY, .desc = EMPTY, .count = CONF_SCHEMA_INPUT_COUNT, .refs = &config_input_defs[0], .refs_len = len(config_input_defs) },
-  { .key = PREF_PREFIX_OUTPUT,        .type = DARRAY, .desc = EMPTY, .count = CONF_SCHEMA_OUTPUT_COUNT, .refs = &config_output_defs[0], .refs_len = len(config_output_defs) },
+  { .key = PREF_PREFIX_INPUT,         .type = DARRAY, .desc = EMPTY, .count = CONF_SCHEMA_INPUT_COUNT, .refs = &config_input_defs[0], .refs_len = len_array(config_input_defs) },
+  { .key = PREF_PREFIX_OUTPUT,        .type = DARRAY, .desc = EMPTY, .count = CONF_SCHEMA_OUTPUT_COUNT, .refs = &config_output_defs[0], .refs_len = len_array(config_output_defs) },
   { .key = PREF_INPUT_READ_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_INPUT_READ_INTERVAL_MIN)+", default "+String(CONF_INPUT_READ_INTERVAL)).c_str() },
   { .key = PREF_RULES,                .type = STRUCT, .desc = EMPTY },
   { .key = PREF_PUBLISH_INTERVAL,     .type = UINT32, .desc = ("min "+String(CONF_PUBLISH_INTERVAL_MIN)+" (default), 0 to disable").c_str() },
@@ -158,7 +178,7 @@ const Config config_defs[] = {
 
 Preferences preferences;
 
-String preferences_get(const char * key, ctype_t type, bool emptyOnNull = false) {
+String preferences_get(const char* key, ctype_t type, bool emptyOnNull = false) {
   if (emptyOnNull && !preferences.isKey(key)) {
     return EMPTY;
   }
@@ -180,7 +200,7 @@ String preferences_get(const char * key, ctype_t type, bool emptyOnNull = false)
   }
 }
 
-bool preferences_remove(const char * key,ctype_t type, String publish_key = EMPTY) {
+bool preferences_remove(const char* key,ctype_t type, String publish_key = EMPTY) {
   log_d("removing %s",key);
   preferences.remove(key);
   if (publish_key != EMPTY) {
@@ -195,7 +215,7 @@ bool preferences_remove(const char * key,ctype_t type, String publish_key = EMPT
   return true;
 }
 
-bool preferences_put(const char * key, ctype_t type, String value, String publish_key = EMPTY) {
+bool preferences_put(const char* key, ctype_t type, String value, String publish_key = EMPTY) {
   if (type == UINT8) {
     uint8_t number = str_to_uint8(value);
     log_d("saving %s = %hhu",key,number);

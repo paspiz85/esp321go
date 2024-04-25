@@ -34,7 +34,7 @@ Rule rules[CONF_RULES_TRIGGERS_SIZE];
 
 uint8_t triggers_size = 0;
 Trigger triggers[CONF_RULES_TRIGGERS_SIZE];
-bool pin_triggers[CONF_SCHEMA_PIN_COUNT][CONF_RULES_TRIGGERS_SIZE];
+bool pin_triggers[HW_PIN_COUNT][CONF_RULES_TRIGGERS_SIZE];
 bool output_triggers[CONF_SCHEMA_OUTPUT_COUNT][CONF_RULES_TRIGGERS_SIZE];
 
 void on_pin_read(uint8_t pin,int value,input_type_t itype,bool change) {
@@ -244,7 +244,7 @@ bool rules_condition_eval(Rule* rule,JSONVar* condition,TriggerSpec* spec,int va
   }
   if (type == "night") {
     struct tm timeinfo;
-    if (!wifi_time_read(&timeinfo)) {
+    if (!WiFiTime::read(&timeinfo)) {
       return true;
     }
     if (JSON.typeof((*condition)["alba"]) != "number") {
@@ -404,7 +404,7 @@ void rules_trigger_setup(Rule* rule,int trigger_num,JSONVar* trigger) {
 }
 
 void rules_setup(String str) {
-  for (uint8_t i = 0; i != CONF_SCHEMA_PIN_COUNT; i++) {
+  for (uint8_t i = 0; i != HW_PIN_COUNT; i++) {
     for (uint8_t j = 0; j != CONF_RULES_TRIGGERS_SIZE; j++) {
       pin_triggers[i][j] = false;
     }

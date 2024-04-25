@@ -1,18 +1,28 @@
-Questo progetto è una base per la realizzazione di firmware per il microcontrollore ESP32 collegati attraverso WiFi (sono supportate sia modalità Station che Access Point).
+Questo progetto è una base per la realizzazione di firmware per il microcontrollore ESP32/ESP8266 collegati attraverso WiFi (sono supportate sia modalità Station che Access Point).
 
 ### Funzioni base
 Il firmware integra un web server (sulla porta 80) con le seguenti funzioni già realizzate:
 
 - **/reset** : effettua il soft reset della board
-- **/firmware/update** : intefaccia che permette di aggiornare il firmware
 - **/config** : interfaccia che permette di modificare la configurazione della board (la maggior parte delle configurazioni richiedono il soft reset)
+- **/firmware/update** : intefaccia che permette di aggiornare il firmware
+
+Inoltre da Arduino è possibile effettuare l'aggiornamento OTA del firmware tramite la rete.
 
 ### Utility di gestione
 
 #### Compilazione
 Dalla cartella del progetto:
 ```
-arduino-cli compile -e -m esp32
+arduino-cli compile -e -m esp321go --clean --output-dir target
+```
+Tale comando suò essere configurato come alias Git con:
+```
+git config alias.build '!arduino-cli compile -e -m esp321go --clean --output-dir target'
+```
+In questo modo le successive compilazioni posso essere fatte con:
+```
+git build
 ```
 
 #### Caricamento
@@ -24,9 +34,14 @@ Se la board non compare potrebbe essere necessario installare il driver per Wind
 
 Dalla cartella del progetto:
 ```
-arduino-cli upload -m esp32 -i build/esp32.esp32.esp32/esp321go.ino.bin -p <porta>
+arduino-cli upload -m esp321go -i target/esp321go.ino.bin -p <porta>
 ```
 Se l'upload fallisce sempre e l'errore è "ESP32: Timed out waiting for packet header" potrebbe essere necessario tenere premuto BOOT durante l'upload.
+
+Per l'upload tramite la rete:
+```
+arduino-cli upload -m esp321go -i target/esp321go.ino.bin -l network -p <ip>
+```
 
 #### Debug
 Dalla cartella del progetto:
