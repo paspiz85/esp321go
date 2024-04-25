@@ -36,6 +36,9 @@
 
 #define PREF_LOG_LEVEL                    "log_level"
 
+#define PREF_OPENHAB_BUS_ITEM             "openhab_bus"
+#define PREF_OPENHAB_REST_URI             "openhab_uri"
+
 #define PREF_PREFIX_WIFI                  "wifi"            // Prefisso per le reti WiFi
 #define PREF_PREFIX_WIFI_PSWD             "_pswd"           // Suffisso per le password WiFi
 #define PREF_PREFIX_WIFI_SSID             "_ssid"           // Suffisso per gli SSID WiFi
@@ -98,6 +101,8 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_WIFI_CHECK_INTERVAL_MIN)).c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = ("default "+String(CONF_WIFI_CHECK_THRESHOLD)+" (0 = funzione disabilitata)").c_str() },
   { .key = PREF_WIFI_NAME,            .type = STRING, .desc = EMPTY },
+  { .key = PREF_OPENHAB_REST_URI,     .type = STRING, .desc = "URL delle API REST di OpenHAB, ad esempio http://192.168.1.91:8080/rest (vuoto = funzione disabilitata)" },
+  { .key = PREF_OPENHAB_BUS_ITEM,     .type = STRING, .desc = ("Item OpenHAB utilizzato per la pubblicazione degli stati, default "+String(CONF_OPENHAB_BUS_ITEM)).c_str() },
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },

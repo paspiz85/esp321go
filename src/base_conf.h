@@ -28,9 +28,11 @@ const PROGMEM char*    CONF_ADMIN_USERNAME              = "admin";
 const PROGMEM uint32_t CONF_DHT_READ_INTERVAL_MIN       = 5000;
 #endif
 
-const PROGMEM char*    CONF_LOG_LEVEL                   = "i";
+const PROGMEM uint8_t  CONF_LOG_LEVEL                   = 3; // ESP_LOG_INFO
 
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
+
+const PROGMEM char *   CONF_OPENHAB_BUS_ITEM            = "external_bus";
 
 // Valore per Europe/Rome in https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 const PROGMEM char*    CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.5.0/3";
