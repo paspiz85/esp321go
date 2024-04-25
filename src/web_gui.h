@@ -57,7 +57,7 @@ public:
   String getTitle() {
     return _title;
   };
-  String getFooter(bool admin) {
+  String getFooter(bool admin = false) {
     if (_footer == NULL) {
       return "";
     }
