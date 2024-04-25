@@ -277,13 +277,12 @@ void WebPlatform::sendResponse(int status_code, const String& content_type, uint
       if (i == 0) {
 #ifdef PLATFORM_ESP8266
         _https_server->chunkedResponseModeStart(status_code,content_type);
-        _https_server->sendContent(chunks[i]);
 #else
-        _https_server->send(status_code,content_type,chunks[i]);
+        _https_server->setContentLength(CONTENT_LENGTH_UNKNOWN);
+        _https_server->send(status_code,content_type,"");
 #endif
-      } else {
-        _https_server->sendContent(chunks[i]);
       }
+      _https_server->sendContent(chunks[i]);
     }
 #ifdef PLATFORM_ESP8266
     _https_server->chunkedResponseFinalize();
@@ -295,13 +294,12 @@ void WebPlatform::sendResponse(int status_code, const String& content_type, uint
       if (i == 0) {
 #ifdef PLATFORM_ESP8266
         _http_server->chunkedResponseModeStart(status_code,content_type);
-        _http_server->sendContent(chunks[i]);
 #else
-        _http_server->send(status_code,content_type,chunks[i]);
+        _http_server->setContentLength(CONTENT_LENGTH_UNKNOWN);
+        _http_server->send(status_code,content_type,"");
 #endif
-      } else {
-        _http_server->sendContent(chunks[i]);
       }
+      _http_server->sendContent(chunks[i]);
     }
 #ifdef PLATFORM_ESP8266
     _http_server->chunkedResponseFinalize();
@@ -312,12 +310,12 @@ void WebPlatform::sendResponse(int status_code, const String& content_type, uint
 void WebPlatform::sendRedirect(String redirect_uri, const String& message, uint16_t refresh) {
   if (redirect_uri == "") {
     redirect_uri = getHeader("Referer");
-    log_d("referer %s", redirect_uri);
+    log_d("referer %s", redirect_uri.c_str());
   }
   if (redirect_uri == "") {
     redirect_uri = "/";
   }
-  log_d("redirect_uri %s", redirect_uri);
+  log_d("redirect_uri %s", redirect_uri.c_str());
   if (message == "") {
     sendHeader("Location", redirect_uri, true);
     sendResponse(302,"text/plain","");

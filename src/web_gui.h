@@ -14,6 +14,7 @@ const char* __web_templates_css =
 "form fieldset>div{margin-top:.25rem;margin-bottom:.5rem}"
 "table,td,th{border:1px solid #000;border-collapse:collapse}"
 "th,td{padding:5px}"
+"pre{text-align:start;font-size:initial}"
 ".btn{display:inline-block;line-height:1.5;text-align:center;text-decoration:none;vertical-align:middle;cursor:pointer;-webkit-user-select:none;-moz-user-select:none;user-select:none;background-color:transparent;border:1px solid transparent;padding:.375rem .75rem;font-size:1rem;border-radius:.25rem;transition:color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out}"
 ".btn-primary{color:#fff;background-color:#0a58ca;border-color:#0a58ca}"
 ".btn-secondary{color:#fff;background-color:#5c636a;border-color:#5c636a}"

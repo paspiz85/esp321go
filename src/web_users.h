@@ -32,8 +32,8 @@ bool WebUsers::login() {
     if (i != -1) {
       String username = value.substring(0, i);
       String password = value.substring(i + 1);
-      log_d("username %s", username);
-      log_d("password %s", password);
+      log_d("username %s", username.c_str());
+      log_d("password %s", password.c_str());
       if (_users.hasOwnProperty(username)) {
         JSONVar user = _users[username];
         String user_password = user[USER_PASSWORD];
@@ -55,12 +55,12 @@ void WebUsers::logout() {
 
 WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, const String& config) {
   _platform = platform;
-  log_d("users config is %s", config);
+  log_d("users config is %s", config.c_str());
   _users = JSON.parse(config == "" ? "{}" : config);
   JSONVar admin;
   admin[USER_PASSWORD] = admin_password;
   _users[admin_username] = admin;
-  log_d("users are %s", JSON.stringify(_users));
+  log_d("users are %s", JSON.stringify(_users).c_str());
   _platform->handle(HTTP_ANY, CONF_WEB_URI_LOGOUT, [this]() {
     logout();
   });

@@ -54,7 +54,7 @@ public:
       }
       HTTPUpload& upload = _web_gui->getUpload();
       if (upload.status == UPLOAD_FILE_START) {
-        log_i("Update: %s\n", upload.filename);
+        log_i("Update: %s\n", upload.filename.c_str());
         if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
           Update.printError(Serial);
         }

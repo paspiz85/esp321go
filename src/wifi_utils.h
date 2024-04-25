@@ -89,14 +89,14 @@ void WiFiUtils::setMode(uint8_t mode) {
   }
   if (mode == WIFI_AP) {
     log_w("Attivazione AP in corso ...");
-    log_d("%s %s",_ap_ssid,_ap_pswd);
+    log_d("%s %s",_ap_ssid.c_str(),_ap_pswd.c_str());
     WiFi.softAPConfig(_ap_ip,_ap_ip,_ap_subnet);
     WiFi.softAP(_ap_ssid.c_str(),_ap_pswd.c_str());
   }
   WiFi.mode((WiFiMode_t) mode);
   _mode = mode;
   if (_mode == WIFI_AP) {
-    log_w("IP address: %s",getIP());
+    log_w("IP address: %s",getIP().c_str());
   }
   if (_state_changed != NULL) {
     _state_changed(_mode,_mode == WIFI_AP);
@@ -187,7 +187,7 @@ void WiFiUtils::setup(uint8_t mode, const char* ap_ip, const char* ap_ssid, cons
     setMode(WIFI_STA);
     log_i("Connessione in corso ...");
     if (_multi.run(_conn_timeout) == WL_CONNECTED) {
-      log_i("IP address: %s", getIP());
+      log_i("IP address: %s", getIP().c_str());
       connected = true;
     } else {
       log_i("Connessione non riuscita");
