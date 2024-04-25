@@ -12,7 +12,7 @@
 #define HW_PIN_COUNT          (40)
 #define LED_BUILTIN           (2)
 #else
-#define HW_ANALOG_READ_MAX    (4095)
+#define HW_ANALOG_READ_MAX    (1024)
 #define HW_PIN_COUNT          (10)
 #endif
 
