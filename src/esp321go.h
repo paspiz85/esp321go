@@ -26,6 +26,7 @@
 #endif
 #include "types.h"
 
+uint8_t log_level;
 uint32_t reboot_free;
 uint32_t reboot_ms;
 
@@ -35,8 +36,8 @@ String admin_password;
 #ifdef CONF_WIFI
 String wifi_name;
 uint8_t wifi_ap_pin = 0;
-String openhab_bus_item;
 OpenHAB* openhab = NULL;
+String openhab_bus_item;
 #endif
 
 Input inputs[CONF_SCHEMA_INPUT_COUNT];
@@ -49,9 +50,6 @@ uint32_t input_read_interval_ms;
 uint32_t input_read_last_ms = 0;
 uint32_t publish_interval_ms;
 uint32_t publish_last_ms = 0;
-bool publish_ip;
-bool publish_ssid;
-bool publish_rssi;
 
 void items_publish(JSONVar data) {
 #ifdef CONF_WIFI
@@ -60,19 +58,20 @@ void items_publish(JSONVar data) {
   }
   if (openhab != NULL) {
     JSONVar source;
+#ifdef PLATFORM_ESP32
     source["type"] = "esp32";
+#endif
+#ifdef PLATFORM_ESP8266
+    source["type"] = "esp8266";
+#endif
     if (wifi_name != "") {
       source["name"] = wifi_name;
     }
-    if (publish_ssid) {
-      source["wifi"] = WiFi.SSID();
-    }
-    if (publish_rssi) {
+    source["wifi"] = WiFi.SSID();
+    if (log_level >= ESP_LOG_DEBUG) {
       source["signal"] = WiFi.RSSI();
     }
-    if (publish_ip) {
-      source["ipAddress"] = WiFiUtils::getIP();
-    }
+    source["ipAddress"] = WiFiUtils::getIP();
     JSONVar message;
     message["source"] = source;
     message["data"] = data;
@@ -695,9 +694,9 @@ void loop() {
 #ifdef CONF_WIFI
   WiFiUtils::loopToHandleConnection(CONF_WIFI_MODE_LIMIT);
   WiFiTime::loopToSynchronize();
-#endif
 #ifdef CONF_ADMIN_ARDUINO_OTA
   ArduinoOTA.handle();
+#endif
 #endif
   if (at_interval(input_read_interval_ms,input_read_last_ms)) {
     input_read_last_ms = millis();
@@ -754,19 +753,16 @@ void setup() {
   preferences.begin("my-app", false);
   //preferences.putString("wifi2_ssid","");
   //preferences.putString("wifi2_pswd","");
-  String log_level = preferences.getString(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
-  Serial.println("Log level : " + log_level);
-  if (log_level == "d") {
-    esp_log_level_set("*", ESP_LOG_DEBUG);
-  } else if (log_level == "i") {
-    esp_log_level_set("*", ESP_LOG_INFO);
-  } else if (log_level == "w") {
-    esp_log_level_set("*", ESP_LOG_WARN);
-  } else {
-    esp_log_level_set("*", ESP_LOG_ERROR);
+  log_level = preferences.getUChar(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
+  if (log_level > ESP_LOG_DEBUG) {
+    log_level = ESP_LOG_DEBUG;
   }
+  Serial.println("Log level : " + log_level);
+  esp_log_level_set("*",(esp_log_level_t)log_level);
   reboot_free = preferences.getULong(PREF_REBOOT_FREE);
   reboot_ms = preferences.getULong(PREF_REBOOT_MS);
+  admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
+  admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
   PinMemory.setup([](uint8_t pin, int value, bool is_init) {
     const Output * output = pin_output[pin];
     if (output != NULL) {
@@ -799,18 +795,10 @@ void setup() {
     }
   });
   input_read_interval_ms = max(preferences.getULong(PREF_INPUT_READ_INTERVAL),CONF_INPUT_READ_INTERVAL_MIN);
-  openhab = new OpenHAB(preferences.getString(PREF_OPENHAB_REST_URI));
-  openhab_bus_item = preferences.getString(PREF_OPENHAB_BUS_ITEM);
-  if (openhab_bus_item == "") {
-    openhab_bus_item = CONF_OPENHAB_BUS_ITEM;
-  }
   publish_interval_ms = preferences.getULong(PREF_PUBLISH_INTERVAL,CONF_PUBLISH_INTERVAL);
   if (publish_interval_ms != 0) {
     publish_interval_ms = max(publish_interval_ms,CONF_PUBLISH_INTERVAL_MIN);
   }
-  publish_ip = preferences.getBool(PREF_PUBLISH_IP);
-  publish_ssid = preferences.getBool(PREF_PUBLISH_SSID);
-  publish_rssi = preferences.getBool(PREF_PUBLISH_RSSI);
   for (uint8_t i = 0; i < CONF_SCHEMA_INPUT_COUNT; i++) {
     inputs[i].num = i+1;
     uint8_t type = preferences.getUChar((PREF_PREFIX_INPUT+String(inputs[i].num)+PREF_PREFIX_INPUT_TYPE).c_str());
@@ -970,12 +958,18 @@ void setup() {
   WiFiTime::setup(CONF_WIFI_NTP_SERVER,
     CONF_WIFI_NTP_INTERVAL,
     preferences.getString(PREF_TIME_ZONE,CONF_TIME_ZONE).c_str());
-#endif
-  admin_username = preferences.getString(PREF_ADMIN_USERNAME,CONF_ADMIN_USERNAME);
-  admin_password = preferences.getString(PREF_ADMIN_PASSWORD,CONF_ADMIN_PASSWORD);
 #ifdef CONF_ADMIN_ARDUINO_OTA
   ArduinoOTA.setPassword(admin_password.c_str());
   ArduinoOTA.begin();
+#endif
+  String openhab_rest_uri = preferences.getString(PREF_OPENHAB_REST_URI);
+  if (openhab_rest_uri != "") {
+    openhab = new OpenHAB(openhab_rest_uri);
+  }
+  openhab_bus_item = preferences.getString(PREF_OPENHAB_BUS_ITEM);
+  if (openhab_bus_item == "") {
+    openhab_bus_item = CONF_OPENHAB_BUS_ITEM;
+  }
 #endif
 #ifdef CONF_WEB
   String web_html_title = preferences.getString(PREF_WEB_HTML_TITLE);

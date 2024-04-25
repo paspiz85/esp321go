@@ -31,7 +31,7 @@ const PROGMEM uint32_t CONF_DHT_READ_INTERVAL_MIN       = 5000;
 const PROGMEM uint32_t CONF_INPUT_READ_INTERVAL         = 1000;
 const PROGMEM uint32_t CONF_INPUT_READ_INTERVAL_MIN     = 100;
 
-const PROGMEM char *   CONF_LOG_LEVEL                   = "i";
+const PROGMEM uint8_t  CONF_LOG_LEVEL                   = 3; // ESP_LOG_INFO
 
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
 
@@ -39,7 +39,7 @@ const PROGMEM uint8_t  CONF_MQ2_READ_SAMPLE_TIMES       = 5;
 const PROGMEM uint32_t CONF_MQ2_READ_SAMPLE_INTERVAL    = 50;
 const PROGMEM float    CONF_MQ2_RL_VALUE                = 5;
 
-const PROGMEM char *   CONF_OPENHAB_BUS_ITEM            = "ESP32BUS";
+const PROGMEM char *   CONF_OPENHAB_BUS_ITEM            = "external_bus";
 
 const PROGMEM uint32_t CONF_PUBLISH_INTERVAL            = 60000;
 const PROGMEM uint32_t CONF_PUBLISH_INTERVAL_MIN        = 60000;

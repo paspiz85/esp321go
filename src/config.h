@@ -63,9 +63,6 @@
 #define PREF_PREFIX_WIFI_SSID             "_ssid"           // Suffisso per gli SSID WiFi
 
 #define PREF_PUBLISH_INTERVAL             "publish_ms"
-#define PREF_PUBLISH_IP                   "publish_ip"
-#define PREF_PUBLISH_SSID                 "publish_ssid"
-#define PREF_PUBLISH_RSSI                 "publish_rssi"
 
 #define PREF_REBOOT_FREE                  "reboot_free"
 #define PREF_REBOOT_MS                    "reboot_ms"
@@ -136,6 +133,8 @@ const Config config_defs[] = {
   { .key = PREF_WIFI_CHECK_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_WIFI_CHECK_INTERVAL_MIN)).c_str() },
   { .key = PREF_WIFI_CHECK_THRESHOLD, .type = UINT32, .desc = ("default "+String(CONF_WIFI_CHECK_THRESHOLD)+" (0 = funzione disabilitata)").c_str() },
   { .key = PREF_WIFI_NAME,            .type = STRING, .desc = EMPTY },
+  { .key = PREF_OPENHAB_REST_URI,     .type = STRING, .desc = "URL delle API REST di OpenHAB, ad esempio http://192.168.1.91:8080/rest (vuoto = funzione disabilitata)" },
+  { .key = PREF_OPENHAB_BUS_ITEM,     .type = STRING, .desc = ("Item OpenHAB utilizzato per la pubblicazione degli stati, default "+String(CONF_OPENHAB_BUS_ITEM)).c_str() },
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
@@ -165,11 +164,6 @@ const Config config_defs[] = {
   { .key = PREF_INPUT_READ_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_INPUT_READ_INTERVAL_MIN)+", default "+String(CONF_INPUT_READ_INTERVAL)).c_str() },
   { .key = PREF_RULES,                .type = STRUCT, .desc = EMPTY },
   { .key = PREF_PUBLISH_INTERVAL,     .type = UINT32, .desc = ("min "+String(CONF_PUBLISH_INTERVAL_MIN)+" (default), 0 to disable").c_str() },
-  { .key = PREF_PUBLISH_IP,           .type = BOOL,   .desc = EMPTY },
-  { .key = PREF_PUBLISH_SSID,         .type = BOOL,   .desc = EMPTY },
-  { .key = PREF_PUBLISH_RSSI,         .type = BOOL,   .desc = EMPTY },
-  { .key = PREF_OPENHAB_REST_URI,     .type = STRING, .desc = "URL delle API REST di OpenHAB, ad esempio http://192.168.1.91:8080/rest (vuoto = funzione disabilitata)" },
-  { .key = PREF_OPENHAB_BUS_ITEM,     .type = STRING, .desc = ("Item OpenHAB utilizzato per la pubblicazione degli stati, default "+String(CONF_OPENHAB_BUS_ITEM)).c_str() },
   { .key = PREF_LOG_LEVEL,            .type = STRING, .desc = "Livello di log (d,i,w,e)" }
 };
 

@@ -39,13 +39,15 @@ uint32_t ESP_getChipId() {
 #define len_array(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
 
 #ifdef PLATFORM_ESP8266
-#define ESP_LOG_NONE    (0)
-#define ESP_LOG_ERROR   (1)
-#define ESP_LOG_WARN    (2)
-#define ESP_LOG_INFO    (3)
-#define ESP_LOG_DEBUG   (4)
-#define ESP_LOG_VERBOSE (5)
-uint8_t esp_log_level = ESP_LOG_NONE;
+typedef enum {
+    ESP_LOG_NONE,       /*!< No log output */
+    ESP_LOG_ERROR,      /*!< Critical errors, software module can not recover on its own */
+    ESP_LOG_WARN,       /*!< Error conditions from which recovery measures have been taken */
+    ESP_LOG_INFO,       /*!< Information messages which describe normal flow of events */
+    ESP_LOG_DEBUG,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
+    ESP_LOG_VERBOSE     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
+} esp_log_level_t;
+esp_log_level_t esp_log_level = ESP_LOG_NONE;
 #define esp_log_level_set(spec, level) esp_log_level = level
 #define log_e(format, ...) if (esp_log_level >= ESP_LOG_ERROR) { Serial.printf(format "\n", ##__VA_ARGS__); }
 #define log_w(format, ...) if (esp_log_level >= ESP_LOG_WARN) { Serial.printf(format "\n", ##__VA_ARGS__); }
