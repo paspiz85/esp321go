@@ -42,6 +42,7 @@ public:
       html += "<button type=\"submit\" class=\"btn btn-primary\">Update</button> ";
       html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='/'\">Cancel</button>";
       html += "</p></form>";
+      html += _web_gui->getFooter(true);
       html += "</body>";
       _web_gui->sendPage(title,html);
     });

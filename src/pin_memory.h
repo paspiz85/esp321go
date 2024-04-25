@@ -12,7 +12,7 @@ class PinMemoryClass {
 private:
   int _pin_states[HW_PIN_COUNT] = {-1};
   uint32_t _pin_write_last_ms[HW_PIN_COUNT] = {0};
-#ifdef HW_ANALOG_CHANNEL_COUNT
+#ifdef HW_ANALOG_CHANNEL
   int8_t _pin_analog_channel[HW_PIN_COUNT] = {-1};
   uint8_t _analog_channels_used = 0;
 #endif
@@ -20,8 +20,10 @@ private:
   void (*_on_analogWrite)(uint8_t,uint16_t,bool) = NULL;
   void (*_on_tone)(uint8_t,uint32_t,bool) = NULL;
 public:
-#ifdef HW_ANALOG_CHANNEL_COUNT
-  void pinAnalogModeSetup(uint8_t pin, double freq, uint8_t resolution_bits);
+#ifdef HW_ANALOG_CHANNEL
+  void pinModeAnalog(uint8_t pin, double freq = HW_ANALOG_CHANNEL_FRQ);
+#else
+  void pinModeAnalog(uint8_t pin, double freq = 0);
 #endif
   int getPinState(uint8_t pin);
   void setPinState(uint8_t pin, int value);
@@ -34,13 +36,15 @@ public:
     void (*on_tone)(uint8_t,uint32_t,bool));
 };
 
-#ifdef HW_ANALOG_CHANNEL_COUNT
-void PinMemoryClass::pinAnalogModeSetup(uint8_t pin, double freq, uint8_t resolution_bits) {
-  ledcSetup(_analog_channels_used, freq, resolution_bits);
+void PinMemoryClass::pinModeAnalog(uint8_t pin, double freq) {
+#ifdef HW_ANALOG_CHANNEL
+  ledcSetup(_analog_channels_used, freq, HW_ANALOG_CHANNEL_RES);
   ledcAttachPin(pin, _analog_channels_used);
   _pin_analog_channel[pin] = _analog_channels_used++;
-}
+#else
+  pinMode(pin,OUTPUT);
 #endif
+}
 
 int PinMemoryClass::getPinState(uint8_t pin) {
   return _pin_states[pin];
@@ -60,7 +64,7 @@ void PinMemoryClass::writeDigital(uint8_t pin, int value, bool is_init) {
 }
 
 void PinMemoryClass::writePWM(uint8_t pin, uint16_t value, bool is_init) {
-#ifdef HW_ANALOG_CHANNEL_COUNT
+#ifdef HW_ANALOG_CHANNEL
   ledcWrite(_pin_analog_channel[pin], value);
 #else
   analogWrite(pin, value);
@@ -73,7 +77,7 @@ void PinMemoryClass::writePWM(uint8_t pin, uint16_t value, bool is_init) {
 }
 
 void PinMemoryClass::writeFM(uint8_t pin, uint32_t value, bool is_init) {
-#ifdef HW_ANALOG_CHANNEL_COUNT
+#ifdef HW_ANALOG_CHANNEL
   ledcWriteTone(_pin_analog_channel[pin], value);
 #else
   tone(pin, value);

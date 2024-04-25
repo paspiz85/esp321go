@@ -20,8 +20,6 @@
 #define PREF_ADMIN_USERNAME               "admin_username"
 #define PREF_ADMIN_PASSWORD               "admin_password"
 
-#define PREF_BLINK_LED_PIN                "blink_led_pin"
-
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
 #ifdef CONF_BMP280
@@ -125,7 +123,6 @@ const Config config_output_defs[] = {
 };
 
 const Config config_defs[] = {
-  { .key = PREF_BLINK_LED_PIN,        .type = UINT8,  .desc = EMPTY },
   { .key = PREF_REBOOT_FREE,          .type = UINT32, .desc = "Abilita il riavvio se la memoria scende sotto la soglia (0 = funzione disabilitata)" },
   { .key = PREF_REBOOT_MS,            .type = UINT32, .desc = "Abilita il riavvio dopo N millis (0 = funzione disabilitata)" },
   { .key = PREF_TIME_ZONE,            .type = STRING, .desc = EMPTY },

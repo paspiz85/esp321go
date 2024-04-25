@@ -8,14 +8,17 @@
 #include <Arduino.h>
 
 #ifdef PLATFORM_ESP32
+#define HW_ANALOG_CHANNEL
 #define HW_ANALOG_CHANNEL_COUNT   (16)
-#define HW_ANALOG_CHANNEL_PWM_FRQ (5000)
-#define HW_ANALOG_CHANNEL_PWM_RES (10)
+#define HW_ANALOG_CHANNEL_FRQ     (5000)
+#define HW_ANALOG_CHANNEL_RES     (10)
 #define HW_ANALOG_READ_MAX        (4095)
+#define HW_ANALOG_WRITE_MAX       ((1<<HW_ANALOG_CHANNEL_RES)-1)
 #define HW_PIN_COUNT              (40)
 #define LED_BUILTIN               (2)
 #else
 #define HW_ANALOG_READ_MAX        (1023)
+#define HW_ANALOG_WRITE_MAX       (255)
 #define HW_PIN_COUNT              (10)
 #endif
 

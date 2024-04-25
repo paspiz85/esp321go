@@ -138,7 +138,7 @@ String output_write(const Output * output,String input_value,bool reset=false) {
       }
     }
     int value = input_value.toInt();
-    if (value < 0 || value >= (1<<HW_ANALOG_CHANNEL_PWM_RES)) {
+    if (value < 0 || value > HW_ANALOG_WRITE_MAX) {
       return "Out-of-bound value: " + input_value;
     }
     PinMemory.writePWM(pin,value);
@@ -492,7 +492,7 @@ void web_handle_root() {
       output_editor = "<form action=\"/rest/out"+String(outputs[i].num)+"\" method=\"POST\" style=\"margin:0\">";
       output_editor += "<input type=\"hidden\" name=\"reset\" value=\"false\" />";
       output_editor += "<button type=\"button\" class=\"btn btn-secondary toggleable\" onclick=\"Array.prototype.slice.call(this.form.getElementsByClassName('toggleable')).forEach(function(e){e.classList.toggle('d-none')})\">Edit</button>";
-      output_editor += "<input type=\"number\" class=\"form-control toggleable d-none\" name=\"value\" value=\""+html_encode(output_value_str)+"\" min=\"0\" max=\""+String((1<<HW_ANALOG_CHANNEL_PWM_RES)-1)+"\" />";
+      output_editor += "<input type=\"number\" class=\"form-control toggleable d-none\" name=\"value\" value=\""+html_encode(output_value_str)+"\" min=\"0\" max=\""+String(HW_ANALOG_WRITE_MAX)+"\" />";
       output_editor += " <button type=\"submit\" class=\"btn btn-primary toggleable d-none\">Save</button>";
       output_editor += " <button type=\"button\" class=\"btn btn-secondary toggleable d-none\" onclick=\"Array.prototype.slice.call(this.form.getElementsByClassName('toggleable')).forEach(function(e){e.classList.toggle('d-none')})\">Cancel</button>";
       output_editor += "</form>";
@@ -578,7 +578,7 @@ void web_handle_root() {
   }
   html += "<p><button type=\"button\" class=\"btn btn-secondary\" onclick=\"location=''\">Refresh</button>";
   html += " <button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='?refresh=30'\">AutoRefresh</button>";
-  html += " <button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Configuration</button></p><hr/>";
+  html += " <button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+String(CONF_WEB_URI_CONFIG)+"'\">Configuration</button></p>";
   html += web_gui->getFooter();
   html += "</body>";
   web_gui->sendPage(title,html);
@@ -905,7 +905,7 @@ void setup() {
           PinMemory.writeDigital(pin,value,true);
           break;
         case ANALOG_PWM_OUTPUT:
-          PinMemory.pinAnalogModeSetup(pin,HW_ANALOG_CHANNEL_PWM_FRQ,HW_ANALOG_CHANNEL_PWM_RES);
+          PinMemory.pinModeAnalog(pin);
           pin_output[pin] = &outputs[i];
           value = 0;
           if (outputs[i].stored) {
@@ -914,7 +914,7 @@ void setup() {
           PinMemory.writePWM(pin,value,true);
           break;
         case ANALOG_FM_OUTPUT:
-          PinMemory.pinAnalogModeSetup(pin,0,HW_ANALOG_CHANNEL_PWM_RES);
+          PinMemory.pinModeAnalog(pin,0);
           pin_output[pin] = &outputs[i];
           value = 0;
           if (outputs[i].stored) {

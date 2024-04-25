@@ -2,7 +2,11 @@
 #define MODULO_OPENHAB_H
 
 #include <WiFiClient.h>
+#ifdef PLATFORM_ESP8266
+#include <ESP8266HTTPClient.h>
+#else
 #include <HTTPClient.h>
+#endif
 
 class OpenHAB {
 private:
