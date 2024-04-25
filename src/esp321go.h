@@ -13,7 +13,9 @@
 #ifdef CONF_WEB
 #include "web_gui.h"
 #include "web_config.h"
+#ifdef CONF_ADMIN_WEB_OTA
 #include "web_ota.h"
+#endif
 #ifdef CONF_WEB_USERS
 #include "web_users.h"
 #endif
