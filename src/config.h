@@ -125,7 +125,7 @@ const Config config_defs[] = {
   { .key = PREF_DHT_TYPE,             .type = UINT8,  .desc = EMPTY },
   { .key = PREF_DHT_READ_INTERVAL,    .type = UINT32, .desc = ("default e min "+String(CONF_DHT_READ_INTERVAL_MIN)).c_str() },
 #endif
-  { .key = PREF_LOG_LEVEL,            .type = UINT8,  .desc = "Livello di log (d,i,w,e)" }
+  { .key = PREF_LOG_LEVEL,            .type = UINT8,  .desc = "Livello di log [1=error,2=warn,3=info(default),4=debug]" }
 };
 
 Preferences preferences;
