@@ -39,6 +39,23 @@ uint32_t ESP_getChipId() {
 #define len_array(arg) ((unsigned int) (sizeof (arg) / sizeof (arg [0])))
 
 #ifdef PLATFORM_ESP8266
+
+#define ARDUHAL_LOG_LEVEL_ERROR      (1)
+#define ARDUHAL_LOG_LEVEL_WARN       (2)
+#define ARDUHAL_LOG_LEVEL_INFO       (3)
+#define ARDUHAL_LOG_LEVEL_DEBUG      (4)
+#define ARDUHAL_LOG_LEVEL_VERBOSE    (5)
+
+#ifndef CONFIG_ARDUHAL_LOG_DEFAULT_LEVEL
+#define CONFIG_ARDUHAL_LOG_DEFAULT_LEVEL ARDUHAL_LOG_LEVEL_DEBUG
+#endif
+
+#ifndef CORE_DEBUG_LEVEL
+#define ARDUHAL_LOG_LEVEL CONFIG_ARDUHAL_LOG_DEFAULT_LEVEL
+#else
+#define ARDUHAL_LOG_LEVEL CORE_DEBUG_LEVEL
+#endif
+
 typedef enum {
     ESP_LOG_NONE,       /*!< No log output */
     ESP_LOG_ERROR,      /*!< Critical errors, software module can not recover on its own */
@@ -49,10 +66,31 @@ typedef enum {
 } esp_log_level_t;
 esp_log_level_t esp_log_level = ESP_LOG_NONE;
 #define esp_log_level_set(spec, level) esp_log_level = level
+
+#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
 #define log_e(format, ...) if (esp_log_level >= ESP_LOG_ERROR) { Serial.printf(format "\n", ##__VA_ARGS__); }
+#else
+#define log_e(format, ...)
+#endif
+
+#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_WARN
 #define log_w(format, ...) if (esp_log_level >= ESP_LOG_WARN) { Serial.printf(format "\n", ##__VA_ARGS__); }
+#else
+#define log_w(format, ...)
+#endif
+
+#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_INFO
 #define log_i(format, ...) if (esp_log_level >= ESP_LOG_INFO) { Serial.printf(format "\n", ##__VA_ARGS__); }
+#else
+#define log_i(format, ...)
+#endif
+
+#if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
 #define log_d(format, ...) if (esp_log_level >= ESP_LOG_DEBUG) { Serial.printf(format "\n", ##__VA_ARGS__); }
+#else
+#define log_d(format, ...)
+#endif
+
 #endif
 
 #endif

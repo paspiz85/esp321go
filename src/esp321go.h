@@ -33,7 +33,7 @@ String admin_username;
 String admin_password;
 
 bool blink_led_enabled = true;
-int blink_led_pin;
+uint8_t blink_led_pin;
 uint32_t blink_last_ms = 0;
 
 #ifdef CONF_WIFI
@@ -177,6 +177,7 @@ void setup() {
   Serial.begin(CONF_MONITOR_BAUD_RATE);
   while (! Serial);
   preferences.begin("my-app", false);
+  //preferences.putUChar(PREF_LOG_LEVEL,ESP_LOG_DEBUG);
   //preferences.putString("wifi2_ssid","");
   //preferences.putString("wifi2_pswd","");
   log_level = preferences.getUChar(PREF_LOG_LEVEL,CONF_LOG_LEVEL);
@@ -201,7 +202,7 @@ void setup() {
 #ifdef CONF_BMP280
   bmp280_setup(preferences.getUChar(PREF_BMP280_ADDR));
 #endif
-  blink_led_pin = preferences.getInt(PREF_BLINK_LED_PIN,LED_BUILTIN);
+  blink_led_pin = preferences.getUChar(PREF_BLINK_LED_PIN,LED_BUILTIN);
   pinMode(blink_led_pin, OUTPUT);
 #ifdef CONF_WIFI
   wifi_name = preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME);
