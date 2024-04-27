@@ -24,6 +24,13 @@
 #ifdef CONF_ADMIN_ARDUINO_OTA
 #include <ArduinoOTA.h>
 #endif
+#ifdef CONF_NEOPIXEL
+#include <Adafruit_NeoPixel.h>
+#endif
+
+/**
+ * @see https://github.com/adafruit/Adafruit_NeoPixel/blob/master/Adafruit_NeoPixel.h
+ */
 
 uint8_t log_level;
 uint32_t reboot_free;
@@ -35,6 +42,10 @@ String admin_password;
 bool blink_led_enabled = true;
 uint8_t blink_led_pin;
 uint32_t blink_last_ms = 0;
+
+#ifdef CONF_NEOPIXEL
+Adafruit_NeoPixel * pixels = NULL;
+#endif
 
 #ifdef CONF_WIFI
 String wifi_name;
@@ -115,6 +126,9 @@ void web_handle_root() {
   int action = web_gui->getParameter("action").toInt();
   if (action != 0) {
     switch (action) {
+    case 1:
+      blink_led_enabled = true;
+      break;
     case 2:
       blink_led_enabled = false;
       digitalWrite(blink_led_pin, LOW);
@@ -204,6 +218,18 @@ void setup() {
 #endif
   blink_led_pin = preferences.getUChar(PREF_BLINK_LED_PIN,LED_BUILTIN);
   pinMode(blink_led_pin, OUTPUT);
+#ifdef CONF_NEOPIXEL
+  uint16_t pixels_num = preferences.getUShort(PREF_NEOPIXEL_NUM);
+  uint8_t pixels_pin = preferences.getUChar(PREF_NEOPIXEL_PIN);
+  if (pixels_num > 0) {
+    pixels = new Adafruit_NeoPixel(pixels_num,pixels_pin,CONF_NEOPIXEL_TYPE);
+    pixels->begin();
+    for(int i=0;i<pixels->numPixels();i++){
+      pixels->setPixelColor(i,pixels->Color(0,0,0));
+    }
+    pixels->show();
+  }
+#endif
 #ifdef CONF_WIFI
   wifi_name = preferences.getString(PREF_WIFI_NAME,CONF_WIFI_NAME);
   wifi_ap_pin = preferences.getUChar(PREF_WIFI_AP_PIN);

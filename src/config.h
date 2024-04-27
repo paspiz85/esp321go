@@ -36,6 +36,11 @@
 
 #define PREF_LOG_LEVEL                    "log_level"
 
+#ifdef CONF_NEOPIXEL
+#define PREF_NEOPIXEL_NUM                 "neopixel_num"
+#define PREF_NEOPIXEL_PIN                 "neopixel_pin"
+#endif
+
 #define PREF_OPENHAB_BUS_ITEM             "openhab_bus"
 #define PREF_OPENHAB_REST_URI             "openhab_uri"
 
@@ -88,6 +93,10 @@ const Config config_wifi_defs[] = {
 
 const Config config_defs[] = {
   { .key = PREF_BLINK_LED_PIN,        .type = UINT8,  .desc = EMPTY },
+#ifdef CONF_NEOPIXEL
+  { .key = PREF_NEOPIXEL_NUM,         .type = UINT16, .desc = EMPTY },
+  { .key = PREF_NEOPIXEL_PIN,         .type = UINT8,  .desc = EMPTY },
+#endif
   { .key = PREF_REBOOT_FREE,          .type = UINT32, .desc = "Abilita il riavvio se la memoria scende sotto la soglia (0 = funzione disabilitata)" },
   { .key = PREF_REBOOT_MS,            .type = UINT32, .desc = "Abilita il riavvio dopo N millis (0 = funzione disabilitata)" },
   { .key = PREF_TIME_ZONE,            .type = STRING, .desc = EMPTY },
