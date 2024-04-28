@@ -90,16 +90,9 @@ void items_publish(JSONVar data) {
 
 #ifdef CONF_WEB
 WebGUI* web_gui;
-WebConfig* web_config;
-#ifdef CONF_ADMIN_WEB_OTA
-WebOTA* web_ota;
-#endif
-#ifdef CONF_WEB_USERS
-WebUsers* web_users;
-#endif
 
-bool web_admin_authenticate() {
-  return web_gui->authenticate(admin_username.c_str(), admin_password.c_str());
+bool web_admin_authenticate(HTTPRequest* req) {
+  return web_authenticate(req, admin_username.c_str(), admin_password.c_str());
 }
 
 String web_html_footer(bool admin) {
@@ -115,15 +108,15 @@ String web_html_footer(bool admin) {
   html += String(COMPILE_VERSION)+" ["+String(__TIMESTAMP__)+"]";
 #ifdef CONF_ADMIN_WEB_OTA
   if (admin) {
-    html += " <button class=\"btn btn-secondary\" style=\"font-size:0.75rem;padding:0.25rem 0.5rem\" onclick=\"location='"+web_ota->getUri()+"'\">Update</button>";
+    html += " <button class=\"btn btn-secondary\" style=\"font-size:0.75rem;padding:0.25rem 0.5rem\" onclick=\"location='"+WebOTA::getUri()+"'\">Update</button>";
   }
 #endif
   html += "</div>";
   return html;
 }
 
-void web_handle_root() {
-  int action = web_gui->getParameter("action").toInt();
+void web_handle_root(HTTPRequest* req, HTTPResponse* res) {
+  int action = web_getParameter(req,"action").toInt();
   if (action != 0) {
     switch (action) {
     case 1:
@@ -140,12 +133,17 @@ void web_handle_root() {
     default:
       blink_led_enabled = true;
     }
-    web_gui->sendRedirect("/");
+    web_sendRedirect(req,res,"/");
     return;
   }
   String title = web_gui->getTitle();
   String html = "<body style=\"text-align:center\"><h1>"+title+"</h1>";
   html += "<h3>Hello World</h3>";
+  if (req->isSecure()) {
+    html += "<p>You are connected via <strong>HTTPS</strong>.</p>";
+  } else {
+    html += "<p>You are connected via <strong>HTTP</strong>.</p>";
+  }
   html += "<form action=\"/\" method=\"post\">";
   html += "<select name=\"action\" required>";
   html += "<option value=\"0\"></option>";
@@ -158,7 +156,7 @@ void web_handle_root() {
   html += "<p><a href=\"/config\">Configurazione</a></p>";
   html += web_gui->getFooter(false);
   html += "</body>";
-  web_gui->sendPage(title,html);
+  web_gui->sendPage(req,res,title,html);
 }
 #endif
 
@@ -282,23 +280,24 @@ void setup() {
   if (web_html_title == "") {
     web_html_title = CONF_WEB_HTML_TITLE;
   }
+  bool web_secure = false;
 #ifdef CONF_WEB_HTTPS
-  web_gui = new WebGUI(80,443,preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
+  web_gui = new WebGUI((uint16_t)80,(uint16_t)443,preferences.getString(PREF_WEB_CERT),preferences.getString(PREF_WEB_CERT_KEY));
 #else
   web_gui = new WebGUI();
+  web_secure = preferences.getBool(PREF_WEB_SECURE);
 #endif
   web_gui->setTitle(web_html_title);
   web_gui->setFooter(web_html_footer);
-  WebReset* web_reset = new WebReset(web_gui,CONF_WEB_URI_RESET,web_admin_authenticate);
-  web_config = new WebConfig(web_gui,web_reset,CONF_WEB_URI_CONFIG,web_admin_authenticate,
-    preferences.getBool(PREF_CONFIG_PUBLISH));
+  WebReset* web_reset = new WebReset(web_gui,CONF_WEB_URI_RESET);
+  WebConfig::setup(web_gui,web_reset,CONF_WEB_URI_CONFIG,preferences.getBool(PREF_CONFIG_PUBLISH));
 #ifdef CONF_ADMIN_WEB_OTA
-  web_ota = new WebOTA(web_gui,CONF_WEB_URI_FIRMWARE_UPDATE,web_admin_authenticate);
+  WebOTA::setup(web_gui,CONF_WEB_URI_FIRMWARE_UPDATE);
 #endif
 #ifdef CONF_WEB_USERS
-  web_users = new WebUsers(web_gui,admin_username,admin_password,preferences.getString(PREF_WEB_USERS));
+  WebUsers::setup(web_gui,admin_username,admin_password,preferences.getString(PREF_WEB_USERS));
 #endif
   web_gui->handle(HTTP_ANY, "/", web_handle_root);
-  web_gui->begin(wifi_name.c_str());
+  web_gui->begin(wifi_name.c_str(),web_secure);
 #endif
 }

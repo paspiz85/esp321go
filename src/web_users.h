@@ -8,23 +8,17 @@
 #include "web_platform.h"
 #include <Arduino_JSON.h>
 
+namespace WebUsers {
+
 #define USER_COOKIE "esp32auth"
 #define USER_COOKIE_MAXAGE (23328000)
 // 9 mesi
 #define USER_PASSWORD "password"
 
-class WebUsers {
-private:
-  WebPlatform* _platform;
-  JSONVar _users;
-public:
-  WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, const String& config);
-  bool login();
-  void logout();
-};
+JSONVar _users;
 
-bool WebUsers::login() {
-  String cookie = _platform->cookieRead(USER_COOKIE);
+bool login(HTTPRequest* req, HTTPResponse* res) {
+  String cookie = web_cookieRead(req,USER_COOKIE);
   if (cookie != "") {
     String value = base64_decode_str(cookie);
     int i = value.indexOf(':');
@@ -42,39 +36,41 @@ bool WebUsers::login() {
       }
     }
   }
-  _platform->sendRedirect(CONF_WEB_URI_LOGIN);
+  web_sendRedirect(req,res,CONF_WEB_URI_LOGIN);
   return false;
 }
 
-void WebUsers::logout() {
-  _platform->cookieDelete(USER_COOKIE);
-  _platform->cacheControl(false);
-  _platform->sendRedirect("/");
+void logout(HTTPRequest* req, HTTPResponse* res) {
+  web_cookieDelete(req,res,USER_COOKIE);
+  web_cacheControl(req,res,false);
+  web_sendRedirect(req,res,"/");
 }
 
-WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const String& admin_password, const String& config) {
-  _platform = platform;
+void setup(WebPlatform* platform, const String& admin_username, const String& admin_password, const String& config) {
   log_d("users config is %s", config.c_str());
   _users = JSON.parse(config == "" ? "{}" : config);
   JSONVar admin;
   admin[USER_PASSWORD] = admin_password;
   _users[admin_username] = admin;
   log_d("users are %s", JSON.stringify(_users).c_str());
-  _platform->handle(HTTP_ANY, CONF_WEB_URI_LOGOUT, [this]() {
-    logout();
+  platform->handle(HTTP_ANY, CONF_WEB_URI_LOGOUT, [](HTTPRequest* req, HTTPResponse* res) {
+    logout(req,res);
   });
-  _platform->handle(HTTP_ANY, CONF_WEB_URI_LOGIN, [this]() {
+  platform->handle(HTTP_ANY, CONF_WEB_URI_LOGIN, [](HTTPRequest* req, HTTPResponse* res) {
     JSONVar keys = _users.keys();
     for (int i = 0; i < keys.length(); i++) {
       const char* key = keys[i];
       JSONVar user = _users[key];
       String user_password = user[USER_PASSWORD];
-      if (_platform->authenticate(key, user_password.c_str())) {
-        _platform->cookieCreate(USER_COOKIE,base64_encode_str(String(key)+":"+user_password),USER_COOKIE_MAXAGE);
-        _platform->cacheControl(false);
-        return _platform->sendRedirect("/");
+      if (web_authenticate(req,key,user_password.c_str())) {
+        web_cookieCreate(req,res,USER_COOKIE,base64_encode_str(String(key)+":"+user_password),USER_COOKIE_MAXAGE);
+        web_cacheControl(req,res,false);
+        return web_sendRedirect(req,res,"/");
       }
     }
-    return _platform->authenticateRequest();
+    web_authenticateRequest(req,res);
+    return;
   });
+}
+
 }

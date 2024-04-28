@@ -42,11 +42,11 @@ public:
 #else
   WebGUI(const uint16_t http_port = CONF_WEB_HTTP_PORT) : WebPlatform(http_port) {};
 #endif
-  void begin(const char* name = "", std::function<void(void)> handle_notFound = NULL) override {
-    handle(HTTP_ANY, "/css/style.css", [this]() {
-      sendResponse(200, "text/css", __web_templates_css);
+  void begin(const char* name = "", bool secure = false, void (*handle_notFound)(HTTPRequest*,HTTPResponse*) = NULL) override {
+    handle(HTTP_ANY, "/css/style.css", [](HTTPRequest* req, HTTPResponse* res) {
+      web_sendResponse(req,res,200,"text/css",__web_templates_css);
     });
-    WebPlatform::begin(name,handle_notFound);
+    WebPlatform::begin(name,secure,handle_notFound);
   };
   void setTitle(const String& title) {
     _title = title;
@@ -63,23 +63,37 @@ public:
     }
     return _footer(admin);
   };
-  void sendPage(const String& title, const String& body, uint16_t refresh = 0);
+  void sendErrorClient(HTTPRequest* req, HTTPResponse* res, const String& message);
+  void sendPage(HTTPRequest* req, HTTPResponse* res, const String& title, const String& body, uint16_t refresh = 0);
 };
 
-void WebGUI::sendPage(const String& title, const String& body, uint16_t refresh) {
-  String html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\">";
-  html += "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">";
-  html += "<meta http-equiv=\"Cache-Control\" content=\"no-cache\">";
-  html += "<meta http-equiv=\"Pragma\" content=\"no-cache\">";
-  html += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+void WebGUI::sendErrorClient(HTTPRequest* req, HTTPResponse* res, const String& message) {
+  log_d("client_error %s", message);
+  req->discardRequestBody();
+  res->setStatusCode(400);
+  res->setHeader("Content-Type", "text/plain");
+  res->println(message);
+  res->finalize();
+}
+
+void WebGUI::sendPage(HTTPRequest* req, HTTPResponse* res, const String& title, const String& body, uint16_t refresh) {
+  req->discardRequestBody();
+  res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  res->println("<html><meta charset=\"utf-8\">");
+  res->println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
+  res->println("<meta http-equiv=\"Cache-Control\" content=\"no-cache\">");
+  res->println("<meta http-equiv=\"Pragma\" content=\"no-cache\">");
+  res->println("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
   if (refresh > 0) {
-    html += "<meta http-equiv=\"refresh\" content=\""+String(refresh)+"\">";
+    res->printf("<meta http-equiv=\"refresh\" content=\"%d\">",refresh);
   }
   if (title != "") {
-    html += "<title>"+html_encode(title)+"</title>";
+    res->printf("<title>%s</title>", html_encode(title));
   }
-  html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\" />";
-  html += "</head>";
-  const char* chunks[] = {html.c_str(), body.c_str(), "</html>"};
-  sendResponse(200, "text/html", len_array(chunks), chunks);
+  res->println("<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">");
+  res->println("</head>");
+  res->println(body);
+  res->println("</html>");
+  res->finalize();
 }

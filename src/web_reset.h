@@ -7,27 +7,27 @@
 #include "base_conf.h"
 #include "web_admin_component.h"
 
-void web_reset(WebPlatform* platform, const String& message, int refresh = 0) {
+void web_reset(HTTPRequest* req, HTTPResponse* res, const String& message, int refresh = 0) {
   log_i("reset");
-  platform->sendRedirect("/",message,refresh);
+  web_sendRedirect(req,res,"/",message,refresh);
   delay(1000);
   ESP.restart();
 }
 
-class WebReset : public WebAdminComponent {
+class WebReset {
 private:
   String _web_uri;
 public:
-  WebReset(WebPlatform* platform, const String& uri, std::function<bool(void)> web_admin_authenticate = NULL) : WebAdminComponent(platform,web_admin_authenticate) {
+  WebReset(WebPlatform* platform, const String& uri) {
     _web_uri = uri;
-    platform->handle(HTTP_ANY, _web_uri, [this]() {
-      if (authenticateAdmin()) {
+    platform->handle(HTTP_ANY, _web_uri, [](HTTPRequest* req, HTTPResponse* res) {
+      if (web_authenticateAdmin(req,res)) {
         return;
       }
-      if (!getPlatform()->isRequestMethodPost()) {
-        return getPlatform()->sendRedirect("/");
+      if (!web_isRequestMethodPost(req)) {
+        return web_sendRedirect(req,res,"/");
       }
-      web_reset(getPlatform(),"OK");
+      web_reset(req,res,"OK");
     });
   };
   const String& getUri() {

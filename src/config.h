@@ -59,6 +59,7 @@
 #ifdef CONF_WEB_HTTPS
 #define PREF_WEB_CERT                     "web_cert"
 #define PREF_WEB_CERT_KEY                 "web_cert_key"
+#define PREF_WEB_SECURE                   "web_secure"
 #endif
 
 #ifdef CONF_WEB_USERS
@@ -114,6 +115,11 @@ const Config config_defs[] = {
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
+#endif
+#ifdef CONF_WEB_HTTPS
+  { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM solo parte Base64" },
+  { .key = PREF_WEB_CERT_KEY,         .type = STRING, .desc = "Formato PEM solo parte Base64" },
+  { .key = PREF_WEB_SECURE,           .type = BOOL,   .desc = "Abilita solo la connessione sicura" },
 #endif
   { .key = PREF_ADMIN_USERNAME,       .type = STRING, .desc = EMPTY },
   { .key = PREF_ADMIN_PASSWORD,       .type = STRING, .desc = EMPTY },

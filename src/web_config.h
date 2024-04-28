@@ -11,10 +11,17 @@
 #include "web_reset.h"
 #include <Arduino_JSON.h>
 
+namespace WebConfig {
+
 #define WEB_CONFIG_PATH_RESET   "/reset"
 #define WEB_CONFIG_PATH_UPLOAD  "/upload"
 
-void web_config_handle_value_export(const char* key, const Config& config, JSONVar* json_export) {
+WebGUI* _web_gui;
+WebReset* _web_reset;
+String _web_uri;
+bool _config_publish;
+
+void __web_config_handle_value_export(const char* key, const Config& config, JSONVar* json_export) {
   if (!preferences.isKey(key)) {
     return;
   }
@@ -63,7 +70,7 @@ void web_config_handle_value_export(const char* key, const Config& config, JSONV
   }
 }
   
-void web_config_handle_value_import(const char* key, const Config& config, JSONVar* json_import) {
+void __web_config_handle_value_import(const char* key, const Config& config, JSONVar* json_import) {
   if (!(json_import->hasOwnProperty(key))) {
     return;
   }
@@ -110,28 +117,40 @@ void web_config_handle_value_import(const char* key, const Config& config, JSONV
   }
 }
 
-class WebConfig : public WebAdminComponent {
-private:
-  WebGUI* _web_gui;
-  WebReset* _web_reset;
-  String _web_uri;
-  bool _config_publish;
-  void _handle_change();
-  int _upload_len;
-  uint8_t _upload_buf[CONF_WEB_UPLOAD_LIMIT];
-  void _handle_upload();
-public:
-  WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, std::function<bool(void)> web_admin_authenticate = NULL, bool config_publish = false);
-};
-
-void WebConfig::_handle_change() {
-  if (authenticateAdmin()) {
+void __web_config_handle_change(HTTPRequest* req,HTTPResponse* res) {
+  if (web_authenticateAdmin(req,res)) {
     return;
   }
-  String param_name = _web_gui->getParameter("name");
-  String param_value = _web_gui->getParameter("value");
-  bool is_reset = _web_gui->getParameter("reset").equals("true");
-  bool is_download = _web_gui->getParameter("download").equals("true");
+  String param_name = "";
+  String param_value = "";
+  bool is_reset = false;
+  bool is_download = false;
+  HTTPBodyParser* parser = NULL;
+  if (req->getHeader("Content-Type") == "application/x-www-form-urlencoded") {
+    parser = new HTTPURLEncodedBodyParser(req);
+  }
+  if (parser != NULL) {
+    while (parser->nextField()) {
+      std::string name = parser->getFieldName();
+      if (name == "name") {
+        param_name = web_getParameter(parser);
+      }
+      if (name == "value") {
+        param_value = web_getParameter(parser);
+      }
+      if (name == "reset") {
+        is_reset = web_getParameter(parser).equals("true");
+      }
+      if (name == "download") {
+        is_download = web_getParameter(parser).equals("true");
+      }
+    }
+  } else {
+    param_name = web_getParameter(req, "name");
+    param_value = web_getParameter(req, "value");
+    is_reset = web_getParameter(req, "reset").equals("true");
+    is_download = web_getParameter(req, "download").equals("true");
+  }
   String title = _web_gui->getTitle();
   const Config* config_selected = NULL;
   if (param_name != "") {
@@ -163,7 +182,7 @@ void WebConfig::_handle_change() {
     for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
         if (is_download) {
-          web_config_handle_value_export(config_defs[i].key,config_defs[i],&json_export);
+          __web_config_handle_value_export(config_defs[i].key,config_defs[i],&json_export);
         } else {
           html += "<tr><td>"+String(config_defs[i].key)+"</td><td>"+String(ctype_str(config_defs[i].type))+"</td>";
           html += "<td><pre>"+html_encode(preferences_get(config_defs[i].key,config_defs[i].type,true))+"</pre></td>";
@@ -175,7 +194,7 @@ void WebConfig::_handle_change() {
             String config_key_str = config_defs[i].key+String(j)+config_defs[i].refs[k].key;
             const char* config_key = config_key_str.c_str();
             if (is_download) {
-              web_config_handle_value_export(config_key,config_defs[i].refs[k],&json_export);
+              __web_config_handle_value_export(config_key,config_defs[i].refs[k],&json_export);
             } else {
               html += "<tr><td>"+config_key_str+"</td><td>"+String(ctype_str(config_defs[i].refs[k].type))+"</td>";
               html += "<td><pre>"+html_encode(preferences_get(config_key,config_defs[i].refs[k].type,true))+"</pre></td>";
@@ -186,7 +205,7 @@ void WebConfig::_handle_change() {
       }
     }
     if (is_download) {
-      return _web_gui->sendResponse(200,"application/json",JSON.stringify(json_export),"config.json");
+      return web_sendResponse(req,res,200,"application/json",JSON.stringify(json_export),"config.json");
     }
     html += "</table>";
     html += "<form action=\""+_web_reset->getUri()+"\" method=\"POST\"><p>";
@@ -199,7 +218,7 @@ void WebConfig::_handle_change() {
     html += "<button type=\"submit\" class=\"btn btn-danger\" onclick=\"return confirm('Are you sure?')\">Reset</button> ";
     html += "</p></form>";
     html += _web_gui->getFooter(true);
-  } else if (!_web_gui->isRequestMethodPost()) {
+  } else if (!web_isRequestMethodPost(req)) {
     String config_value = preferences_get(param_name.c_str(),config_selected->type,true);
     html += "<p>"+param_name+"</p>";
     html += "<form action=\""+_web_uri+"\" method=\"POST\"><p>";
@@ -225,17 +244,18 @@ void WebConfig::_handle_change() {
     } else {
       preferences_put(param_name.c_str(),config_selected->type,param_value,publish_key);
     }
-    return _web_gui->sendRedirect(_web_uri);
-  }
-  html += "</body>";
-  _web_gui->sendPage(title,html);
-}
-
-void WebConfig::_handle_upload() {
-  if (authenticateAdmin()) {
+    web_sendRedirect(req,res,_web_uri);
     return;
   }
-  if (!_web_gui->isRequestMethodPost()) {
+  html += "</body>";
+  _web_gui->sendPage(req,res,title,html);
+}
+
+void __web_config_handle_upload(HTTPRequest* req,HTTPResponse* res) {
+  if (web_authenticateAdmin(req,res)) {
+    return;
+  }
+  if (!web_isRequestMethodPost(req)) {
     String title = _web_gui->getTitle();
     String html = "<body style=\"text-align:center\"><h1>"+title+"</h1><h2>Upload Configurations</h2>";
     html += "<form action=\""+_web_uri+WEB_CONFIG_PATH_UPLOAD+"\" method=\"POST\" enctype=\"multipart/form-data\"><p>";
@@ -245,61 +265,75 @@ void WebConfig::_handle_upload() {
     html += "<button type=\"button\" class=\"btn btn-secondary\" onclick=\"location='"+_web_uri+"'\">Cancel</button>";
     html += "</p></form>";
     html += "</body>";
-    return _web_gui->sendPage(title,html);
+    return _web_gui->sendPage(req,res,title,html);
   }
-  HTTPUpload& upload = _web_gui->getUpload();
-  if (upload.status == UPLOAD_FILE_START) {
-    log_i("Upload: %s", upload.filename.c_str());
-    _upload_len = 0;
-  } else if (upload.status == UPLOAD_FILE_WRITE) {
-    if (_upload_len + upload.currentSize + 1 < CONF_WEB_UPLOAD_LIMIT) {
-      memcpy(&_upload_buf[_upload_len],upload.buf,upload.currentSize * sizeof(uint8_t));
-      _upload_len += upload.currentSize;
+  HTTPBodyParser* parser;
+  std::string contentType = req->getHeader("Content-Type");
+  size_t semicolonPos = contentType.find(";");
+  if (semicolonPos != std::string::npos) {
+    contentType = contentType.substr(0, semicolonPos);
+  }
+  if (contentType == "multipart/form-data") {
+    parser = new HTTPMultipartBodyParser(req);
+  } else {
+    return _web_gui->sendErrorClient(req,res,"Invalid Content-Type");
+  }
+  while (parser->nextField()) {
+    std::string name = parser->getFieldName();
+    if (name != "upload") {
+      log_w("Skipping unexpected field");
+      continue;
     }
-  } else if (upload.status == UPLOAD_FILE_END) {
-    log_i("Upload Success: %u", upload.totalSize);
-    _upload_buf[_upload_len] = 0;
-    JSONVar json_import = JSON.parse(String((char*)_upload_buf));
-    _upload_len = 0;
+    std::string filename = parser->getFieldFilename();
+    log_i("Upload: %s", filename.c_str());
+    uint8_t upload_buf[CONF_WEB_UPLOAD_LIMIT];
+    size_t upload_len = 0;
+    while (!parser->endOfField()) {
+      byte buf[512];
+      size_t curr_len = parser->read(buf, sizeof(buf));
+      if (upload_len + curr_len + 1 < CONF_WEB_UPLOAD_LIMIT) {
+        memcpy(&upload_buf[upload_len],buf,curr_len * sizeof(uint8_t));
+        upload_len += curr_len;
+      }
+    }
+    log_i("Upload Success: %u", upload_len);
+    upload_buf[upload_len] = 0;
+    JSONVar json_import = JSON.parse(String((char*)upload_buf));
     for (int i = 0; i < len_array(config_defs); i++) {
       if (config_defs[i].type != DARRAY) {
-        web_config_handle_value_import(config_defs[i].key,config_defs[i],&json_import);
+        __web_config_handle_value_import(config_defs[i].key,config_defs[i],&json_import);
       } else {
         for (int j = 1; j <= config_defs[i].count; j++) {
           for (int k = 0; k < config_defs[i].refs_len; k++) {
             String config_key = config_defs[i].key+String(j)+config_defs[i].refs[k].key;
-            web_config_handle_value_import(config_key.c_str(),config_defs[i].refs[k],&json_import);
+            __web_config_handle_value_import(config_key.c_str(),config_defs[i].refs[k],&json_import);
           }
         }
       }
     }
+    return;
   }
+  _web_gui->sendErrorClient(req,res,"Invalid upload");
 }
 
-WebConfig::WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, std::function<bool(void)> web_admin_authenticate, bool config_publish) : WebAdminComponent(web_gui,web_admin_authenticate) {
+void setup(WebGUI* web_gui, WebReset* web_reset, const String& uri, bool config_publish = false) {
   _web_gui = web_gui;
   _web_reset = web_reset;
   _web_uri = uri;
   _config_publish = config_publish;
-  _web_gui->handle(HTTP_ANY, _web_uri, [this]() {
-    _handle_change();
-  });
-  _web_gui->handle(HTTP_GET, _web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
-    _handle_upload();
-  });
-  _web_gui->handleUpload(HTTP_POST, _web_uri + WEB_CONFIG_PATH_UPLOAD, [this]() {
-    _web_gui->sendRedirect(_web_uri);
-  }, [this]() {
-    _handle_upload();
-  });
-  _web_gui->handle(HTTP_ANY, _web_uri + WEB_CONFIG_PATH_RESET, [this]() {
-    if (authenticateAdmin()) {
+  _web_gui->handle(HTTP_ANY, _web_uri, __web_config_handle_change);
+  _web_gui->handle(HTTP_ANY, _web_uri + WEB_CONFIG_PATH_UPLOAD, __web_config_handle_upload);
+  _web_gui->handle(HTTP_ANY, _web_uri + WEB_CONFIG_PATH_RESET, [](HTTPRequest* req, HTTPResponse* res) {
+    if (web_authenticateAdmin(req,res)) {
       return;
     }
-    if (_web_gui->isRequestMethodPost()) {
+    if (web_isRequestMethodPost(req)) {
       log_i("preferences clear");
       preferences.clear();
     }
-    _web_gui->sendRedirect(_web_uri);
+    web_sendRedirect(req,res,_web_uri);
   });
 }
+
+}
+
