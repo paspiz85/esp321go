@@ -1,5 +1,4 @@
-#ifndef INCLUDE_BASE_PLATFORM_H
-#define INCLUDE_BASE_PLATFORM_H
+#pragma once
 
 /**
  * Contiene eventuali macro non presenti sulla piattaforma di riferimento.
@@ -89,8 +88,6 @@ esp_log_level_t esp_log_level = ESP_LOG_NONE;
 #define log_d(format, ...) if (esp_log_level >= ESP_LOG_DEBUG) { Serial.printf(format "\n", ##__VA_ARGS__); }
 #else
 #define log_d(format, ...)
-#endif
-
 #endif
 
 #endif

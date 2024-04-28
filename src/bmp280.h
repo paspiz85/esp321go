@@ -1,5 +1,4 @@
-#ifndef INCLUDE_BMP280_H
-#define INCLUDE_BMP280_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del sensore BMP 280.
@@ -74,5 +73,3 @@ bool bmp280_setup(uint8_t addr) {
   }
   return result;
 }
-
-#endif

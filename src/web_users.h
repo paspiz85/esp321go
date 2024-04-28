@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_USERS_H
-#define INCLUDE_WEB_USERS_H
+#pragma once
 
 /**
  * Contiene l'autenticazione degli utenti.
@@ -79,5 +78,3 @@ WebUsers::WebUsers(WebPlatform* platform, const String& admin_username, const St
     return _platform->authenticateRequest();
   });
 }
-
-#endif

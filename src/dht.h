@@ -1,5 +1,4 @@
-#ifndef INCLUDE_DHT_H
-#define INCLUDE_DHT_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del sensore DHT.
@@ -59,5 +58,3 @@ bool dht_setup(uint8_t pin, uint8_t type, uint32_t read_interval_ms = CONF_DHT_R
   dht->begin();
   return true;
 }
-
-#endif

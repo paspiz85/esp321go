@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_GUI_H
-#define INCLUDE_WEB_GUI_H
+#pragma once
 
 /**
  * Contiene funzioni per la gestione delle pagine HTML del Web Server.
@@ -84,5 +83,3 @@ void WebGUI::sendPage(const String& title, const String& body, uint16_t refresh)
   const char* chunks[] = {html.c_str(), body.c_str(), "</html>"};
   sendResponse(200, "text/html", len_array(chunks), chunks);
 }
-
-#endif

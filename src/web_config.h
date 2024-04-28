@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_CONFIG_H
-#define INCLUDE_WEB_CONFIG_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per la configurazione del Web Server.
@@ -304,5 +303,3 @@ WebConfig::WebConfig(WebGUI* web_gui, WebReset* web_reset, const String& uri, st
     _web_gui->sendRedirect(_web_uri);
   });
 }
-
-#endif

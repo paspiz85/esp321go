@@ -1,5 +1,4 @@
-#ifndef INCLUDE_CONFIG_H
-#define INCLUDE_CONFIG_H
+#pragma once
 
 /**
  * Gestione della configurazione.
@@ -271,5 +270,3 @@ bool preferences_put(const char* key, ctype_t type, String value, String publish
   }
   return true;
 }
-
-#endif

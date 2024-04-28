@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_OTA_H
-#define INCLUDE_WEB_OTA_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per l'aggiornamento tramite Web Server.
@@ -76,5 +75,3 @@ public:
     return _web_uri;
   };
 };
-
-#endif

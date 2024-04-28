@@ -1,5 +1,4 @@
-#ifndef INCLUDE_BASE_UTILS_H
-#define INCLUDE_BASE_UTILS_H
+#pragma once
 
 /**
  * Contiene tipi e funzioni di uso generico.
@@ -342,6 +341,4 @@ String base64_decode_str(String encodedString) {
   }
   return decodedString;
 }
-#endif
-
 #endif

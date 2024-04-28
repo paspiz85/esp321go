@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WIFI_TIME_H
-#define INCLUDE_WIFI_TIME_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del NTP tramite WiFi.
@@ -67,5 +66,3 @@ void WiFiTime::setup(const char* ntp_server, uint32_t ntp_interval_ms, const cha
     log_e("NTP time: connection failed");
   }
 }
-
-#endif

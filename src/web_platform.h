@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_PLATFORM_H
-#define INCLUDE_WEB_PLATFORM_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso come Web Server.
@@ -434,5 +433,3 @@ void WebPlatform::begin(const char* name, std::function<void(void)> handle_notFo
 #endif
   Serial.println("/");
 }
-
-#endif

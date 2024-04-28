@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WIFI_UTILS_H
-#define INCLUDE_WIFI_UTILS_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per l'uso del WiFi.
@@ -203,5 +202,3 @@ void WiFiUtils::setup(uint8_t mode, const char* ap_ip, const char* ap_ssid, cons
     }
   }
 }
-
-#endif

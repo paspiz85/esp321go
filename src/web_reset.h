@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_RESET_H
-#define INCLUDE_WEB_RESET_H
+#pragma once
 
 /**
  * Contiene variabili, tipi e funzioni per il reset del Web Server.
@@ -35,5 +34,3 @@ public:
     return _web_uri;
   };
 };
-
-#endif

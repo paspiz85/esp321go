@@ -1,5 +1,4 @@
-#ifndef MODULO_OPENHAB_H
-#define MODULO_OPENHAB_H
+#pragma once
 
 #include <WiFiClient.h>
 #ifdef PLATFORM_ESP8266
@@ -68,5 +67,3 @@ bool OpenHAB::item_write(const String& item_name, const String& value) {
   _httpClient.end();
   return result;
 }
-
-#endif

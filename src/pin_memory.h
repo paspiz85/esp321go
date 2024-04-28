@@ -1,5 +1,4 @@
-#ifndef INCLUDE_PIN_MEMORY_H
-#define INCLUDE_PIN_MEMORY_H
+#pragma once
 
 /**
  * Contiene funzioni per la memorizzazione dello stato dei pin.
@@ -102,5 +101,3 @@ void PinMemoryClass::setup(void (*on_digitalWrite)(uint8_t,int,bool),
 }
 
 PinMemoryClass PinMemory;
-
-#endif

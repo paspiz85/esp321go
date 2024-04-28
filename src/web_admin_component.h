@@ -1,5 +1,4 @@
-#ifndef INCLUDE_WEB_ADMIN_COMPONENT_H
-#define INCLUDE_WEB_ADMIN_COMPONENT_H
+#pragma once
 
 #include "web_platform.h"
 
@@ -25,5 +24,3 @@ public:
     return false;
   };
 };
-
-#endif
