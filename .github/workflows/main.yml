@@ -1,4 +1,4 @@
-name: 'ESP32 Arduino Project'
+name: 'ESP8266 Arduino Project'
 env:
   version: ${{ github.ref_name }}-v1.0.${{ github.run_number }}
 on:
@@ -23,8 +23,8 @@ jobs:
         with:
           value: ${{ env.version }}
           index_of_str: "release/"
-      - name: Arduino Compile
-        run: tools/arduino-cli.exe compile -e -m esp321go --clean --output-dir target --build-property build.defines='-DCOMPILE_VERSION="${{ steps.Name.outputs.substring }}"'
+      - name: Arduino Compile        
+        run: tools/arduino-cli.exe compile -e -m esp321go --clean --output-dir target --build-properties compiler.c.extra_flag=-DCOMPILE_VERSION="${{ steps.Name.outputs.substring }}"
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
