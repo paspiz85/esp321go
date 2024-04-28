@@ -38,6 +38,9 @@ const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
 
 const PROGMEM char *   CONF_OPENHAB_BUS_ITEM            = "external_bus";
 
+const PROGMEM uint32_t CONF_THERMO_AUTO_INTERVAL        = 60000;
+const PROGMEM uint16_t CONF_THERMO_REFRESH_MIN          = 1000;
+
 // Valore per Europe/Rome in https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 const PROGMEM char*    CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.5.0/3";
 
@@ -67,6 +70,7 @@ const PROGMEM char*    CONF_WEB_URI_RESET               = "/reset";
 #ifdef CONF_WEB_USERS
 const PROGMEM char*    CONF_WEB_URI_LOGIN               = "/login";
 const PROGMEM char*    CONF_WEB_URI_LOGOUT              = "/logout";
+const PROGMEM char *   CONF_WEB_URI_REST_DATA           = "/rest/data";
 #endif
 
 #endif

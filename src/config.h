@@ -19,7 +19,7 @@
 #define PREF_ADMIN_USERNAME               "admin_username"
 #define PREF_ADMIN_PASSWORD               "admin_password"
 
-#define PREF_BLINK_LED_PIN                "blink_led_pin"
+#define PREF_BOILER_PIN                   "boiler_pin"
 
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
@@ -50,10 +50,16 @@
 #define PREF_REBOOT_FREE                  "reboot_free"
 #define PREF_REBOOT_MS                    "reboot_ms"
 
+#define PREF_THERMO_AUTO_INTERVAL         "thermo_auto_interval_ms"
+#define PREF_THERMO_MODE                  "thermo_mode"
+#define PREF_THERMO_REFRESH               "thermo_refresh"
+#define PREF_THERMO_TARGET                "thermo_target"
+
 #define PREF_TIME_ZONE                    "time_zone"
 
 #ifdef CONF_WEB
 #define PREF_WEB_HTML_TITLE               "html_title"
+#define PREF_WEB_USERS                    "users"
 #endif
 
 #ifdef CONF_WEB_HTTPS
@@ -92,7 +98,6 @@ const Config config_wifi_defs[] = {
 };
 
 const Config config_defs[] = {
-  { .key = PREF_BLINK_LED_PIN,        .type = UINT8,  .desc = EMPTY },
 #ifdef CONF_NEOPIXEL
   { .key = PREF_NEOPIXEL_NUM,         .type = UINT16, .desc = EMPTY },
   { .key = PREF_NEOPIXEL_PIN,         .type = UINT8,  .desc = EMPTY },
@@ -115,6 +120,7 @@ const Config config_defs[] = {
 #endif
 #ifdef CONF_WEB
   { .key = PREF_WEB_HTML_TITLE,       .type = STRING, .desc = EMPTY },
+  { .key = PREF_WEB_USERS,            .type = STRUCT, .desc = EMPTY },
 #endif
 #ifdef CONF_WEB_HTTPS
   { .key = PREF_WEB_CERT,             .type = STRING, .desc = "Formato PEM solo parte Base64" },
@@ -139,6 +145,9 @@ const Config config_defs[] = {
   { .key = PREF_DHT_TYPE,             .type = UINT8,  .desc = EMPTY },
   { .key = PREF_DHT_READ_INTERVAL,    .type = UINT32, .desc = ("default e min "+String(CONF_DHT_READ_INTERVAL_MIN)).c_str() },
 #endif
+  { .key = PREF_BOILER_PIN,           .type = UINT8,  .desc = EMPTY },
+  { .key = PREF_THERMO_AUTO_INTERVAL, .type = UINT32, .desc = ("default "+String(CONF_THERMO_AUTO_INTERVAL)+" ms").c_str() },
+  { .key = PREF_THERMO_REFRESH,       .type = UINT32, .desc = ("default and min "+String(CONF_THERMO_REFRESH_MIN)+" ms").c_str() },
   { .key = PREF_LOG_LEVEL,            .type = UINT8,  .desc = "Livello di log [1=error,2=warn,3=info(default),4=debug]" }
 };
 
