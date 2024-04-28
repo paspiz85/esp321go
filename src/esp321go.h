@@ -45,6 +45,12 @@ uint32_t blink_last_ms = 0;
 
 #ifdef CONF_NEOPIXEL
 Adafruit_NeoPixel * pixels = NULL;
+bool pixels_enabled = true;
+int pixels_mode = 0;
+int pixels_weight = 0;
+int pixels_color = 0;
+int pixels_wave_current = 0;
+uint32_t pixels_last_ms = 0;
 #endif
 
 #ifdef CONF_WIFI
@@ -137,8 +143,26 @@ void web_handle_root() {
       blink_led_enabled = false;
       digitalWrite(blink_led_pin, HIGH);
       break;
-    default:
-      blink_led_enabled = true;
+#ifdef CONF_NEOPIXEL
+    case 4:
+      pixels_enabled = true;
+      pixels_mode = 0;
+      break;
+    case 5:
+      pixels_enabled = false;
+      pixels_mode = 0;
+      if (pixels != NULL) {
+        for(int i=0;i<pixels->numPixels();i++){
+          pixels->setPixelColor(i, pixels->Color(0,0,0));
+        }
+        pixels->show();
+      }
+      break;
+    case 6:
+      pixels_mode = 1;
+      pixels_weight = 0;
+      break;
+#endif
     }
     web_gui->sendRedirect("/");
     return;
@@ -152,6 +176,11 @@ void web_handle_root() {
   html += "<option value=\"1\">Lampeggia</option>";
   html += "<option value=\"2\">Sempre acceso</option>";
   html += "<option value=\"3\">Sempre spento</option>";
+#ifdef CONF_NEOPIXEL
+  html += "<option value=\"4\">Attiva Pixels</option>";
+  html += "<option value=\"5\">Disattiva Pixels</option>";
+  html += "<option value=\"6\">Mode brighness</option>";
+#endif
   html += "</select>";
   html += "<p><input type=\"submit\" value=\"OK\" /></p>";
   html += "</form>";
@@ -182,6 +211,38 @@ void loop() {
     blink_last_ms = millis();
     digitalWrite(blink_led_pin, !digitalRead(blink_led_pin));
   }
+#ifdef CONF_NEOPIXEL
+  if (pixels != NULL && pixels_enabled && at_interval(100,pixels_last_ms)) {
+    pixels_last_ms = millis();
+    int n = pixels->numPixels();
+    switch (pixels_mode) {
+    case 1:
+      for(int i=0;i<n;i++){
+        pixels->setPixelColor(i,pixels->Color(pixels_weight,pixels_weight,pixels_weight));
+      }
+      pixels_weight = (pixels_weight + 1) % 256;
+      break;
+    default:
+      pixels->setPixelColor(pixels_wave_current, pixels->Color(0,0,0));
+      pixels_wave_current = (pixels_wave_current + 1) % n;
+      if (pixels_wave_current == 0) {
+        pixels_color = (pixels_color + 1) % 7;
+      }
+      uint8_t weight = 255 - 255 * sqrt(pixels_wave_current) / sqrt(n);
+      log_d("current %d / %d = %d # %d", pixels_wave_current, n, pixels_color, weight);
+      switch(pixels_color) {
+      case 0: pixels->setPixelColor(pixels_wave_current, pixels->Color(weight,weight,weight)); break;
+      case 1: pixels->setPixelColor(pixels_wave_current, pixels->Color(weight,0,0)); break;
+      case 2: pixels->setPixelColor(pixels_wave_current, pixels->Color(weight,weight,0)); break;
+      case 3: pixels->setPixelColor(pixels_wave_current, pixels->Color(0,weight,0)); break;
+      case 4: pixels->setPixelColor(pixels_wave_current, pixels->Color(0,weight,weight)); break;
+      case 5: pixels->setPixelColor(pixels_wave_current, pixels->Color(0,0,weight)); break;
+      case 6: pixels->setPixelColor(pixels_wave_current, pixels->Color(weight,0,weight)); break;
+      }
+    }
+    pixels->show();
+  }
+#endif
 #ifdef CONF_WEB
   web_gui->loopToHandleClients();
 #endif
