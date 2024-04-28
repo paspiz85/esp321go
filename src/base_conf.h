@@ -27,16 +27,31 @@ const PROGMEM char*    CONF_ADMIN_USERNAME              = "admin";
 const PROGMEM uint32_t CONF_DHT_READ_INTERVAL_MIN       = 5000;
 #endif
 
+const PROGMEM uint32_t CONF_INPUT_READ_INTERVAL         = 1000;
+const PROGMEM uint32_t CONF_INPUT_READ_INTERVAL_MIN     = 100;
+
 const PROGMEM uint8_t  CONF_LOG_LEVEL                   = 3; // ESP_LOG_INFO
 
 const PROGMEM uint32_t CONF_MONITOR_BAUD_RATE           = 115200;
+
+const PROGMEM uint8_t  CONF_MQ2_READ_SAMPLE_TIMES       = 5;
+const PROGMEM uint32_t CONF_MQ2_READ_SAMPLE_INTERVAL    = 50;
+const PROGMEM float    CONF_MQ2_RL_VALUE                = 5;
 
 #define CONF_NEOPIXEL
 #ifdef CONF_NEOPIXEL
 #define CONF_NEOPIXEL_TYPE NEO_GRB+NEO_KHZ800
 #endif
 
-const PROGMEM char *   CONF_OPENHAB_BUS_ITEM            = "external_bus";
+const PROGMEM char*    CONF_OPENHAB_BUS_ITEM            = "external_bus";
+
+const PROGMEM uint32_t CONF_PUBLISH_INTERVAL            = 60000;
+const PROGMEM uint32_t CONF_PUBLISH_INTERVAL_MIN        = 60000;
+
+const PROGMEM uint8_t  CONF_RULES_TRIGGERS_SIZE         = 10;
+
+const PROGMEM uint8_t  CONF_SCHEMA_INPUT_COUNT          = 5;
+const PROGMEM uint8_t  CONF_SCHEMA_OUTPUT_COUNT         = 10;
 
 // Valore per Europe/Rome in https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 const PROGMEM char*    CONF_TIME_ZONE                   = "CET-1CEST,M3.5.0,M10.5.0/3";
@@ -99,6 +114,7 @@ const PROGMEM uint16_t CONF_WEB_REDIRECT_REFRESH_MIN    = 5000;
 const PROGMEM uint16_t CONF_WEB_UPLOAD_LIMIT            = 10240;
 const PROGMEM char*    CONF_WEB_URI_CONFIG              = "/config";
 const PROGMEM char*    CONF_WEB_URI_FIRMWARE_UPDATE     = "/update";
+const PROGMEM char*    CONF_WEB_URI_PUBLISH             = "/publish";
 const PROGMEM char*    CONF_WEB_URI_RESET               = "/reset";
 
 #define CONF_WEB_USERS

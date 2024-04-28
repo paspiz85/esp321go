@@ -19,19 +19,21 @@
 #define PREF_ADMIN_USERNAME               "admin_username"
 #define PREF_ADMIN_PASSWORD               "admin_password"
 
-#define PREF_BLINK_LED_PIN                "blink_led_pin"
-
 #define PREF_CONFIG_PUBLISH               "publish_conf"
 
 #ifdef CONF_BMP280
 #define PREF_BMP280_ADDR                  "bmp280_addr"
+#define PREF_BMP280_PUBLISH               "bmp280_pub"
 #endif
 
 #ifdef CONF_DHT
 #define PREF_DHT_PIN                      "dht_pin"
+#define PREF_DHT_PUBLISH                  "dht_pub"
 #define PREF_DHT_READ_INTERVAL            "dht_interval"
 #define PREF_DHT_TYPE                     "dht_type"
 #endif
+
+#define PREF_INPUT_READ_INTERVAL          "reading_ms"
 
 #define PREF_LOG_LEVEL                    "log_level"
 
@@ -43,12 +45,33 @@
 #define PREF_OPENHAB_BUS_ITEM             "openhab_bus"
 #define PREF_OPENHAB_REST_URI             "openhab_uri"
 
+#define PREF_PREFIX_INPUT                 "in"              // Prefisso per le preferenze degli input
+#define PREF_PREFIX_INPUT_KEY             "in_"             // Prefisso di fallback del nome 
+#define PREF_PREFIX_INPUT_NAME            "_name"           // Suffisso per i nomi degli input
+#define PREF_PREFIX_INPUT_PIN             "_pin"            // Suffisso per i pin degli input
+#define PREF_PREFIX_INPUT_TYPE            "_type"           // Suffisso per il tipo degli input, vedi descrizione successiva
+#define PREF_PREFIX_INPUT_TYPE_BITMASK    (63)              // Bitmask sul tipo degli input
+#define PREF_PREFIX_INPUT_TYPE_MONITORED  (64)              // Bitmask sul tipo degli input monitored
+#define PREF_PREFIX_INPUT_TYPE_PUBLISHED  (128)             // Bitmask sul tipo degli input published
+#define PREF_PREFIX_OUTPUT                "out"             // Prefisso per le preferenze degli output
+#define PREF_PREFIX_OUTPUT_KEY            "out_"            // Prefisso per la memorizzazione dello stato degli output e come fallback del nome
+#define PREF_PREFIX_OUTPUT_NAME           "_name"           // Suffisso per i nomi degli output
+#define PREF_PREFIX_OUTPUT_PIN            "_pin"            // Suffisso per i pin degli output
+#define PREF_PREFIX_OUTPUT_TYPE           "_type"           // Suffisso per il tipo degli output, vedi descrizione successiva
+#define PREF_PREFIX_OUTPUT_TYPE_BITMASK   (63)              // Bitmask sul tipo degli output
+#define PREF_PREFIX_OUTPUT_TYPE_STORED    (64)              // Bitmask sul tipo degli output stored
+#define PREF_PREFIX_OUTPUT_TYPE_PUBLISHED (128)             // Bitmask sul tipo degli output published
+#define PREF_PREFIX_PIN_STATE             "pin_"            // Prefisso per la memorizzazione e pubblicazione dello stato dei pin
 #define PREF_PREFIX_WIFI                  "wifi"            // Prefisso per le reti WiFi
 #define PREF_PREFIX_WIFI_PSWD             "_pswd"           // Suffisso per le password WiFi
 #define PREF_PREFIX_WIFI_SSID             "_ssid"           // Suffisso per gli SSID WiFi
 
+#define PREF_PUBLISH_INTERVAL             "publish_ms"
+
 #define PREF_REBOOT_FREE                  "reboot_free"
 #define PREF_REBOOT_MS                    "reboot_ms"
+
+#define PREF_RULES                        "rules"
 
 #define PREF_TIME_ZONE                    "time_zone"
 
@@ -89,9 +112,18 @@ const Config config_wifi_defs[] = {
   { .key = PREF_PREFIX_WIFI_SSID,     .type = STRING, .desc = EMPTY },
   { .key = PREF_PREFIX_WIFI_PSWD,     .type = STRING, .desc = EMPTY }
 };
+const Config config_input_defs[] = {
+  { .key = PREF_PREFIX_INPUT_TYPE, .type = UINT8, .desc = "Tipo di input:\n 0 -> none\n 1 -> digital\n 2 -> analog\n 3 -> mq2\n +64 -> monitoring\n +128 -> published\n others -> none" },
+  { .key = PREF_PREFIX_INPUT_NAME, .type = STRING, .desc = "" },
+  { .key = PREF_PREFIX_INPUT_PIN, .type = UINT8, .desc = "" }
+};
+const Config config_output_defs[] = {
+  { .key = PREF_PREFIX_OUTPUT_TYPE, .type = UINT8, .desc = "Tipo di output:\n 0 -> none\n 1 -> digital\n 2 -> analog PWM\n 3 -> analog FM\n 16 -> uint8\n 17 -> uint16\n 18 -> uint32\n 20 -> int8\n 21 -> int16\n 22 -> int32\n 24 -> string\n 25 -> bool\n 26 -> float\n 27 -> double\n +64 -> stored\n +128 -> published\n others -> none" },
+  { .key = PREF_PREFIX_OUTPUT_NAME, .type = STRING, .desc = "" },
+  { .key = PREF_PREFIX_OUTPUT_PIN, .type = UINT8, .desc = "" }
+};
 
 const Config config_defs[] = {
-  { .key = PREF_BLINK_LED_PIN,        .type = UINT8,  .desc = EMPTY },
 #ifdef CONF_NEOPIXEL
   { .key = PREF_NEOPIXEL_NUM,         .type = UINT16, .desc = EMPTY },
   { .key = PREF_NEOPIXEL_PIN,         .type = UINT8,  .desc = EMPTY },
@@ -127,12 +159,19 @@ const Config config_defs[] = {
   { .key = PREF_CONFIG_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #ifdef CONF_BMP280
   { .key = PREF_BMP280_ADDR,          .type = UINT8,  .desc = "119 per 0x77 oppure 118 per 0x76" },
+  { .key = PREF_BMP280_PUBLISH,       .type = BOOL,   .desc = EMPTY },
 #endif
 #ifdef CONF_DHT
   { .key = PREF_DHT_PIN,              .type = UINT8,  .desc = EMPTY },
   { .key = PREF_DHT_TYPE,             .type = UINT8,  .desc = EMPTY },
   { .key = PREF_DHT_READ_INTERVAL,    .type = UINT32, .desc = ("default e min "+String(CONF_DHT_READ_INTERVAL_MIN)).c_str() },
+  { .key = PREF_DHT_PUBLISH,          .type = BOOL,   .desc = EMPTY },
 #endif
+  { .key = PREF_PREFIX_INPUT,         .type = DARRAY, .desc = EMPTY, .count = CONF_SCHEMA_INPUT_COUNT, .refs = &config_input_defs[0], .refs_len = len_array(config_input_defs) },
+  { .key = PREF_PREFIX_OUTPUT,        .type = DARRAY, .desc = EMPTY, .count = CONF_SCHEMA_OUTPUT_COUNT, .refs = &config_output_defs[0], .refs_len = len_array(config_output_defs) },
+  { .key = PREF_INPUT_READ_INTERVAL,  .type = UINT32, .desc = ("min "+String(CONF_INPUT_READ_INTERVAL_MIN)+", default "+String(CONF_INPUT_READ_INTERVAL)).c_str() },
+  { .key = PREF_RULES,                .type = STRUCT, .desc = EMPTY },
+  { .key = PREF_PUBLISH_INTERVAL,     .type = UINT32, .desc = ("min "+String(CONF_PUBLISH_INTERVAL_MIN)+" (default), 0 to disable").c_str() },
   { .key = PREF_LOG_LEVEL,            .type = UINT8,  .desc = "Livello di log [1=error,2=warn,3=info(default),4=debug]" }
 };
 
