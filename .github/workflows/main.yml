@@ -22,7 +22,7 @@ jobs:
         id: Name
         with:
           value: ${{ env.version }}
-          index_of_str: "release"
+          index_of_str: "release/"
       - name: Arduino Compile
         run: tools/arduino-cli.exe compile -e -m esp321go --clean --output-dir target --build-property build.defines='-DCOMPILE_VERSION="${{ steps.Name.outputs.substring }}"'
       - name: Release
