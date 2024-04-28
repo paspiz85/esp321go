@@ -1,4 +1,4 @@
-name: 'ESP32 Project'
+name: 'ESP32 Arduino Project'
 env:
   version: ${{ github.ref_name }}-v1.0.${{ github.run_number }}
 on:
