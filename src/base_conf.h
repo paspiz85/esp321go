@@ -1,5 +1,4 @@
-#ifndef INCLUDE_BASE_CONF_H
-#define INCLUDE_BASE_CONF_H
+#pragma once
 
 /**
  * Contiene le costanti di configurazione
@@ -99,7 +98,7 @@ const PROGMEM char*    CONF_WEB_HTTPS_NAME              = PLATFORM_TITLE;
 const PROGMEM uint16_t CONF_WEB_REDIRECT_REFRESH_MIN    = 5000;
 const PROGMEM uint16_t CONF_WEB_UPLOAD_LIMIT            = 10240;
 const PROGMEM char*    CONF_WEB_URI_CONFIG              = "/config";
-const PROGMEM char*    CONF_WEB_URI_FIRMWARE_UPDATE     = "/firmware/update";
+const PROGMEM char*    CONF_WEB_URI_FIRMWARE_UPDATE     = "/update";
 const PROGMEM char*    CONF_WEB_URI_RESET               = "/reset";
 
 #define CONF_WEB_USERS
@@ -123,7 +122,5 @@ const PROGMEM char*    CONF_WIFI_NAME                   = PLATFORM_TITLE;
 const PROGMEM char*    CONF_WIFI_NTP_SERVER             = "pool.ntp.org";
 const PROGMEM uint32_t CONF_WIFI_NTP_INTERVAL           = 300000;
 const PROGMEM uint32_t CONF_WIFI_NTP_INTERVAL_MIN       = 60000;
-
-#endif
 
 #endif
