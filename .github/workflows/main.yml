@@ -17,14 +17,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Name
+        uses: bhowell2/github-substring-action@1.0.2
+        id: Name
+        with:
+          value: ${{ env.version }}
+          index_of_str: "release"
       - name: Arduino Compile
-        run: tools/arduino-cli.exe compile -e -m esp321go --clean --output-dir target --build-property build.defines='-DCOMPILE_VERSION="${{ env.version }}"'
+        run: tools/arduino-cli.exe compile -e -m esp321go --clean --output-dir target --build-property build.defines='-DCOMPILE_VERSION="${{ steps.Name.outputs.substring }}"'
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ env.version }}
-          name: Release ${{ env.version }}
+          tag_name: ${{ steps.Name.outputs.substring }}
+          name: Release ${{ steps.Name.outputs.substring }}
           body: |
             Changes in this Release
             ${{ github.event.head_commit.message }}
